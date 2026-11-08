@@ -116,16 +116,28 @@ inline float polyBLEP(float t, float dt)
     return 0.0f;
 }
 
-// Fast tanh approximation
+// Fast tanh approximation with input clamping to prevent polynomial divergence
 inline float fastTanh(float x)
 {
+    const float xc = std::clamp(x, -3.0f, 3.0f);
+    const float x2 = xc * xc;
+    return xc * (27.0f + x2) / (27.0f + 9.0f * x2);
+}
+
+// Fast rational approximation of tan(x) for x in [0, pi * 0.48]
+inline float fastTan(float x)
+{
     const float x2 = x * x;
-    return x * (27.0f + x2) / (27.0f + 9.0f * x2);
+    return x * (1.0f + x2 * (0.33333333f + x2 * (0.13333333f + x2 * 0.05396825f)));
 }
 
 // Evaluate raw waveform from phase with PolyBLEP
 inline float evalShape(float phase, float shape, float dt)
 {
+    // Always keep phase strictly in [0, 1)
+    phase -= std::floor(phase);
+    if (phase < 0.0f) phase += 1.0f;
+
     // Sawtooth in [-1, +1]
     float saw = 2.0f * phase - 1.0f;
     saw -= polyBLEP(phase, dt);
@@ -168,7 +180,7 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
 
     void onNoteOn(const InstrumentVoiceContext& /*ctx*/,
                   note_t note,
-                  float velocity,
+                  float /*velocity*/,
                   bool isLegatoStep) final
     {
         const float targetNote = static_cast<float>(note);
@@ -179,14 +191,13 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
         }
         targetGlideNote = targetNote;
         hasPlayedAnyNote = true;
-        currentVelocity = std::clamp(velocity, 0.0f, 1.0f);
 
         if (!isLegatoStep || ampEnvStage == EnvStage::kIdle || ampEnvStage == EnvStage::kRelease)
         {
+            if (ampEnvStage == EnvStage::kIdle) ampEnvLevel = 0.0f;
+            if (filterEnvStage == EnvStage::kIdle) filterEnvLevel = 0.0f;
             ampEnvStage = EnvStage::kAttack;
-            ampEnvLevel = 0.0f;
             filterEnvStage = EnvStage::kAttack;
-            filterEnvLevel = 0.0f;
 
             // Sync Decay envelope: starts at 1.0 and decays to 0.0
             syncEnvVal = 1.0f;
@@ -429,8 +440,11 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
                 // Mode 0: Hard Tear
                 if (syncTriggered)
                 {
-                    const float valBefore = evalShape(slavePhase1 + dtSlave1 * (1.0f - tFrac), slaveShape, dtSlave1);
+                    float phaseBefore = slavePhase1 + dtSlave1 * (1.0f - tFrac);
+                    phaseBefore -= std::floor(phaseBefore);
+                    const float valBefore = evalShape(phaseBefore, slaveShape, dtSlave1);
                     slavePhase1 = tFrac * dtSlave1;
+                    if (slavePhase1 >= 1.0f) slavePhase1 -= std::floor(slavePhase1);
                     const float valAfter = evalShape(slavePhase1, slaveShape, dtSlave1);
                     const float delta = valAfter - valBefore;
                     slaveOut = valAfter - delta * (1.0f - tFrac);
@@ -451,9 +465,11 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
 
             const float oscMix = (slaveOut * mainOscGain) + (subTri * subLevel);
 
-            // 8. Zero-Delay Feedback Filter
-            const float fEnvMod = (filterEnvLevel * 2.0f - 1.0f) * filterEnvAmount * 4.0f;
-            const float targetCutoff = std::clamp(filterCutoffHz * sdk::fastPow2(fEnvMod), 20.0f, sr * 0.45f);
+            // 8. Zero-Delay Feedback Filter with unipolar envelope modulation
+            const float targetCutoff = std::clamp(
+              filterCutoffHz * sdk::fastPow2(filterEnvAmount * filterEnvLevel * 4.0f),
+              20.0f,
+              sr * 0.45f);
 
             float filtered = oscMix;
             if (filterType == FilterType::kLadder24)
@@ -468,8 +484,8 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
             // 9. Saturation Stage & Drive
             const float saturated = applySaturation(filtered, driveAmount, driveGain, saturationType);
 
-            // 10. Amp Envelope, Velocity & Master Gain
-            out[i] = saturated * ampEnvLevel * currentVelocity * volumeMult;
+            // 10. Amp Envelope & Master Gain
+            out[i] = saturated * ampEnvLevel * volumeMult;
         }
     }
 
@@ -658,13 +674,12 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
           *TearParamId::kCutoff,
           {
             .displayName = "Cutoff",
-            .defaultValue = 8000.0f,
+            .defaultValue = 12000.0f,
             .minValue = 20.0f,
             .maxValue = 18000.0f,
             .editCurve = Patch::Metadata::Param::Curve::kExponential,
-            .macroOperation = Patch::Metadata::Param::MacroOperation::kMult,
             .midiCC = *MidiCCs::kFilterCutoff,
-            .valueFormatter = createFrequencyFormatter(),
+            .valueFormatter = createFrequencyFormatter(18000.0f),
           },
           [](auto& voice, Patch::optional_paramvalue_t val) { voice.filterCutoffHz = *val; });
 
@@ -672,9 +687,9 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
           *TearParamId::kResonance,
           {
             .displayName = "Resonance",
-            .defaultValue = 0.2f,
+            .defaultValue = 0.15f,
             .minValue = 0.0f,
-            .maxValue = 0.98f,
+            .maxValue = 0.95f,
             .midiCC = *MidiCCs::kFilterResonance,
             .valueFormatter = createPercentFormatter(),
           },
@@ -684,7 +699,7 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
           *TearParamId::kFilterEnvAmount,
           {
             .displayName = "Env Amount",
-            .defaultValue = 0.3f,
+            .defaultValue = 0.0f,
             .minValue = -1.0f,
             .maxValue = 1.0f,
             .valueFormatter = createPercentFormatter(),
@@ -986,7 +1001,6 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
 
         metadata.instrumentTypeId = static_cast<int>(InstrumentTypeId::kTearSynth);
         metadata.outputChannels = Patch::Metadata::OutputChannels::kMono;
-        metadata.maxVoices = 8;
     }
 
   private:
@@ -1003,7 +1017,7 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
     float renderLadder(float in, float cutoffHz, float res, float invSr)
     {
         const float omega = std::numbers::pi_v<float> * cutoffHz * invSr;
-        float g = std::tan(omega);
+        float g = fastTan(omega);
         if (g > 2.0f) g = 2.0f;
 
         const float G = g / (1.0f + g);
@@ -1044,7 +1058,7 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
     float renderWarmSVF(float in, float cutoffHz, float res, float invSr)
     {
         const float omega = std::numbers::pi_v<float> * cutoffHz * invSr;
-        float g = std::tan(omega);
+        float g = fastTan(omega);
         if (g > 2.0f) g = 2.0f;
 
         const float damping = 2.0f * (1.0f - res * 0.97f);
@@ -1115,9 +1129,9 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
     float syncLfoDepthSemi = 0.0f;
 
     FilterType filterType = FilterType::kLadder24;
-    float filterCutoffHz = 8000.0f;
-    float filterResonance = 0.2f;
-    float filterEnvAmount = 0.3f;
+    float filterCutoffHz = 12000.0f;
+    float filterResonance = 0.15f;
+    float filterEnvAmount = 0.0f;
 
     float filterAttackSec = 0.01f;
     float filterDecaySec = 0.5f;
@@ -1143,7 +1157,6 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
     bool hasPlayedAnyNote = false;
     float currentGlideNote = 60.0f;
     float targetGlideNote = 60.0f;
-    float currentVelocity = 1.0f;
 
     float syncEnvVal = 0.0f;
     float syncLfoPhase = 0.0f;

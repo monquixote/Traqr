@@ -126,6 +126,9 @@ float TearDSP::getParam(uint8_t paramId) const {
 
 // Helper to evaluate raw waveform from phase
 static inline float evalShape(float phase, float shape, float dt) {
+    phase -= std::floor(phase);
+    if (phase < 0.0f) phase += 1.0f;
+
     // shape 0.0 = Sawtooth, 0.5 = Square, 1.0 = DualSaw
     // Sawtooth in [-1, +1]
     float saw = 2.0f * phase - 1.0f;
@@ -276,9 +279,12 @@ float TearDSP::processSample() {
         // Mode 0: Hard Tear (Subsample PolyBLEP Hard Sync)
         if (syncTriggered) {
             // Value just before reset
-            float valBefore = evalShape(slavePhase1 + dtSlave1 * (1.0f - tFrac), slaveShape, dtSlave1);
+            float phaseBefore = slavePhase1 + dtSlave1 * (1.0f - tFrac);
+            phaseBefore -= std::floor(phaseBefore);
+            float valBefore = evalShape(phaseBefore, slaveShape, dtSlave1);
             // Reset phase to subsample advance
             slavePhase1 = tFrac * dtSlave1;
+            if (slavePhase1 >= 1.0f) slavePhase1 -= std::floor(slavePhase1);
             float valAfter = evalShape(slavePhase1, slaveShape, dtSlave1);
             
             // Step discontinuity:
@@ -304,8 +310,8 @@ float TearDSP::processSample() {
 
     // 5. Zero-Delay Feedback Filter
     float baseCutoff = params[PARAM_CUTOFF];
-    // Filter Envelope modulation (-4 to +4 octaves)
-    float fEnvMod = (fEnv * 2.0f - 1.0f) * params[PARAM_FILTER_ENV_AMOUNT] * 4.0f;
+    // Filter Envelope modulation (unipolar upward sweep)
+    float fEnvMod = fEnv * params[PARAM_FILTER_ENV_AMOUNT] * 4.0f;
     float targetCutoff = baseCutoff * std::pow(2.0f, fEnvMod);
     targetCutoff = std::clamp(targetCutoff, 20.0f, sampleRate * 0.45f);
 
