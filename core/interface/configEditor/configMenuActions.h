@@ -18,6 +18,9 @@ void setLimiterMode();
 void setSendsMode();
 void setHeadroomMode();
 void setSnapToZeroMode();
+void setFilterModel();
+void setFilterSlope();
+void setOverdriveCurve();
 
 void setMetronomValues();
 void setSlaveClockCompValue();

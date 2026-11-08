@@ -26,3 +26,6 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Emscripten SDK toolchain
+tools/emsdk/

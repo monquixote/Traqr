@@ -1,0 +1,66 @@
+name: Deploy Synth Harness to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tools/tear_harness/**'
+      - 'docs/synths/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.64
+
+      - name: Build TEAR DSP WebAssembly Engine
+        run: |
+          mkdir -p _site/synths/tear
+          emcc tools/tear_harness/main_wasm.cpp tools/tear_harness/TearDSP.cpp \
+            -O3 -std=c++20 \
+            -s WASM=1 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME="TearModule" \
+            -s EXPORTED_FUNCTIONS="['_tear_init','_tear_reset','_tear_note_on','_tear_note_off','_tear_set_param','_tear_get_param','_tear_render','_tear_is_playing','_malloc','_free']" \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
+            -o _site/tear_dsp.js
+
+      - name: Assemble Web Pages
+        run: |
+          # Copy root page
+          cp tools/tear_harness/index.html _site/index.html
+          # Copy to /synths/tear/ as well
+          cp _site/index.html _site/synths/tear/index.html
+          cp _site/tear_dsp.js _site/synths/tear/tear_dsp.js
+          cp _site/tear_dsp.wasm _site/synths/tear/tear_dsp.wasm
+          # Ensure GitHub Pages does not run Jekyll
+          touch _site/.nojekyll
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

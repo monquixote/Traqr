@@ -431,6 +431,18 @@ void checkConfig()
     {
         mtConfig.general.previewVolume = PREVIEW_VOLUME_MAX;
     }
+    if (mtConfig.general.filterModel >= 4)
+    {
+        mtConfig.general.filterModel = 0;
+    }
+    if (mtConfig.general.filterSlope >= 2)
+    {
+        mtConfig.general.filterSlope = 0;
+    }
+    if (mtConfig.general.overdriveModel >= 5)
+    {
+        mtConfig.general.overdriveModel = 0;
+    }
 
     // interface ----------------------------------------
     if (mtConfig.interface.fxPopupDescription > 1)
@@ -558,6 +570,9 @@ void resetConfig()
     mtConfig.general.lineInOutType = 0;
     mtConfig.general.previewVolume = PREVIEW_VOLUME_DEFAULT;
     mtConfig.general.recThreshold = recThreshold_default;
+    mtConfig.general.filterModel = 0;
+    mtConfig.general.filterSlope = 0;
+    mtConfig.general.overdriveModel = 0;
 
     // interface ----------------------------------------
     mtConfig.interface.fxPopupDescription = 0;

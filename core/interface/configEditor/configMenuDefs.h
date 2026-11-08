@@ -160,6 +160,26 @@ const char* const limiterModeTexts[2] = {
     "Extreme",
 };
 
+const char* const filterModelTexts[4] = {
+    "Clean SVF",
+    "Warm SVF",
+    "Ladder",
+    "Legacy 2014",
+};
+
+const char* const filterSlopeTexts[2] = {
+    "12 dB/oct",
+    "24 dB/oct",
+};
+
+const char* const overdriveCurveTexts[5] = {
+    "Modern Soft",
+    "Classic Hard",
+    "Tube / Valve",
+    "Tape",
+    "Transformer",
+};
+
 const char* const sendsModeTexts[2] = { "Pre-fader", "Post-fader" };
 
 const char* const numberingModeTexts[3] = {
@@ -310,6 +330,23 @@ const char sendsDesc[] = { "Pre-fader sends are independent of the instrument vo
 const char headroomDesc[] = {
     "Enables more headroom in the audio signal path by reducing the input gain of sample playback "
     "at the source to avoid clipping and improve overall dynamic range."
+};
+
+const char filterModelDesc[] = {
+    "Selects the filter DSP algorithm for sample instruments: Clean SVF (32-bit float ZDF), "
+    "Warm SVF (analog-saturated ZDF), Ladder (transistor ladder model), or Legacy 2014 "
+    "(original 16-bit fixed-point)."
+};
+
+const char filterSlopeDesc[] = {
+    "Selects the filter slope steepness: 12 dB/oct (2-pole, open, transparent) or "
+    "24 dB/oct (4-pole, steep, dark, focused). Legacy model operates in 12 dB mode."
+};
+
+const char overdriveCurveDesc[] = {
+    "Selects the sample overdrive saturation flavor: Modern Soft (clean Tanh), Classic Hard "
+    "(legacy 2014 clip), Tube / Valve (asymmetric 2nd-order warmth), Tape (smooth odd-harmonic "
+    "transient glue), or Transformer (low-end iron-core saturation)."
 };
 
 const char snapToZeroDesc[] = {

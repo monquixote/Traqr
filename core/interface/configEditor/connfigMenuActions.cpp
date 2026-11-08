@@ -15,12 +15,16 @@
 
 #include "Tracker.h"
 #include "core/interface.h"
+#include "filter_variable.h"
 
 // device startup actions after Config read
 void initConfigValuesAfterReadConfig()
 {
     usbAudioChange();
     setDisplayBrightness();
+    setFilterModel();
+    setFilterSlope();
+    setOverdriveCurve();
 }
 
 // reset config actions
@@ -30,11 +34,15 @@ void restartConfigAllActions()
 
     setRadioRegion();
     setDisplayBrightness();
+    setFilterModel();
+    setFilterSlope();
+    setOverdriveCurve();
     setPadsBrightness();
 
     setPadBoardValues();
 
     setAntialiasingEnable();
+    setFilterModel();
 
     setMetronomValues();
 }
@@ -136,6 +144,30 @@ void setSnapToZeroMode()
 {
     engine.setSnapToZeroEnable((bool)mtProject.values.isSnapToZeroEnabled);
     newFileManager.setProjectStructChanged();
+}
+
+void setFilterModel()
+{
+    if (mtConfig.general.filterModel >= AudioFilterStateVariable::kFilterModelCount)
+        mtConfig.general.filterModel = 0;
+    AudioFilterStateVariable::setFilterModel(mtConfig.general.filterModel);
+    return;
+    // keep block structure
+    newFileManager.setProjectStructChanged();
+}
+
+void setFilterSlope()
+{
+    if (mtConfig.general.filterSlope >= AudioFilterStateVariable::kFilterSlopeCount)
+        mtConfig.general.filterSlope = 0;
+    AudioFilterStateVariable::setFilterSlope(mtConfig.general.filterSlope);
+}
+
+void setOverdriveCurve()
+{
+    if (mtConfig.general.overdriveModel >= AudioFilterStateVariable::kOverdriveCurveCount)
+        mtConfig.general.overdriveModel = 0;
+    AudioFilterStateVariable::setOverdriveCurve(mtConfig.general.overdriveModel);
 }
 
 void setMetronomValues()

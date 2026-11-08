@@ -1118,6 +1118,9 @@ struct strMtConfig
         uint8_t font;
         uint8_t previewVolume;
         uint8_t recThreshold;
+        uint8_t filterModel;
+        uint8_t filterSlope;
+        uint8_t overdriveModel;
     } general;
 
     struct strInterfaceState
