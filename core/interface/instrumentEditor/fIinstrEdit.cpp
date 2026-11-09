@@ -2225,9 +2225,9 @@ std::optional<mtInstrumentEditorMode> cInstrumentEditor::paramToMode(
         case SynthInstrumentParamsCC::kMacro4:
         case SynthInstrumentParamsCC::kMacro5:
         case SynthInstrumentParamsCC::kMacro6:
-        case SynthInstrumentParamsCC::kSynthReverbSend:
-        case SynthInstrumentParamsCC::kSynthDelaySend:
             return mtInstrumentEditorMode::mtInstEditModeSynthMacros;
+        case SynthInstrumentParamsCC::kSynthDelaySend:
+        case SynthInstrumentParamsCC::kSynthReverbSend:
         case SynthInstrumentParamsCC::kSynthGain:
         case SynthInstrumentParamsCC::kSynthPanning:
             return mtInstrumentEditorMode::mtInstEditModeSynth;

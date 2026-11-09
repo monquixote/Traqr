@@ -13,6 +13,9 @@
 #include "core/interface.h"
 #include "interruptsControl.h"
 #include "util_math.h"
+#ifdef FEATURE_SYNTH
+#include "SynthVoice.h"
+#endif
 #include <cmath>
 
 extern cPatternEditor patternEditor;
@@ -131,7 +134,7 @@ static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte va
     SynthInstrumentParamsCC targetParam{};
     bool isMapped = false;
 
-    // 1. Novation Circuit Tracks default MIDI track encoders (CC 80..87)
+    // 1. Novation Circuit Tracks Synth tracks (CC 80..87)
     if (number >= 80 && number <= 85)
     {
         targetParam =
@@ -148,7 +151,78 @@ static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte va
         targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
         isMapped = true;
     }
-    // 2. Standard Polyend Tracker Synth CCs (CC 110..119)
+    // 2. Novation Circuit Tracks MIDI tracks factory template (CC 1, 2, 5, 11, 12, 13, 71, 74)
+    else if (number == 1)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro1;
+        isMapped = true;
+    }
+    else if (number == 2)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro2;
+        isMapped = true;
+    }
+    else if (number == 5)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro3;
+        isMapped = true;
+    }
+    else if (number == 11)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro4;
+        isMapped = true;
+    }
+    else if (number == 12)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro5;
+        isMapped = true;
+    }
+    else if (number == 13)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro6;
+        isMapped = true;
+    }
+    else if (number == 71)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthDelaySend;
+        isMapped = true;
+    }
+    else if (number == 74)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
+        isMapped = true;
+    }
+    // 3. Generic MIDI Controller Encoders 1..8 (CC 1..8)
+    else if (number >= 3 && number <= 4)
+    {
+        targetParam =
+          static_cast<SynthInstrumentParamsCC>(SynthInstrumentParamsCC::kMacro1 + (number - 1));
+        isMapped = true;
+    }
+    else if (number == 6)
+    {
+        targetParam = SynthInstrumentParamsCC::kMacro6;
+        isMapped = true;
+    }
+    else if (number == 7)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthDelaySend;
+        isMapped = true;
+    }
+    else if (number == 8)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
+        isMapped = true;
+    }
+    // 4. Native PolySynth macro CCs (CC 102..107)
+    else if (number >= SynthVoice::kMacroCCIdxStart &&
+             number < SynthVoice::kMacroCCIdxStart + kSynthMacrosCount)
+    {
+        targetParam = static_cast<SynthInstrumentParamsCC>(
+          SynthInstrumentParamsCC::kMacro1 + (number - SynthVoice::kMacroCCIdxStart));
+        isMapped = true;
+    }
+    // 5. Standard Polyend Tracker Synth CCs (CC 110..119)
     else if (number >= SynthInstrumentParamsCC::kMacro1 &&
              number <= SynthInstrumentParamsCC::kSynthGain)
     {
@@ -165,6 +239,19 @@ static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte va
             if (isMapped)
             {
                 IE->handleSynthParamControlChange(partIdx, targetParam, value);
+
+                if (targetParam >= SynthInstrumentParamsCC::kMacro1 &&
+                    targetParam <= SynthInstrumentParamsCC::kMacro6)
+                {
+                    int macroIdx = targetParam - SynthInstrumentParamsCC::kMacro1;
+                    auto* midiPort = TrackerImpl::getInstance()->getSynth().getVirtualMidiPort();
+                    int maxMacroVal = IE->getMacroMax(partIdx, macroIdx);
+                    uint8_t scaledVal = mapClamped<int>(value, 0, 127, 0, maxMacroVal);
+                    DISABLE_AUDIO_INTERRUPTS();
+                    midiPort->sendControlChange(
+                      SynthVoice::kMacroCCIdxStart + macroIdx, scaledVal, partIdx + 1);
+                    ENABLE_AUDIO_INTERRUPTS();
+                }
             }
             handled = true;
         }
