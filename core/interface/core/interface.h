@@ -57,6 +57,7 @@ class Interface
     bool isMasterScreenActive();
     bool isInstrumentParamsScreenActive();
     bool isSamplePlayerScreenActive();
+    bool isSynthPerformanceScreenActive();
 
     void handleCardSlotAction(bool state);
     void handlePowerButtonAction(uint8_t state);

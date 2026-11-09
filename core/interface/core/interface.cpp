@@ -20,6 +20,7 @@
 #include "samplePlayback/samplePlayback.h"
 #include "sampleRecorder/sampleRecorder.h"
 #include "songEditor/songEditor.h"
+#include "synthPerformance/synthPerformance.h"
 
 #include "fileManager.h"
 #include "mtConfig.h"
@@ -64,13 +65,13 @@ const hModule Interface::modules[modulesCount] = {
     &sampleEditor,     // 6
     &configEditor,     // 7
     &sampleRecorder,   // 8
-    &performanceMode,  // 9
-    &imageViewer,      // 10
-    nullptr,           // 11
-    &masterParams,     // 12
+    &performanceMode,   // 9
+    &imageViewer,       // 10
+    &synthPerformance,  // 11
+    &masterParams,      // 12
 };
 
-const uint8_t Interface::modulesButtonsCount = 11;
+const uint8_t Interface::modulesButtonsCount = 12;
 const uint32_t Interface::modulesButtons[modulesButtonsCount][3] = {
     { interfaceButtonPerformance, 9, 0 },
     { interfaceButtonMaster, 12, 0 },
@@ -83,6 +84,7 @@ const uint32_t Interface::modulesButtons[modulesButtonsCount][3] = {
     { interfaceButtonSampleLoad, 1, 0 },
     { interfaceButtonSong, 4, 0 },
     { interfaceButtonConfig, 7, 0 },
+    { interfaceButtonGame, 11, 0 },
 };
 
 //=======================================================================
@@ -605,6 +607,11 @@ bool Interface::isInstrumentParamsScreenActive()
 bool Interface::isSamplePlayerScreenActive()
 {
     return isOnScreenModule(&samplePlayback);
+}
+
+bool Interface::isSynthPerformanceScreenActive()
+{
+    return isOnScreenModule(&synthPerformance);
 }
 
 bool Interface::isOnScreenModule(ModuleBase* module)

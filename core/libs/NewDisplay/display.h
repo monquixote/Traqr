@@ -32,6 +32,7 @@
 #include "songPlayerControl.h"
 #include "spectrumControl.h"
 #include "startScreenControl.h"
+#include "synthPerfControl.h"
 #include "textBoxControl.h"
 #include "textPopupControl.h"
 #include "trackerControl.h"

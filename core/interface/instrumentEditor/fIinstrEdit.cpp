@@ -14,6 +14,7 @@
 #include "cr_section_macros.h"
 #include "fileManager.h"
 #include "performanceMode/performanceMode.h"
+#include "synthPerformance/synthPerformance.h"
 #include "util_math.h"
 #include "util_string.h"
 
@@ -2197,6 +2198,11 @@ void cInstrumentEditor::handleSynthParamControlChange(int synthPartIdx,
             break;
 
         default: break;
+    }
+
+    if (mtInterface.isSynthPerformanceScreenActive())
+    {
+        synthPerformance.onSynthParamChanged(synthPartIdx);
     }
 }
 

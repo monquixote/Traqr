@@ -259,6 +259,7 @@ void cProjectEditor::setDefaultScreenFunct()
     ip->setButtonObj(interfaceButtonSampleLoad, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSong, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonPattern, buttonPress, functSwitchModule);
+    ip->setButtonObj(interfaceButtonGame, buttonPress, functSwitchModule);
 
     ip->setButtonObj(interfaceButtonMiniMenu, functMenu);
 

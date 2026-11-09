@@ -261,7 +261,7 @@ void cPerformanceMode::turnOffAtEndOfPattern()
 bool cPerformanceMode::canPerformanceModeContinueAfterSwitchingTo(uint8_t button)
 {
     return (button == interfaceButtonPerformance || button == interfaceButtonMaster ||
-            button == interfaceButtonParams);
+            button == interfaceButtonParams || button == interfaceButtonGame);
 }
 
 void cPerformanceMode::setFxValue(int value)

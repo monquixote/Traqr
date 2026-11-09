@@ -3,7 +3,7 @@
 
 InterfaceMenuPopup mtMenuPopup;
 
-const uint8_t kMenuModulesCount = 11;
+const uint8_t kMenuModulesCount = 12;
 const char* const kModuleNamesList[kMenuModulesCount] = { "Pattern",
                                                           "Instrument Parameters",
                                                           "Sample Playback",
@@ -14,7 +14,8 @@ const char* const kModuleNamesList[kMenuModulesCount] = { "Pattern",
                                                           "Config",
                                                           "Perform",
                                                           "Sample Editor",
-                                                          "Sample Recorder" };
+                                                          "Sample Recorder",
+                                                          "Synth Performance" };
 
 #ifdef TRACKER_MINI
 
@@ -37,6 +38,7 @@ const InterfaceMenuPopup::ModuleRef InterfaceMenuPopup::modules[kMenuModulesCoun
     { mtInterface.modules[9], interfaceButtonPerformance, 0, &performModes },
     { mtInterface.modules[6], interfaceButtonSampleEdit, 0, nullptr },
     { mtInterface.modules[8], interfaceButtonSampleRec, 0, nullptr },
+    { mtInterface.modules[11], interfaceButtonGame, 0, nullptr },
 
 };
 
