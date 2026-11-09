@@ -43,7 +43,7 @@ cMenuGroup menuBase(menuBase, 0, baseMenuGroupCount);
 
 cMenuGroup menuProject(menuBase, "Project Settings", projectMenuGroupCount);
 cMenuGroup menuGeneral(menuBase, "General", generalMenuGroupCount);
-cMenuGroup menuMidi(menuBase, "MIDI", 11);
+cMenuGroup menuMidi(menuBase, "MIDI", 14);
 
 #ifdef PLATFORM_IMX
 cMenuGroup menuUsb(menuBase, "USB", 2);

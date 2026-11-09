@@ -74,6 +74,7 @@ mini:
 	@echo " Building Tracker Mini (IMX) - $(EDITION_NAME) $(MINI_VER_MAJOR).$(MINI_VER_MINOR).$(MINI_VER_PATCH) ($(BUILD_TAG))"
 	@echo "=================================================================="
 	@rm -f "$(IMX_DIR)/build-MINI/obj/source/PlatformImpl.o"
+	@rm -f "$(CORE_DIR)/build-IMX-MINI/obj/interface/core/interface.o"
 	$(MAKE) -C "$(CORE_DIR)" -j$(NPROC) build \
 		TOOLCHAIN="$(TOOLCHAIN)" \
 		PLATFORM=IMX PRODUCT=MINI \
