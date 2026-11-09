@@ -14,6 +14,12 @@ inline float fastTanh(float x) {
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
+// Fast rational approximation of tan(x) for x in [0, pi/2)
+inline float fastTan(float x) {
+    const float x2 = x * x;
+    return x * (1.0f - 0.08333333f * x2) / (1.0f - 0.41666667f * x2);
+}
+
 // PolyBLEP anti-aliasing residual for step discontinuity at t=0
 // t in [0, 1) is time past discontinuity divided by phase increment dt
 inline float polyBLEP(float t, float dt) {
@@ -64,30 +70,47 @@ enum SaturationType : uint8_t {
 };
 
 enum ParamId : uint8_t {
-    PARAM_SYNC_RATIO = 0,    // 0.0 .. 48.0 (semitones above master)
-    PARAM_SYNC_MODE,         // 0 .. 4 (SyncMode)
-    PARAM_SLAVE_SHAPE,       // 0.0 (Saw) .. 0.5 (Pulse) .. 1.0 (DualSaw)
-    PARAM_SUB_LEVEL,         // 0.0 .. 1.0
-    PARAM_SUB_OCTAVE,        // 0 (-1 oct), 1 (-2 oct)
-    PARAM_SYNC_ENV_DECAY,    // 0.005 .. 4.0 seconds
-    PARAM_SYNC_ENV_DEPTH,    // -48.0 .. +48.0 semitones
-    PARAM_SYNC_LFO_RATE,     // 0.05 .. 30.0 Hz
-    PARAM_SYNC_LFO_DEPTH,    // 0.0 .. 24.0 semitones
-    PARAM_CUTOFF,            // 20.0 .. 20000.0 Hz
-    PARAM_RESONANCE,         // 0.0 .. 1.0
-    PARAM_FILTER_TYPE,       // 0 (Ladder 24), 1 (SVF 12), 2 (Bypass)
-    PARAM_FILTER_ENV_AMOUNT, // -1.0 .. 1.0
-    PARAM_AMP_ATTACK,        // 0.001 .. 3.0 s
-    PARAM_AMP_DECAY,         // 0.01 .. 5.0 s
-    PARAM_AMP_SUSTAIN,       // 0.0 .. 1.0
-    PARAM_AMP_RELEASE,       // 0.01 .. 5.0 s
-    PARAM_FILTER_ATTACK,     // 0.001 .. 3.0 s
-    PARAM_FILTER_DECAY,      // 0.01 .. 5.0 s
-    PARAM_FILTER_SUSTAIN,    // 0.0 .. 1.0
-    PARAM_FILTER_RELEASE,    // 0.01 .. 5.0 s
-    PARAM_DRIVE,             // 0.0 .. 1.0
-    PARAM_SATURATION_TYPE,   // 0 .. 4
-    PARAM_COUNT
+    // 1. Oscillator (0..6)
+    PARAM_SYNC_MODE = 0,     // 0 .. 4 (SyncMode)
+    PARAM_SYNC_RATIO = 1,    // 0.0 .. 48.0 (semitones above master)
+    PARAM_SLAVE_SHAPE = 2,   // 0.0 (Saw) .. 0.5 (Pulse) .. 1.0 (DualSaw)
+    PARAM_SUB_LEVEL = 3,     // 0.0 .. 1.0
+    PARAM_SUB_OCTAVE = 4,    // 0 (-1 oct), 1 (-2 oct)
+    PARAM_TUNE = 5,          // -24 .. +24 semitones
+    PARAM_FINE = 6,          // -100 .. +100 cents
+
+    // 2. Modulation (7..10)
+    PARAM_SYNC_ENV_DECAY = 7,// 0.005 .. 3.0 seconds
+    PARAM_SYNC_ENV_DEPTH = 8,// -48.0 .. +48.0 semitones
+    PARAM_SYNC_LFO_RATE = 9, // 0.05 .. 25.0 Hz
+    PARAM_SYNC_LFO_DEPTH = 10,// 0.0 .. 24.0 semitones
+
+    // 3. Filter (11..14)
+    PARAM_FILTER_TYPE = 11,  // 0 (Ladder 24), 1 (SVF 12), 2 (Bypass)
+    PARAM_CUTOFF = 12,       // 20.0 .. 18000.0 Hz
+    PARAM_RESONANCE = 13,    // 0.0 .. 0.95
+    PARAM_FILTER_ENV_AMOUNT = 14, // -1.0 .. 1.0
+
+    // 4. Filter Envelope (15..18)
+    PARAM_FILTER_ATTACK = 15,// 0.001 .. 2.0 s
+    PARAM_FILTER_DECAY = 16, // 0.01 .. 3.0 s
+    PARAM_FILTER_SUSTAIN = 17,// 0.0 .. 1.0
+    PARAM_FILTER_RELEASE = 18,// 0.01 .. 3.0 s
+
+    // 5. Amplifier & Saturation (19..24)
+    PARAM_DRIVE = 19,        // 0.0 .. 1.0
+    PARAM_SATURATION_TYPE = 20,// 0 .. 4
+    PARAM_AMP_ATTACK = 21,   // 0.001 .. 2.0 s
+    PARAM_AMP_DECAY = 22,    // 0.01 .. 3.0 s
+    PARAM_AMP_SUSTAIN = 23,  // 0.0 .. 1.0
+    PARAM_AMP_RELEASE = 24,  // 0.01 .. 3.0 s
+
+    // 6. Voice (25..27)
+    PARAM_PLAY_MODE = 25,    // 0: Always, 1: Overlap, 2: Legato
+    PARAM_GLIDE_TIME = 26,   // 0.0 .. 2.0 s
+    PARAM_VOLUME = 27,       // 0.0 .. 2.0 (1.0 = 100%)
+
+    PARAM_COUNT = 28
 };
 
 struct ADSR {

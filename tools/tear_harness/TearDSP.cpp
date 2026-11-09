@@ -5,32 +5,37 @@
 namespace tear {
 
 TearDSP::TearDSP() {
-    // Default parameters
+    // Default parameters matching Tracker Mini TearSynthVoice
     std::fill(std::begin(params), std::end(params), 0.0f);
 
+    params[PARAM_SYNC_MODE] = 0.0f;         // Hard Tear
     params[PARAM_SYNC_RATIO] = 12.0f;       // 12 semitones (+1 octave sync)
-    params[PARAM_SYNC_MODE] = static_cast<float>(SYNC_HARD_TEAR);
     params[PARAM_SLAVE_SHAPE] = 0.0f;       // Saw
     params[PARAM_SUB_LEVEL] = 0.25f;        // 25% sub
-    params[PARAM_SUB_OCTAVE] = 0.0f;       // -1 oct
+    params[PARAM_SUB_OCTAVE] = 0.0f;        // -1 oct
+    params[PARAM_TUNE] = 0.0f;              // 0 semitones
+    params[PARAM_FINE] = 0.0f;              // 0 cents
     params[PARAM_SYNC_ENV_DECAY] = 0.35f;   // 350 ms decay
     params[PARAM_SYNC_ENV_DEPTH] = 24.0f;   // +2 octaves sweep
     params[PARAM_SYNC_LFO_RATE] = 1.5f;     // 1.5 Hz
     params[PARAM_SYNC_LFO_DEPTH] = 0.0f;    // 0 by default
-    params[PARAM_CUTOFF] = 8000.0f;         // 8 kHz
-    params[PARAM_RESONANCE] = 0.2f;         // 20%
-    params[PARAM_FILTER_TYPE] = static_cast<float>(FILTER_LADDER_24);
-    params[PARAM_FILTER_ENV_AMOUNT] = 0.3f;
+    params[PARAM_FILTER_TYPE] = 0.0f;       // Ladder 24
+    params[PARAM_CUTOFF] = 12000.0f;        // 12 kHz
+    params[PARAM_RESONANCE] = 0.15f;        // 15%
+    params[PARAM_FILTER_ENV_AMOUNT] = 0.0f; // 0%
+    params[PARAM_FILTER_ATTACK] = 0.01f;    // 10ms
+    params[PARAM_FILTER_DECAY] = 0.5f;      // 500ms
+    params[PARAM_FILTER_SUSTAIN] = 0.2f;    // 20%
+    params[PARAM_FILTER_RELEASE] = 0.3f;    // 300ms
+    params[PARAM_DRIVE] = 0.2f;             // 20% drive
+    params[PARAM_SATURATION_TYPE] = 2.0f;   // Tube / Valve
     params[PARAM_AMP_ATTACK] = 0.005f;      // 5ms
     params[PARAM_AMP_DECAY] = 0.4f;         // 400ms
     params[PARAM_AMP_SUSTAIN] = 0.7f;       // 70%
     params[PARAM_AMP_RELEASE] = 0.25f;      // 250ms
-    params[PARAM_FILTER_ATTACK] = 0.01f;
-    params[PARAM_FILTER_DECAY] = 0.5f;
-    params[PARAM_FILTER_SUSTAIN] = 0.2f;
-    params[PARAM_FILTER_RELEASE] = 0.3f;
-    params[PARAM_DRIVE] = 0.2f;             // 20% drive
-    params[PARAM_SATURATION_TYPE] = static_cast<float>(SAT_TUBE_VALVE);
+    params[PARAM_PLAY_MODE] = 0.0f;         // Always
+    params[PARAM_GLIDE_TIME] = 0.0f;        // 0s
+    params[PARAM_VOLUME] = 1.0f;            // 100%
 
     init(44100.0f);
 }
@@ -66,8 +71,9 @@ void TearDSP::noteOn(uint8_t note, float velocity) {
     currentNote = note;
     currentVelocity = std::clamp(velocity, 0.0f, 1.0f);
 
-    // MIDI note to frequency: 440 * 2^((note - 69) / 12)
-    baseFrequency = 440.0f * std::pow(2.0f, (static_cast<float>(note) - 69.0f) / 12.0f);
+    // MIDI note with Tune and Fine: 440 * 2^((note + tune + fine*0.01 - 69) / 12)
+    float totalNote = static_cast<float>(note) + params[PARAM_TUNE] + params[PARAM_FINE] * 0.01f;
+    baseFrequency = 440.0f * std::pow(2.0f, (totalNote - 69.0f) / 12.0f);
 
     // Setup envelopes
     ampEnv.setAttack(params[PARAM_AMP_ATTACK], sampleRate);
@@ -116,6 +122,10 @@ void TearDSP::setParam(uint8_t paramId, float value) {
     else if (paramId == PARAM_SYNC_ENV_DECAY) {
         float syncDecaySec = std::max(0.005f, value);
         syncEnvRate = 1.0f / (syncDecaySec * sampleRate);
+    }
+    else if (paramId == PARAM_TUNE || paramId == PARAM_FINE) {
+        float totalNote = static_cast<float>(currentNote) + params[PARAM_TUNE] + params[PARAM_FINE] * 0.01f;
+        baseFrequency = 440.0f * std::pow(2.0f, (totalNote - 69.0f) / 12.0f);
     }
 }
 
@@ -330,14 +340,14 @@ float TearDSP::processSample() {
     SaturationType satType = static_cast<SaturationType>(static_cast<int>(params[PARAM_SATURATION_TYPE]) % 5);
     float saturated = applySaturation(filtered, drive, satType);
 
-    // 7. Output with Amp Envelope
-    return saturated * amp;
+    // 7. Output with Amp Envelope and Master Volume
+    return saturated * amp * params[PARAM_VOLUME];
 }
 
 // 4-Pole ZDF Ladder Filter implementation
 float TearDSP::renderLadder(float in, float cutoffHz, float res) {
     float omega = PI * cutoffHz * invSampleRate;
-    float g = std::tan(omega);
+    float g = fastTan(omega);
     if (g > 2.0f) g = 2.0f;
 
     float G = g / (1.0f + g);
@@ -380,7 +390,7 @@ float TearDSP::renderLadder(float in, float cutoffHz, float res) {
 // 2-Pole ZDF SVF Filter implementation
 float TearDSP::renderWarmSVF(float in, float cutoffHz, float res) {
     float omega = PI * cutoffHz * invSampleRate;
-    float g = std::tan(omega);
+    float g = fastTan(omega);
     if (g > 2.0f) g = 2.0f;
 
     // 2 * damping factor. res in [0, 1) -> 2*R in [2.0, 0.05]

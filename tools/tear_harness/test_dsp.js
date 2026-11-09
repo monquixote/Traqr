@@ -22,8 +22,8 @@ ModuleFactory().then((Module) => {
 
     // Test each sync mode
     for (let mode = 0; mode < 5; mode++) {
-        tear_set_param(1 /* SYNC_MODE */, mode);
-        tear_set_param(0 /* SYNC_RATIO */, 12.0); // +12 st
+        tear_set_param(0 /* PARAM_SYNC_MODE */, mode);
+        tear_set_param(1 /* PARAM_SYNC_RATIO */, 12.0); // +12 st
         tear_note_on(60, 0.9); // Middle C
 
         tear_render(ptr, BUFFER_SIZE);
