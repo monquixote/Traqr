@@ -973,7 +973,7 @@
     </div>
 
     <footer>
-        Tracker Mini Firmware v1.0.6 NL &bull; TEAR Engine WASM Harness &bull; 44.1 kHz 32-bit Float Audio Engine
+        Tracker Mini Firmware v1.0.7 NL &bull; TEAR Engine WASM Harness &bull; 44.1 kHz 32-bit Float Audio Engine
     </footer>
 
     <!-- WASM Script Loader -->
@@ -1945,39 +1945,66 @@
                 bytes.push(0x32, 0x05, 0x0D, fb[0], fb[1], fb[2], fb[3]);
             }
 
-            // 3. Field 8: repeated Macro macros (all 6 user macros)
-            for (let m = 0; m < patchMacros.length && m < 6; m++) {
-                const macro = patchMacros[m];
+            // 3. Field 8: repeated Macro macros (Nanopb requires all 8 macros)
+            //    Macros 0..5: User Macros 1..6
+            //    Macro 6: System Macro (Velocity -> Volume, param 20)
+            //    Macro 7: System Macro (Pressure)
+            for (let m = 0; m < 8; m++) {
                 const mBytes = [];
+                let displayName = `Macro ${m+1}`;
+                let bipolar = false;
+                let validModifiers = [];
+
+                if (m < 6) {
+                    const macro = (patchMacros && patchMacros[m]) || {};
+                    displayName = macro.displayName || `Macro ${m+1}`;
+                    bipolar = !!macro.bipolar;
+                    validModifiers = (macro.modifiers || []).filter(mod => mod && mod.paramId !== undefined && mod.paramId >= 0);
+                } else if (m === 6) {
+                    // System Macro: Velocity
+                    displayName = "Velocity";
+                    bipolar = false;
+                    validModifiers = [{ paramId: 20, amount: 1.0 }];
+                } else {
+                    // System Macro: Pressure
+                    displayName = "Pressure";
+                    bipolar = false;
+                    validModifiers = [];
+                }
 
                 // Macro Field 1: displayName (string)
-                const nameBytes = new TextEncoder().encode(macro.displayName || `Macro ${m+1}`);
+                const nameBytes = new TextEncoder().encode(displayName);
                 mBytes.push((1 << 3) | 2, ...encodeVarint(nameBytes.length), ...nameBytes);
 
                 // Macro Field 2: bipolar (bool)
-                mBytes.push((2 << 3) | 0, macro.bipolar ? 1 : 0);
+                mBytes.push((2 << 3) | 0, bipolar ? 1 : 0);
 
-                // Filter valid modifiers
-                const validModifiers = (macro.modifiers || []).filter(mod => mod && mod.paramId !== undefined && mod.paramId >= 0);
+                const modCount = validModifiers.length;
 
                 // Macro Field 3: modifiers_count (int32 varint) -> Tag 3, Wire Type 0
-                mBytes.push((3 << 3) | 0, ...encodeVarint(validModifiers.length));
+                mBytes.push((3 << 3) | 0, ...encodeVarint(modCount));
 
-                // Macro Field 4: repeated ParamModifier modifiers (max 6)
-                for (let i = 0; i < validModifiers.length && i < 6; i++) {
-                    const mod = validModifiers[i];
-                    const modBytes = [];
+                // Macro Field 4: repeated ParamModifier modifiers
+                // NOTE: Nanopb's polysynth_Macro.modifiers is a static fixed-count array of 6.
+                // If modifiers are present (modCount > 0), Nanopb strictly requires EXACTLY 6
+                // elements in the wire format. The tracker's deserialize logic loops only
+                // modifiers_count times and ignores padded dummy elements.
+                if (modCount > 0) {
+                    for (let i = 0; i < 6; i++) {
+                        const mod = i < modCount ? validModifiers[i] : { paramId: 0, amount: 0.0 };
+                        const modBytes = [];
 
-                    // ParamModifier Field 1: param_id (varint)
-                    modBytes.push((1 << 3) | 0, ...encodeVarint(mod.paramId));
+                        // ParamModifier Field 1: param_id (varint)
+                        modBytes.push((1 << 3) | 0, ...encodeVarint(mod.paramId || 0));
 
-                    // ParamModifier Field 2: amount (float)
-                    const amtBuf = new ArrayBuffer(4);
-                    new DataView(amtBuf).setFloat32(0, mod.amount || 0.0, true);
-                    const ab = new Uint8Array(amtBuf);
-                    modBytes.push((2 << 3) | 5, ab[0], ab[1], ab[2], ab[3]);
+                        // ParamModifier Field 2: amount (float)
+                        const amtBuf = new ArrayBuffer(4);
+                        new DataView(amtBuf).setFloat32(0, mod.amount || 0.0, true);
+                        const ab = new Uint8Array(amtBuf);
+                        modBytes.push((2 << 3) | 5, ab[0], ab[1], ab[2], ab[3]);
 
-                    mBytes.push((4 << 3) | 2, ...encodeVarint(modBytes.length), ...modBytes);
+                        mBytes.push((4 << 3) | 2, ...encodeVarint(modBytes.length), ...modBytes);
+                    }
                 }
 
                 bytes.push(0x42, ...encodeVarint(mBytes.length), ...mBytes);
@@ -2243,6 +2270,7 @@
                                     count = (count & 0x7F) | ((bytes[offset++] & 0x7F) << cshift);
                                     cshift += 7;
                                 }
+                                macro.modifiersCount = count;
                             } else if (mfNum === 3 && mwType === 5) {
                                 // Legacy harness float value compatibility
                                 macro.value = view.getFloat32(offset, true);
@@ -2284,6 +2312,9 @@
                                     offset += slen;
                                 } else if (mwType === 5) offset += 4;
                             }
+                        }
+                        if (macro.modifiersCount !== undefined && macro.modifiers.length > macro.modifiersCount) {
+                            macro.modifiers = macro.modifiers.slice(0, macro.modifiersCount);
                         }
                         loadedMacros.push(macro);
                         offset = mEnd;
@@ -2338,9 +2369,9 @@
                     baseParams[i] = loadedParams[i];
                 }
 
-                // If patch file contained macros, update macros
+                // If patch file contained macros, update macros (use top 6 user macros)
                 if (loadedMacros.length > 0) {
-                    macros = loadedMacros;
+                    macros = loadedMacros.slice(0, 6);
                     renderMacroCards();
                     renderMacroConfigPanel();
                 }
