@@ -249,6 +249,11 @@ const char* const notesChannel[17] = {
     "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16",
 };
 
+const char* const synthChannel[17] = {
+    "Off", "CH1",  "CH2",  "CH3",  "CH4",  "CH5",  "CH6",  "CH7",  "CH8",
+    "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15", "CH16",
+};
+
 const char* const slaveClockComp[kExternalClockCompMaxVal + 1] = {
     "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6",
 };
@@ -417,6 +422,13 @@ const char slaveClockCompDesc[] = { "Allows compensating latency of incoming clo
 const char supportedCcInDesc[] = { "Supported incoming CC\nmessages:\n\nCC41 - CC48\n(performance "
                                    "mode track),\n\nCC51 - CC62\n(performance mode slot),"
                                    "\n\nCC71 - CC82\n(master mixer levels)." };
+
+const char synthMidiChannelDesc[] = {
+    "Routes incoming MIDI notes\nand CCs on this channel\ndirectly to the synth.\n\n"
+    "Macros 1-6:\nCC80-85 or CC110-115\n\n"
+    "Delay/Reverb Send:\nCC86-87 or CC116-117\n\n"
+    "Pan/Gain: CC118-119"
+};
 
 #ifdef TRACKER_MINI
 

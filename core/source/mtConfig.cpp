@@ -185,6 +185,18 @@ void readConfig()
             // odczyt
             configManager->readData(offsetToRead, eepromStructsPtr[i], sizeToRead);
 
+            if (sizeFromEeprom != eepromStructsSizes[i])
+            {
+                if (eepromStructsPtr[i] == (uint8_t*)&mtConfig.midi &&
+                    sizeFromEeprom < sizeof(mtConfig.midi))
+                {
+                    mtConfig.midi.synthMidiChannel[0] = 3;
+                    mtConfig.midi.synthMidiChannel[1] = 4;
+                    mtConfig.midi.synthMidiChannel[2] = 0;
+                }
+                saveConfigAtEnd = true;
+            }
+
             // nadanie aktulanej wielkosci podstruktury - to jest przy zapisie
             // memcpy(eepromStructsPtr[i], &eepromStructsSizes[i], 2);
 
@@ -335,6 +347,14 @@ void checkConfig()
 
     mtConfig.midi.slaveClockComp =
       clamp(mtConfig.midi.slaveClockComp, (uint8_t)0, (uint8_t)kExternalClockCompMaxVal);
+
+    for (int i = 0; i < kSynthInstrumentsCount; i++)
+    {
+        if (mtConfig.midi.synthMidiChannel[i] > 16)
+        {
+            mtConfig.midi.synthMidiChannel[i] = 0;
+        }
+    }
 
     // VALUES CHECK  --------------------
     if (mtConfig.values.padsLightBack > 31)
@@ -533,6 +553,9 @@ void resetConfig()
     mtConfig.midi.ccInChannel = 0;
     mtConfig.midi.middleC = 2;
     mtConfig.midi.slaveClockComp = kExternalClockCompDefaultVal;
+    mtConfig.midi.synthMidiChannel[0] = 3;
+    mtConfig.midi.synthMidiChannel[1] = 4;
+    mtConfig.midi.synthMidiChannel[2] = 0;
 
     // values ----------------------------------------
     mtConfig.values.padsLightBack = PADS_LIGHT_BACK_DEFAULT;

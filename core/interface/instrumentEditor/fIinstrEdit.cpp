@@ -2209,7 +2209,8 @@ bool cInstrumentEditor::isParamShown(int synthPartIdx, SynthInstrumentParamsCC p
 
     std::optional<mtInstrumentEditorMode> modeForParam = paramToMode(paramCcId);
 
-    return modeForParam.has_value() && mode == modeForParam.value() &&
+    return isSynthInstrument(mtProject.values.lastUsedInstrument) &&
+           modeForParam.has_value() && mode == modeForParam.value() &&
            synthPartIdx == instrumentIdxToSynthIdx(mtProject.values.lastUsedInstrument);
 }
 

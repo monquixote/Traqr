@@ -11,6 +11,7 @@
 #include "Platform.h"
 #include "TrackerImpl.h"
 #include "core/interface.h"
+#include "interruptsControl.h"
 #include "util_math.h"
 #include <cmath>
 
@@ -87,6 +88,96 @@ uint8_t isIncomingChannelDesired(uint8_t chan)
     return (mtConfig.midi.notesInChannel == chan || mtConfig.midi.notesInChannel == 0);
 }
 
+static bool dispatchNoteToSynthParts(byte channel, byte pitch, byte velocity, bool noteOn)
+{
+#ifdef FEATURE_SYNTH
+    bool handled = false;
+    int8_t transp = 12 * (mtConfig.midi.middleC - 2);
+    uint8_t note = clamp(pitch + transp, 0, 127);
+
+    for (int partIdx = 0; partIdx < kSynthInstrumentsCount; partIdx++)
+    {
+        if (mtConfig.midi.synthMidiChannel[partIdx] != 0 &&
+            mtConfig.midi.synthMidiChannel[partIdx] == channel)
+        {
+            DISABLE_AUDIO_INTERRUPTS();
+            auto* midiPort = TrackerImpl::getInstance()->getSynth().getVirtualMidiPort();
+            if (noteOn)
+            {
+                midiPort->sendNoteOn(note, velocity, partIdx + 1);
+            }
+            else
+            {
+                midiPort->sendNoteOff(note, 0, partIdx + 1);
+            }
+            ENABLE_AUDIO_INTERRUPTS();
+            handled = true;
+        }
+    }
+    return handled;
+#else
+    (void)channel;
+    (void)pitch;
+    (void)velocity;
+    (void)noteOn;
+    return false;
+#endif
+}
+
+static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte value)
+{
+#ifdef FEATURE_SYNTH
+    using SynthInstrumentParamsCC = cInstrumentEditor::SynthInstrumentParamsCC;
+    SynthInstrumentParamsCC targetParam{};
+    bool isMapped = false;
+
+    // 1. Novation Circuit Tracks default MIDI track encoders (CC 80..87)
+    if (number >= 80 && number <= 85)
+    {
+        targetParam =
+          static_cast<SynthInstrumentParamsCC>(SynthInstrumentParamsCC::kMacro1 + (number - 80));
+        isMapped = true;
+    }
+    else if (number == 86)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthDelaySend;
+        isMapped = true;
+    }
+    else if (number == 87)
+    {
+        targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
+        isMapped = true;
+    }
+    // 2. Standard Polyend Tracker Synth CCs (CC 110..119)
+    else if (number >= SynthInstrumentParamsCC::kMacro1 &&
+             number <= SynthInstrumentParamsCC::kSynthGain)
+    {
+        targetParam = static_cast<SynthInstrumentParamsCC>(number);
+        isMapped = true;
+    }
+
+    bool handled = false;
+    for (int partIdx = 0; partIdx < kSynthInstrumentsCount; partIdx++)
+    {
+        if (mtConfig.midi.synthMidiChannel[partIdx] != 0 &&
+            mtConfig.midi.synthMidiChannel[partIdx] == channel)
+        {
+            if (isMapped)
+            {
+                IE->handleSynthParamControlChange(partIdx, targetParam, value);
+            }
+            handled = true;
+        }
+    }
+    return handled;
+#else
+    (void)channel;
+    (void)number;
+    (void)value;
+    return false;
+#endif
+}
+
 void handleJackNoteOn(byte channel, byte pitch, byte velocity)
 {
     //	Serial.printf("ON\tch: %d, pitch: %d, velo: %d \r\n", channel, pitch,
@@ -102,6 +193,10 @@ void handleJackNoteOn(byte channel, byte pitch, byte velocity)
     if (mtConfig.midi.notesInMode == notesIn_jack ||
         mtConfig.midi.notesInMode == notesIn_usb_and_jack)
     {
+        if (dispatchNoteToSynthParts(channel, pitch, velocity, true))
+        {
+            return;
+        }
 
         if (isIncomingChannelDesired(channel))
         {
@@ -148,6 +243,11 @@ void handleUsbNoteOn(byte channel, byte pitch, byte velocity)
     if (mtConfig.midi.notesInMode == notesIn_usb ||
         mtConfig.midi.notesInMode == notesIn_usb_and_jack)
     {
+        if (dispatchNoteToSynthParts(channel, pitch, velocity, true))
+        {
+            return;
+        }
+
         if (isIncomingChannelDesired(channel))
         {
             int8_t transp = 12 * (mtConfig.midi.middleC - 2);
@@ -187,6 +287,11 @@ void handleJackNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
     if (mtConfig.midi.notesInMode == notesIn_jack ||
         mtConfig.midi.notesInMode == notesIn_usb_and_jack)
     {
+        if (dispatchNoteToSynthParts(channel, pitch, 0, false))
+        {
+            return;
+        }
+
         if (isIncomingChannelDesired(channel))
         {
             int8_t transp = 12 * (mtConfig.midi.middleC - 2);
@@ -233,6 +338,11 @@ void handleUsbNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
     if (mtConfig.midi.notesInMode == notesIn_usb ||
         mtConfig.midi.notesInMode == notesIn_usb_and_jack)
     {
+        if (dispatchNoteToSynthParts(channel, pitch, 0, false))
+        {
+            return;
+        }
+
         if (isIncomingChannelDesired(channel))
         {
             int8_t transp = 12 * (mtConfig.midi.middleC - 2);
@@ -270,6 +380,14 @@ void handleUsbNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
 
 void handleJackControlChange(byte channel, byte number, byte value)
 {
+    bool jackSynthAllowed = (mtConfig.midi.ccInMode == ccIn_jack ||
+                             mtConfig.midi.ccInMode == ccIn_usb_and_jack ||
+                             mtConfig.midi.notesInMode == notesIn_jack ||
+                             mtConfig.midi.notesInMode == notesIn_usb_and_jack);
+    if (jackSynthAllowed && dispatchControlChangeToSynthParts(channel, number, value))
+    {
+        return;
+    }
 
     if ((mtConfig.midi.ccInMode == ccIn_None) || (mtConfig.midi.ccInMode == ccIn_usb))
         return;
@@ -288,6 +406,15 @@ void handleJackControlChange(byte channel, byte number, byte value)
 
 void handleUSBControlChange(byte channel, byte number, byte value)
 {
+    bool usbSynthAllowed = (mtConfig.midi.ccInMode == ccIn_usb ||
+                            mtConfig.midi.ccInMode == ccIn_usb_and_jack ||
+                            mtConfig.midi.notesInMode == notesIn_usb ||
+                            mtConfig.midi.notesInMode == notesIn_usb_and_jack);
+    if (usbSynthAllowed && dispatchControlChangeToSynthParts(channel, number, value))
+    {
+        return;
+    }
+
     if ((mtConfig.midi.ccInMode == ccIn_None) || (mtConfig.midi.ccInMode == ccIn_jack))
         return;
 

@@ -221,6 +221,9 @@ const strItemTypeListText ccInModeSetup{ &mtConfig.midi.ccInMode, 4, midiIn };
 const strItemTypeListText ccInChannelSetup{ &mtConfig.midi.ccInChannel, 17, notesChannel };
 const strItemTypeListText middleCSetup{ &mtConfig.midi.middleC, 4, middleC };
 const strItemTypeListTextWithAction slaveClockCompSetup{ &mtConfig.midi.slaveClockComp, std::size(slaveClockComp),  slaveClockComp, setSlaveClockCompValue };
+const strItemTypeListText synth1ChannelSetup{ &mtConfig.midi.synthMidiChannel[0], 17, synthChannel };
+const strItemTypeListText synth2ChannelSetup{ &mtConfig.midi.synthMidiChannel[1], 17, synthChannel };
+const strItemTypeListText synth3ChannelSetup{ &mtConfig.midi.synthMidiChannel[2], 17, synthChannel };
 
 cMenuItem melClockIn(menuMidi, "Clock in", nullptr, menuTypeItemListText, &clockInSetup);
 cMenuItem melClockOut(menuMidi, "Clock out", nullptr, menuTypeItemListText, &clockOutSetup);
@@ -253,6 +256,21 @@ cMenuItem melSlaveClockComp(menuMidi,
                             slaveClockCompDesc,
                             menuTypeItemListTextWithAction,
                             &slaveClockCompSetup);
+cMenuItem melSynth1Channel(menuMidi,
+                           "Synth 1 MIDI ch",
+                           synthMidiChannelDesc,
+                           menuTypeItemListText,
+                           &synth1ChannelSetup);
+cMenuItem melSynth2Channel(menuMidi,
+                           "Synth 2 MIDI ch",
+                           synthMidiChannelDesc,
+                           menuTypeItemListText,
+                           &synth2ChannelSetup);
+cMenuItem melSynth3Channel(menuMidi,
+                           "Synth 3 MIDI ch",
+                           synthMidiChannelDesc,
+                           menuTypeItemListText,
+                           &synth3ChannelSetup);
 
 //==================================================================================================================================================================
 // Firmware

@@ -1074,6 +1074,8 @@ struct strMtConfig
         uint8_t ccInChannel;
         uint8_t middleC;
         uint8_t slaveClockComp;
+
+        uint8_t synthMidiChannel[kSynthInstrumentsCount];
     } midi;
 
     struct strGlobalValues
