@@ -226,21 +226,333 @@ function normToVal(k, n) {
 }
 
 // ======================================================================
-//  Presets (overrides on top of the engine defaults)
+//  Presets: Authentic Roland Juno Factory Library (Bank A, Bank B, Juno-60)
 // ======================================================================
 const PRESETS = {
-  init:    { name: 'Init' },
-  brass:   { name: 'Juno Brass', saw:.9, pulse:.4, sub:.15, cutoff:.34, res:.2, fenv:.6, fA:.12, fD:.6, fS:.5, fR:.25, aA:.05, aD:.4, aS:.85, aR:.25, chorus:1, drift:.3 },
-  strings: { name: 'Warm Strings', saw:1, pulse:0, sub:.3, cutoff:.55, res:.08, fenv:.15, fA:.4, fD:1, fS:.8, fR:1, aA:.5, aD:1, aS:.9, aR:1.2, lfoRate:5.5, lfoDelay:.6, lfoPitch:.12, chorus:1, drift:.4 },
-  lushpad: { name: 'Lush PWM Pad', saw:.7, pulse:.7, pwmDepth:.7, pwmSrc:1, lfoRate:.45, cutoff:.5, res:.15, fenv:.35, fA:1.5, fD:2.5, fS:.5, fR:2.5, aA:1.2, aD:2, aS:.8, aR:2.5, chorus:2, drift:.5 },
-  bass:    { name: 'Octave Bass', octave:0, saw:.6, pulse:.5, sub:.8, cutoff:.3, res:.35, fenv:.55, fA:.002, fD:.25, fS:.1, fR:.2, aA:.003, aD:.3, aS:.8, aR:.1, chorus:0, hpf:0, keytrack:.3, ota:.4, drift:.2 },
-  pluck:   { name: 'Reso Pluck', saw:.8, sub:.2, cutoff:.22, res:.55, fenv:.8, fA:.002, fD:.22, fS:0, fR:.2, aA:.002, aD:.35, aS:0, aR:.25, chorus:1, ota:.3 },
-  bells:   { name: 'Glass Bells', octave:2, saw:0, pulse:.7, pw:.3, pwmDepth:.4, sub:0, cutoff:.8, res:.25, fenv:.3, fA:.002, fD:1.2, fS:.1, fR:1, aA:.002, aD:1.8, aS:0, aR:1.5, chorus:2, hpf:.25 },
-  lead:    { name: 'Poly Square Lead', saw:0, pulse:1, pwmDepth:.5, pwmSrc:1, lfoRate:3, lfoDelay:.5, lfoPitch:.15, cutoff:.6, res:.25, fenv:.2, fS:.7, aA:.01, aS:1, aR:.3, chorus:1, sub:.1 },
-  zap:     { name: 'Sub Zap', octave:0, saw:.2, sub:1, noise:.1, cutoff:.25, res:.5, fenv:.9, fA:.001, fD:.12, fS:0, fR:.1, aA:.001, aD:.25, aS:0, aR:.1, chorus:0, ota:.6, hpf:0 },
-  sweep:   { name: 'Vintage Sweep Pad', saw:.9, sub:.3, cutoff:.15, res:.3, fenv:.7, fA:2.5, fD:3, fS:.6, fR:3, aA:1.5, aD:2, aS:.9, aR:3, chorus:2, drift:.8, lfoRate:.3, lfoPitch:.05, lfoDelay:1 },
-  organ:   { name: 'Gate Organ', vca:1, saw:0, pulse:.6, sub:.6, cutoff:.7, res:0, fenv:0, chorus:3, drift:.2, hpf:.15 },
-  fx:      { name: 'Noise Sweep FX', saw:0, noise:1, sub:0, cutoff:.1, res:.6, fenv:1, fA:2, fD:2.5, fS:0, fR:1.5, aA:.8, aD:2, aS:.3, aR:1.5, chorus:2, lfoRate:.2, flfo:.3 }
+  init: {
+    name: 'Init Patch'
+  },
+  a11_brass: {
+    name: 'A11 Brass',
+    octave: 1, saw: 0.85, pulse: 0.0, sub: 0.2, subOct: 0,
+    hpf: 0.0, cutoff: 0.32, res: 0.18, fenv: 0.55, keytrack: 0.5,
+    fA: 0.08, fD: 0.5, fS: 0.45, fR: 0.25,
+    aA: 0.01, aD: 0.5, aS: 0.85, aR: 0.25,
+    chorus: 1, drift: 0.3
+  },
+  a12_brass_swell: {
+    name: 'A12 Brass Swell',
+    octave: 1, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.0, cutoff: 0.2, res: 0.25, fenv: 0.65, keytrack: 0.5,
+    fA: 0.35, fD: 0.8, fS: 0.6, fR: 0.4,
+    aA: 0.25, aD: 0.8, aS: 0.9, aR: 0.4,
+    chorus: 1, drift: 0.35
+  },
+  a13_trumpet: {
+    name: 'A13 Trumpet',
+    octave: 2, saw: 0.75, pulse: 0.4, pw: 0.35, sub: 0.0,
+    hpf: 0.1, cutoff: 0.46, res: 0.22, fenv: 0.48, keytrack: 0.65,
+    fA: 0.02, fD: 0.45, fS: 0.65, fR: 0.15,
+    aA: 0.01, aD: 0.45, aS: 0.85, aR: 0.15,
+    lfoRate: 5.5, lfoDelay: 0.4, lfoPitch: 0.1,
+    chorus: 0, drift: 0.25
+  },
+  a14_flutes: {
+    name: 'A14 Flutes',
+    octave: 2, saw: 0.0, pulse: 0.8, pw: 0.5, sub: 0.15, noise: 0.04,
+    hpf: 0.15, cutoff: 0.45, res: 0.15, fenv: 0.2, keytrack: 0.8,
+    fA: 0.08, fD: 0.5, fS: 0.7, fR: 0.25,
+    aA: 0.06, aD: 0.5, aS: 0.85, aR: 0.25,
+    lfoRate: 4.8, lfoDelay: 0.3, lfoPitch: 0.08,
+    chorus: 1, drift: 0.2
+  },
+  a15_moving_strings: {
+    name: 'A15 Moving Strings',
+    octave: 1, saw: 0.85, pulse: 0.5, pwmDepth: 0.6, pwmSrc: 1, sub: 0.25,
+    lfoRate: 0.6, lfoDelay: 0.0,
+    hpf: 0.1, cutoff: 0.52, res: 0.1, fenv: 0.22, keytrack: 0.65,
+    fA: 0.45, fD: 1.2, fS: 0.75, fR: 1.0,
+    aA: 0.35, aD: 1.0, aS: 0.85, aR: 1.0,
+    chorus: 1, drift: 0.45
+  },
+  a16_brass_strings: {
+    name: 'A16 Brass & Strings',
+    octave: 1, saw: 0.85, pulse: 0.4, sub: 0.3,
+    hpf: 0.05, cutoff: 0.4, res: 0.16, fenv: 0.45, keytrack: 0.6,
+    fA: 0.18, fD: 0.8, fS: 0.65, fR: 0.5,
+    aA: 0.08, aD: 0.8, aS: 0.85, aR: 0.5,
+    chorus: 1, drift: 0.4
+  },
+  a17_choir: {
+    name: 'A17 Choir',
+    octave: 1, saw: 0.0, pulse: 0.85, pw: 0.25, pwmDepth: 0.3, pwmSrc: 1, sub: 0.3, noise: 0.05,
+    lfoRate: 0.8,
+    hpf: 0.12, cutoff: 0.38, res: 0.45, fenv: 0.2, keytrack: 0.85,
+    fA: 0.3, fD: 1.0, fS: 0.7, fR: 0.6,
+    aA: 0.25, aD: 1.0, aS: 0.8, aR: 0.6,
+    chorus: 2, drift: 0.4
+  },
+  a18_piano_i: {
+    name: 'A18 Piano I',
+    octave: 1, saw: 0.45, pulse: 0.6, pw: 0.22, sub: 0.35,
+    hpf: 0.0, cutoff: 0.42, res: 0.06, fenv: 0.55, keytrack: 0.8,
+    fA: 0.002, fD: 0.8, fS: 0.15, fR: 0.3,
+    aA: 0.002, aD: 1.2, aS: 0.2, aR: 0.3,
+    chorus: 1, drift: 0.25
+  },
+  a21_organ_i: {
+    name: 'A21 Organ I',
+    octave: 1, saw: 0.6, pulse: 0.6, pw: 0.5, sub: 0.7,
+    hpf: 0.0, cutoff: 0.75, res: 0.0, fenv: 0.0, keytrack: 1.0,
+    vca: 1, // GATE mode
+    chorus: 2, drift: 0.2
+  },
+  a22_organ_ii: {
+    name: 'A22 Organ II',
+    octave: 1, saw: 0.0, pulse: 0.7, pw: 0.5, sub: 0.5,
+    hpf: 0.08, cutoff: 0.65, res: 0.22, fenv: 0.6, keytrack: 0.85,
+    fA: 0.001, fD: 0.08, fS: 0.0, fR: 0.05,
+    vca: 1, // GATE mode
+    chorus: 1, drift: 0.2
+  },
+  a23_combo_organ: {
+    name: 'A23 Combo Organ',
+    octave: 1, saw: 0.5, pulse: 0.5, pw: 0.5, sub: 0.5,
+    hpf: 0.0, cutoff: 0.8, res: 0.0, fenv: 0.0, keytrack: 1.0,
+    vca: 1,
+    chorus: 3, drift: 0.3 // Mode I+II rotary shimmer!
+  },
+  a24_calliope: {
+    name: 'A24 Calliope',
+    octave: 2, saw: 0.0, pulse: 0.75, pw: 0.5, sub: 0.4,
+    hpf: 0.05, cutoff: 0.55, res: 0.35, fenv: 0.3, keytrack: 0.85,
+    fA: 0.05, fD: 0.4, fS: 0.6, fR: 0.2,
+    aA: 0.03, aD: 0.4, aS: 0.8, aR: 0.2,
+    lfoRate: 6.0, lfoDelay: 0.0, lfoPitch: 0.12,
+    chorus: 1, drift: 0.3
+  },
+  a25_donald_pluck: {
+    name: 'A25 Donald Pluck',
+    octave: 1, saw: 0.2, pulse: 0.85, pw: 0.15, sub: 0.25,
+    hpf: 0.05, cutoff: 0.26, res: 0.42, fenv: 0.7, keytrack: 0.6,
+    fA: 0.002, fD: 0.22, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.3, aS: 0.0, aR: 0.15,
+    chorus: 1, drift: 0.25
+  },
+  a26_celeste: {
+    name: 'A26 Celeste',
+    octave: 2, saw: 0.0, pulse: 0.8, pw: 0.5, sub: 0.0,
+    hpf: 0.2, cutoff: 0.42, res: 0.32, fenv: 0.4, keytrack: 0.9,
+    fA: 0.002, fD: 0.7, fS: 0.0, fR: 0.5,
+    aA: 0.002, aD: 0.9, aS: 0.0, aR: 0.6,
+    chorus: 2, drift: 0.2
+  },
+  a27_epiano_i: {
+    name: 'A27 Elect. Piano I',
+    octave: 1, saw: 0.0, pulse: 0.75, pw: 0.3, sub: 0.4,
+    hpf: 0.0, cutoff: 0.36, res: 0.16, fenv: 0.46, keytrack: 0.75,
+    fA: 0.002, fD: 0.9, fS: 0.2, fR: 0.4,
+    aA: 0.002, aD: 1.2, aS: 0.25, aR: 0.4,
+    chorus: 1, drift: 0.3
+  },
+  a31_chimes: {
+    name: 'A31 Clock Chimes',
+    octave: 2, saw: 0.3, pulse: 0.6, pw: 0.2, sub: 0.0,
+    hpf: 0.25, cutoff: 0.65, res: 0.52, fenv: 0.42, keytrack: 0.85,
+    fA: 0.002, fD: 1.4, fS: 0.0, fR: 1.2,
+    aA: 0.002, aD: 1.8, aS: 0.0, aR: 1.3,
+    chorus: 2, drift: 0.2
+  },
+  a32_steel_drums: {
+    name: 'A32 Steel Drums',
+    octave: 1, saw: 0.0, pulse: 0.85, pw: 0.25, sub: 0.3,
+    hpf: 0.0, cutoff: 0.3, res: 0.65, fenv: 0.65, keytrack: 0.8,
+    fA: 0.002, fD: 0.3, fS: 0.0, fR: 0.25,
+    aA: 0.002, aD: 0.45, aS: 0.0, aR: 0.25,
+    chorus: 1, drift: 0.25
+  },
+  a33_xylophone: {
+    name: 'A33 Xylophone',
+    octave: 2, saw: 0.0, pulse: 0.9, pw: 0.45, sub: 0.0,
+    hpf: 0.25, cutoff: 0.45, res: 0.4, fenv: 0.5, keytrack: 0.9,
+    fA: 0.002, fD: 0.35, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.4, aS: 0.0, aR: 0.2,
+    chorus: 0, drift: 0.2
+  },
+  a36_strings_iii: {
+    name: 'A36 Strings III',
+    octave: 1, saw: 1.0, pulse: 0.0, sub: 0.4,
+    hpf: 0.1, cutoff: 0.6, res: 0.1, fenv: 0.2, keytrack: 0.7,
+    fA: 0.25, fD: 0.8, fS: 0.85, fR: 0.8,
+    aA: 0.2, aD: 0.8, aS: 0.9, aR: 0.8,
+    chorus: 2, drift: 0.4
+  },
+  a37_pizzicato: {
+    name: 'A37 Pizzicato',
+    octave: 1, saw: 0.7, pulse: 0.4, sub: 0.3,
+    hpf: 0.05, cutoff: 0.22, res: 0.2, fenv: 0.75, keytrack: 0.65,
+    fA: 0.002, fD: 0.18, fS: 0.0, fR: 0.12,
+    aA: 0.002, aD: 0.25, aS: 0.0, aR: 0.15,
+    chorus: 1, drift: 0.25
+  },
+  a43_brass_ens: {
+    name: 'A43 Brass Ensemble',
+    octave: 0, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.0, cutoff: 0.35, res: 0.2, fenv: 0.6, keytrack: 0.5,
+    fA: 0.12, fD: 0.6, fS: 0.55, fR: 0.35,
+    aA: 0.06, aD: 0.6, aS: 0.85, aR: 0.35,
+    chorus: 1, drift: 0.4
+  },
+  a44_guitar: {
+    name: 'A44 Guitar',
+    octave: 1, saw: 0.5, pulse: 0.6, pw: 0.2, sub: 0.2,
+    hpf: 0.05, cutoff: 0.32, res: 0.15, fenv: 0.55, keytrack: 0.65,
+    fA: 0.002, fD: 0.45, fS: 0.1, fR: 0.25,
+    aA: 0.002, aD: 0.6, aS: 0.15, aR: 0.25,
+    chorus: 1, drift: 0.25
+  },
+  a47_funky_i: {
+    name: 'A47 Funky I',
+    octave: 1, saw: 0.0, pulse: 0.9, pw: 0.15, sub: 0.25,
+    hpf: 0.08, cutoff: 0.25, res: 0.45, fenv: 0.7, keytrack: 0.6,
+    fA: 0.002, fD: 0.22, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.3, aS: 0.0, aR: 0.15,
+    chorus: 0, drift: 0.25
+  },
+  a48_synth_bass_i: {
+    name: 'A48 Synth Bass I',
+    octave: 0, saw: 0.6, pulse: 0.4, pw: 0.5, sub: 0.85, subOct: 0,
+    hpf: 0.0, cutoff: 0.28, res: 0.35, fenv: 0.55, keytrack: 0.3,
+    fA: 0.002, fD: 0.28, fS: 0.1, fR: 0.18,
+    aA: 0.002, aD: 0.35, aS: 0.8, aR: 0.18,
+    ota: 0.35, chorus: 0, drift: 0.2
+  },
+  a51_lead_i: {
+    name: 'A51 Lead I',
+    octave: 1, saw: 0.8, pulse: 0.5, pwmDepth: 0.4, pwmSrc: 1, sub: 0.3,
+    lfoRate: 4.5, lfoDelay: 0.45, lfoPitch: 0.12,
+    hpf: 0.05, cutoff: 0.55, res: 0.3, fenv: 0.3, keytrack: 0.75,
+    fA: 0.01, fD: 0.5, fS: 0.8, fR: 0.3,
+    aA: 0.01, aD: 0.5, aS: 1.0, aR: 0.3,
+    chorus: 1, drift: 0.35
+  },
+  a55_synth_bass_ii: {
+    name: 'A55 Synth Bass II',
+    octave: 0, saw: 0.3, pulse: 0.6, pw: 0.5, sub: 0.95, subOct: 0,
+    hpf: 0.0, cutoff: 0.22, res: 0.6, fenv: 0.7, keytrack: 0.25,
+    fA: 0.002, fD: 0.32, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.4, aS: 0.75, aR: 0.2,
+    ota: 0.45, chorus: 0, drift: 0.2
+  },
+  a61_piano_ii: {
+    name: 'A61 Piano II',
+    octave: 1, saw: 0.35, pulse: 0.7, pw: 0.3, sub: 0.4,
+    hpf: 0.0, cutoff: 0.45, res: 0.08, fenv: 0.45, keytrack: 0.8,
+    fA: 0.002, fD: 1.0, fS: 0.15, fR: 0.35,
+    aA: 0.002, aD: 1.4, aS: 0.2, aR: 0.35,
+    chorus: 2, drift: 0.3
+  },
+  a62_clav: {
+    name: 'A62 Clav',
+    octave: 1, saw: 0.0, pulse: 1.0, pw: 0.12, sub: 0.0,
+    hpf: 0.1, cutoff: 0.38, res: 0.3, fenv: 0.5, keytrack: 0.7,
+    fA: 0.002, fD: 0.25, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.35, aS: 0.0, aR: 0.15,
+    chorus: 0, drift: 0.2
+  },
+  a68_synth_pad: {
+    name: 'A68 Synth Pad',
+    octave: 1, saw: 0.7, pulse: 0.6, pwmDepth: 0.5, pwmSrc: 1, sub: 0.3,
+    lfoRate: 0.3,
+    hpf: 0.1, cutoff: 0.42, res: 0.15, fenv: 0.35, keytrack: 0.6,
+    fA: 1.2, fD: 2.0, fS: 0.7, fR: 1.8,
+    aA: 0.9, aD: 1.8, aS: 0.85, aR: 1.8,
+    chorus: 2, drift: 0.5
+  },
+  a71_sweep_i: {
+    name: 'A71 Sweep I',
+    octave: 1, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.05, cutoff: 0.15, res: 0.5, fenv: 0.8, keytrack: 0.4,
+    fA: 1.8, fD: 2.5, fS: 0.5, fR: 2.0,
+    aA: 1.2, aD: 2.2, aS: 0.85, aR: 2.0,
+    chorus: 2, drift: 0.5
+  },
+  a72_pluck_sweep: {
+    name: 'A72 Pluck Sweep',
+    octave: 1, saw: 0.8, pulse: 0.0, sub: 0.2,
+    hpf: 0.05, cutoff: 0.2, res: 0.6, fenv: 0.75, keytrack: 0.5,
+    fA: 0.002, fD: 0.45, fS: 0.15, fR: 0.3,
+    aA: 0.002, aD: 0.6, aS: 0.2, aR: 0.3,
+    chorus: 1, drift: 0.3
+  },
+  b11_strings_i: {
+    name: 'B11 Strings I',
+    octave: 1, saw: 1.0, pulse: 0.0, sub: 0.25,
+    hpf: 0.15, cutoff: 0.58, res: 0.08, fenv: 0.15, keytrack: 0.65,
+    fA: 0.35, fD: 1.2, fS: 0.8, fR: 1.0,
+    aA: 0.35, aD: 1.0, aS: 0.9, aR: 1.0,
+    chorus: 1, drift: 0.4
+  },
+  b13_chorus_vibes: {
+    name: 'B13 Chorus Vibes',
+    octave: 1, saw: 0.0, pulse: 0.75, pw: 0.5, sub: 0.0,
+    hpf: 0.12, cutoff: 0.42, res: 0.2, fenv: 0.4, keytrack: 0.85,
+    fA: 0.002, fD: 0.9, fS: 0.05, fR: 0.6,
+    aA: 0.002, aD: 1.2, aS: 0.05, aR: 0.7,
+    lfoRate: 5.0, lfoDelay: 0.2, lfoPitch: 0.08,
+    chorus: 1, drift: 0.25
+  },
+  b15_harpsichord: {
+    name: 'B15 Harpsichord',
+    octave: 2, saw: 0.4, pulse: 0.8, pw: 0.12, sub: 0.0,
+    hpf: 0.2, cutoff: 0.65, res: 0.15, fenv: 0.3, keytrack: 0.8,
+    fA: 0.002, fD: 0.5, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.6, aS: 0.0, aR: 0.2,
+    chorus: 0, drift: 0.2
+  },
+  b23_orch_pad: {
+    name: 'B23 Orchestral Pad',
+    octave: 1, saw: 0.75, pulse: 0.5, pwmDepth: 0.4, pwmSrc: 1, sub: 0.35,
+    lfoRate: 0.4,
+    hpf: 0.1, cutoff: 0.48, res: 0.12, fenv: 0.25, keytrack: 0.6,
+    fA: 0.8, fD: 1.5, fS: 0.75, fR: 1.5,
+    aA: 0.7, aD: 1.5, aS: 0.85, aR: 1.5,
+    chorus: 2, drift: 0.5
+  },
+  b34_chorus_funk: {
+    name: 'B34 Chorus Funk',
+    octave: 1, saw: 0.5, pulse: 0.7, pw: 0.25, sub: 0.4,
+    hpf: 0.05, cutoff: 0.3, res: 0.4, fenv: 0.65, keytrack: 0.6,
+    fA: 0.002, fD: 0.28, fS: 0.1, fR: 0.2,
+    aA: 0.002, aD: 0.35, aS: 0.15, aR: 0.2,
+    chorus: 1, drift: 0.3
+  },
+  b41_reso_rise: {
+    name: 'B41 Resonant Rise',
+    octave: 1, saw: 0.8, pulse: 0.0, sub: 0.3,
+    hpf: 0.05, cutoff: 0.18, res: 0.75, fenv: 0.8, keytrack: 0.5,
+    fA: 1.5, fD: 2.0, fS: 0.5, fR: 1.5,
+    aA: 0.8, aD: 1.8, aS: 0.9, aR: 1.5,
+    chorus: 2, drift: 0.45
+  },
+  b56_ethereal: {
+    name: 'B56 Ethereal Pad',
+    octave: 1, saw: 0.6, pulse: 0.6, pwmDepth: 0.6, pwmSrc: 1, sub: 0.2, noise: 0.04,
+    lfoRate: 0.25,
+    hpf: 0.1, cutoff: 0.38, res: 0.25, fenv: 0.3, keytrack: 0.6,
+    fA: 2.0, fD: 3.0, fS: 0.7, fR: 2.5,
+    aA: 1.5, aD: 2.5, aS: 0.85, aR: 2.5,
+    chorus: 3, drift: 0.65 // Chorus I+II
+  },
+  juno60_hoover: {
+    name: 'Juno-60 Hoover',
+    octave: 1, saw: 1.0, pulse: 0.85, pwmDepth: 0.8, pwmSrc: 1, sub: 0.45, subOct: 1,
+    lfoRate: 1.2,
+    hpf: 0.0, cutoff: 0.68, res: 0.25, fenv: 0.35, keytrack: 0.7,
+    fA: 0.05, fD: 0.8, fS: 0.8, fR: 0.5,
+    aA: 0.02, aD: 0.8, aS: 0.95, aR: 0.5,
+    chorus: 3, drift: 0.6 // Chorus I+II
+  }
 };
 const presetKeys = Object.keys(PRESETS);
 
