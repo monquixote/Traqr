@@ -425,8 +425,8 @@ const char supportedCcInDesc[] = { "Supported incoming CC\nmessages:\n\nCC41 - C
 
 const char synthMidiChannelDesc[] = {
     "Routes incoming MIDI notes\nand CCs on this channel\ndirectly to the synth.\n\n"
-    "Macros 1-6:\nCC80-85, CC1-13, CC110-115\n\n"
-    "Delay/Reverb Send:\nCC86-87, CC71/74, CC116-117\n\n"
+    "Macros 1-6:\nCC80-85, CC71/74,\nCC110-115\n\n"
+    "Delay/Reverb Send:\nCC86-87, CC12/13,\nCC116-117\n\n"
     "Pan/Gain: CC118-119"
 };
 

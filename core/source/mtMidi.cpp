@@ -151,7 +151,7 @@ static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte va
         targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
         isMapped = true;
     }
-    // 2. Novation Circuit Tracks MIDI tracks factory template (CC 1, 2, 5, 11, 12, 13, 71, 74)
+    // 2. Novation Circuit Tracks MIDI tracks factory template (CC 1, 2, 5, 11, 71, 74, 12, 13)
     else if (number == 1)
     {
         targetParam = SynthInstrumentParamsCC::kMacro1;
@@ -172,22 +172,22 @@ static bool dispatchControlChangeToSynthParts(byte channel, byte number, byte va
         targetParam = SynthInstrumentParamsCC::kMacro4;
         isMapped = true;
     }
-    else if (number == 12)
+    else if (number == 71)
     {
         targetParam = SynthInstrumentParamsCC::kMacro5;
         isMapped = true;
     }
-    else if (number == 13)
+    else if (number == 74)
     {
         targetParam = SynthInstrumentParamsCC::kMacro6;
         isMapped = true;
     }
-    else if (number == 71)
+    else if (number == 12)
     {
         targetParam = SynthInstrumentParamsCC::kSynthDelaySend;
         isMapped = true;
     }
-    else if (number == 74)
+    else if (number == 13)
     {
         targetParam = SynthInstrumentParamsCC::kSynthReverbSend;
         isMapped = true;
