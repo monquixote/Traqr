@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUNO Engine // Tracker Mini WASM Harness</title>
+<style>
+    :root {
+        --panel-1: #34363b;
+        --panel-2: #26282c;
+        --ink: #ececec;
+        --ink-dim: #9a9ea6;
+        --amber: #ffb84a;
+        --lcd-bg: #1b1409;
+        --c-lfo: #e8c24a;
+        --c-dco: #e5533d;
+        --c-hpf: #4fb0e8;
+        --c-vcf: #4fb0e8;
+        --c-vca: #9a7fe0;
+        --c-env: #5bc47a;
+        --c-cho: #e07fb5;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #0e0f11; color: var(--ink); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    body { min-height: 100vh; padding: 28px 12px 60px; display: flex; justify-content: center; }
+
+    /* ---------- Case with wooden cheeks ---------- */
+    .case { display: flex; width: 100%; max-width: 1480px; border-radius: 8px; box-shadow: 0 30px 70px rgba(0,0,0,.7), 0 0 0 1px #000; overflow: hidden; }
+    .cheek { width: 34px; flex: none; background:
+        repeating-linear-gradient(92deg, rgba(0,0,0,.18) 0 2px, rgba(255,255,255,.04) 2px 5px),
+        linear-gradient(90deg, #5a3519, #7a4a25 45%, #4d2d15); }
+    .body { flex: 1; min-width: 0; background: linear-gradient(180deg, var(--panel-1), var(--panel-2)); }
+
+    /* ---------- Top header ---------- */
+    .topbar { display: flex; align-items: center; gap: 22px; padding: 14px 24px 12px; border-bottom: 2px solid #000; background: linear-gradient(180deg,#3b3d43,#2b2d31); flex-wrap: wrap; }
+    .logo { font-weight: 900; font-style: italic; font-size: 34px; letter-spacing: 2px; color: #fff; line-height: 1; text-shadow: 0 2px 0 #000; }
+    .logo small { display: block; font-size: 9.5px; font-weight: 600; font-style: normal; letter-spacing: 3px; color: var(--ink-dim); margin-top: 6px; text-shadow: none; }
+    .stripe { height: 5px; background: linear-gradient(90deg, var(--c-dco) 0 25%, #f08a3c 25% 50%, var(--c-lfo) 50% 75%, #b9d04a 75%); }
+    .spacer { flex: 1; }
+    .lcd { font-family: "SF Mono", Menlo, Consolas, monospace; background: var(--lcd-bg); color: var(--amber); border: 2px solid #000; border-radius: 4px; padding: 8px 14px; min-width: 260px; box-shadow: inset 0 0 14px rgba(0,0,0,.9); text-shadow: 0 0 6px rgba(255,184,74,.55); }
+    .lcd .l1 { font-size: 11px; opacity: .65; letter-spacing: 1px; }
+    .lcd .l2 { font-size: 18px; letter-spacing: 1px; margin-top: 2px; white-space: nowrap; }
+    canvas#scope { background: var(--lcd-bg); border: 2px solid #000; border-radius: 4px; box-shadow: inset 0 0 14px rgba(0,0,0,.9); }
+    .voices { display: flex; gap: 5px; align-items: center; }
+    .voices span { width: 9px; height: 9px; border-radius: 50%; background: #3a1a12; box-shadow: inset 0 0 2px #000; }
+    .voices span.on { background: #ff5a3c; box-shadow: 0 0 8px #ff5a3c; }
+    .voices label { font-size: 9px; letter-spacing: 1.5px; color: var(--ink-dim); margin-right: 4px; }
+
+    button, select, input[type=text] { font-family: inherit; }
+    .btn { background: linear-gradient(180deg,#d9d9d9,#a9a9a9); color: #111; border: 1px solid #000; border-radius: 3px; padding: 7px 14px; font-weight: 700; font-size: 11px; letter-spacing: 1.2px; cursor: pointer; box-shadow: 0 2px 0 #000; }
+    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn.active { background: linear-gradient(180deg,#ffd68a,#e49b2a); }
+    select.preset, input.pname { background: #17181b; color: var(--ink); border: 1px solid #000; border-radius: 3px; padding: 7px 10px; font-size: 13px; }
+    input.pname { width: 190px; }
+
+    /* ---------- Panel sections ---------- */
+    .panel { padding: 22px 20px 12px; display: flex; flex-wrap: wrap; gap: 20px 6px; justify-content: center; }
+    .section { padding: 0 14px 10px; border-right: 1px solid rgba(255,255,255,.07); }
+    .section:last-child { border-right: none; }
+    .section > h3 { margin: 0 0 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 2.4px; color: var(--ink); text-transform: uppercase; }
+    .section > h3::before, .section > h3::after { content: ""; flex: 1; height: 2px; background: var(--sec, #888); opacity: .9; }
+    .row { display: flex; gap: 12px; align-items: flex-start; }
+
+    .ctl { display: flex; flex-direction: column; align-items: center; width: 46px; }
+    .ctl label { margin-top: 9px; font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: #d4d6db; text-align: center; text-transform: uppercase; }
+    .ctl.hot label { color: var(--amber); }
+
+    /* Custom vertical slider */
+    .slider { position: relative; width: 36px; height: 132px; touch-action: none; cursor: ns-resize; outline: none; }
+    .slider .ticks { position: absolute; left: 3px; top: 12px; bottom: 12px; width: 6px;
+        background: repeating-linear-gradient(180deg, rgba(255,255,255,.55) 0 1px, transparent 1px 12px); }
+    .slider .slot { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 7px; transform: translateX(-50%);
+        background: linear-gradient(90deg, #050505, #1a1a1c 50%, #050505); border-radius: 4px; box-shadow: 0 0 0 1px #000, 0 1px 0 rgba(255,255,255,.08); }
+    .slider .cap { position: absolute; left: 50%; width: 28px; height: 24px; transform: translateX(-50%); border-radius: 3px; border: 1px solid #000;
+        background: linear-gradient(180deg,#fdfdfd,#cfcfcf 55%,#a6a6a6); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
+    .slider .cap::after { content: ""; position: absolute; left: 3px; right: 3px; top: 50%; height: 3px; margin-top: -1px; background: var(--sec, #e5533d); border-radius: 1px; }
+    .slider:focus-visible .cap { outline: 2px solid var(--amber); }
+    .slider.bipolar .slot::after { content:""; position:absolute; left:-4px; right:-4px; top:50%; height:1px; background:#fff; opacity:.5; }
+
+    /* Rocker / push switches */
+    .sw { display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 54px; }
+    .sw h4 { margin: 0 0 3px; font-size: 9px; letter-spacing: 1.3px; color: var(--ink-dim); text-align: center; font-weight: 700; }
+    .sw button { position: relative; background: linear-gradient(180deg,#6a6c72,#4a4c52); color: #e9e9e9; border: 1px solid #000; border-radius: 3px; padding: 7px 4px 7px 14px; font-size: 10px; font-weight: 800; letter-spacing: 1px; cursor: pointer; box-shadow: 0 3px 0 #000; text-align: center; }
+    .sw button::before { content: ""; position: absolute; left: 5px; top: 50%; width: 5px; height: 5px; margin-top: -3px; border-radius: 50%; background: #3a1a12; box-shadow: inset 0 0 2px #000; }
+    .sw button.on::before { background: #ff5a3c; box-shadow: 0 0 6px #ff5a3c; }
+    .sw button.on { background: linear-gradient(180deg,#8a8c92,#686a70); color: #fff; box-shadow: 0 1px 0 #000; transform: translateY(2px); }
+    .sw.wide { width: 62px; }
+
+    /* ---------- Keyboard ---------- */
+    .kbwrap { margin: 6px 20px 0; padding: 14px 14px 18px; background: #131416; border-top: 3px solid #000; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .kbtools { display: flex; gap: 10px; align-items: center; color: var(--ink-dim); font-size: 11px; letter-spacing: 1px; flex-wrap: wrap; justify-content: center; }
+    .keys { position: relative; height: 130px; user-select: none; touch-action: none; }
+    .wk { position: absolute; top: 0; width: 38px; height: 130px; background: linear-gradient(180deg,#f7f3e6,#e4dfcc); border: 1px solid #1a1a1a; border-radius: 0 0 4px 4px; cursor: pointer; }
+    .wk.down { background: linear-gradient(180deg,#ffd68a,#e0a948); }
+    .bk { position: absolute; top: 0; width: 24px; height: 82px; background: linear-gradient(180deg,#2c2c2c,#000); border: 1px solid #000; border-radius: 0 0 3px 3px; z-index: 2; cursor: pointer; }
+    .bk.down { background: linear-gradient(180deg,#ff9a3c,#a24d00); }
+    .kbwrap .hint { font-size: 10px; color: var(--ink-dim); letter-spacing: .5px; }
+
+    /* ---------- Macros ---------- */
+    .macros { margin: 16px 20px 0; padding: 14px 18px 18px; border-top: 2px solid #000; background: rgba(0,0,0,.18); border-radius: 4px; }
+    .macros h3 { margin: 0 0 12px; font-size: 11px; font-weight: 800; letter-spacing: 2.4px; text-transform: uppercase; }
+    .macros h3 small { color: var(--ink-dim); font-weight: 500; letter-spacing: .5px; text-transform: none; margin-left: 8px; }
+    .macro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+    .macro { background: #1a1b1e; border: 1px solid #000; border-radius: 4px; padding: 10px 12px; }
+    .macro .mh { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .macro .mh span:last-child { color: var(--amber); font-family: Menlo, monospace; font-weight: 500; }
+    .macro input[type=range] { width: 100%; margin: 10px 0 6px; accent-color: var(--amber); }
+    .macro .mt { font-size: 10px; color: var(--ink-dim); line-height: 1.5; }
+
+    .status { text-align: center; padding: 12px; font-size: 12px; color: #8bd18f; min-height: 16px; letter-spacing: .5px; }
+    .fatal { background: #4a1612; color: #ffc9c0; padding: 16px 22px; margin: 18px 20px; border-radius: 4px; border: 1px solid #000; display: none; font-size: 13px; line-height: 1.5; }
+    footer { text-align: center; font-size: 10px; color: var(--ink-dim); letter-spacing: 1px; padding: 10px 0 16px; }
+</style>
+</head>
+<body>
+<div class="case">
+    <div class="cheek"></div>
+    <div class="body">
+        <div class="stripe"></div>
+        <div class="topbar">
+            <div class="logo">JUNO<small>POLYPHONIC SYNTHESIZER &middot; TRACKER MINI ENGINE</small></div>
+            <div class="lcd"><div class="l1" id="lcdName">PATCH</div><div class="l2" id="lcdVal">Init</div></div>
+            <div class="spacer"></div>
+            <div class="voices" id="voices"><label>VOICES</label></div>
+            <canvas id="scope" width="190" height="52"></canvas>
+            <a href="../../" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:7px 12px;">🏠 ALL SYNTHS</a>
+            <a href="../tear/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:linear-gradient(180deg,#00e5ff,#00a8cc);color:#000;font-weight:800;padding:7px 12px;border-color:#0088aa;">⚡ TEAR SYNTH &rarr;</a>
+            <button class="btn" id="btnAudio">START AUDIO</button>
+        </div>
+
+        <div class="topbar" style="border-top:none;padding-top:10px;padding-bottom:10px;background:#2b2d31;">
+            <button class="btn" id="btnPrev">&#9664;</button>
+            <select class="preset" id="presetSel"></select>
+            <button class="btn" id="btnNext">&#9654;</button>
+            <input class="pname" id="patchName" type="text" value="Init" spellcheck="false">
+            <div class="spacer"></div>
+            <button class="btn" id="btnExport">EXPORT .PATCH</button>
+            <button class="btn" id="btnExportAll">EXPORT ALL (.ZIP)</button>
+        </div>
+
+        <div class="fatal" id="fatal"></div>
+        <div class="panel" id="panel"></div>
+
+        <div class="kbwrap">
+            <div class="kbtools">
+                <button class="btn" id="octDown">OCT &minus;</button>
+                <span id="octLabel">C3 &ndash; B6</span>
+                <button class="btn" id="octUp">OCT +</button>
+                <span class="hint">Play with the mouse, your computer keyboard (Z&nbsp;row / Q&nbsp;row) or a USB&nbsp;MIDI keyboard</span>
+            </div>
+            <div class="keys" id="keys"></div>
+        </div>
+
+        <div class="macros">
+            <h3>Tracker Macros <small>Default mapping saved into every exported patch &mdash; reassignable on the device</small></h3>
+            <div class="macro-grid" id="macroGrid"></div>
+        </div>
+
+        <div class="status" id="status"></div>
+        <footer>Tracker Mini Firmware v1.0.10 NL &bull; JUNO Engine WASM Harness &bull; 8 voices &bull; 44.1&nbsp;kHz 32-bit float</footer>
+    </div>
+    <div class="cheek"></div>
+</div>
+
+<script src="juno_dsp.js"></script>
+<script>
+// ======================================================================
+//  Parameter schema (must match JunoDSP.h ParamId order)
+// ======================================================================
+const KEYS = ['octave','tune','saw','pulse','pw','pwmDepth','pwmSrc','sub','subOct','noise','drift',
+              'hpf','cutoff','res','fenv','flfo','keytrack','ota',
+              'fA','fD','fS','fR','aA','aD','aS','aR','vca',
+              'lfoRate','lfoDelay','lfoPitch','chorus','volume'];
+const ID = Object.fromEntries(KEYS.map((k, i) => [k, i]));
+const NPARAMS = KEYS.length; // 32
+const INSTRUMENT_TYPE_ID = 10; // kJunoSynth (follows kTearSynth = 9)
+
+const TAPER = { fA:'log', fD:'log', fR:'log', aA:'log', aD:'log', aR:'log', lfoRate:'log', lfoDelay:'pow2' };
+const NAMES = {
+    octave:'Range', tune:'Tune', saw:'Saw', pulse:'Pulse', pw:'Pulse width', pwmDepth:'PWM depth', pwmSrc:'PWM source',
+    sub:'Sub osc', subOct:'Sub octave', noise:'Noise', drift:'Analog drift', hpf:'HPF', cutoff:'VCF Freq',
+    res:'Resonance', fenv:'Filter Env amount', flfo:'Filter LFO', keytrack:'Key follow', ota:'OTA drive',
+    fA:'Filter attack', fD:'Filter decay', fS:'Filter sustain', fR:'Filter release',
+    aA:'Amp attack', aD:'Amp decay', aS:'Amp sustain', aR:'Amp release',
+    vca:'VCA mode', lfoRate:'LFO rate', lfoDelay:'LFO delay', lfoPitch:'LFO > pitch', chorus:'Chorus', volume:'Volume'
+};
+
+const meta = new Array(NPARAMS);   // {min,max,def} from the WASM engine
+const base = new Float32Array(NPARAMS);
+
+const pct = v => Math.round(v * 100) + '%';
+const secs = v => v < 1 ? Math.round(v * 1000) + ' ms' : v.toFixed(2) + ' s';
+const signed = (v, d, u) => (v > 0 ? '+' : '') + v.toFixed(d) + u;
+const FMT = {
+    octave: v => ["16'", "8'", "4'"][Math.round(v)],
+    tune: v => signed(v, 2, ' st'),
+    pw: v => pct(v), pwmSrc: v => ['Manual', 'LFO', 'Envelope'][Math.round(v)],
+    subOct: v => Math.round(v) ? '-2 Octaves' : '-1 Octave',
+    drift: v => pct(v),
+    hpf: v => v < 0.08 ? 'BASS BOOST ' + pct(1 - v / 0.08) : Math.round(20 * Math.pow(60, v)) + ' Hz',
+    cutoff: v => { const hz = 20 * Math.pow(900, v); return hz >= 1000 ? (hz / 1000).toFixed(2) + ' kHz' : Math.round(hz) + ' Hz'; },
+    fenv: v => signed(v * 100, 0, '%'),
+    fA: secs, fD: secs, fR: secs, aA: secs, aD: secs, aR: secs,
+    vca: v => Math.round(v) ? 'GATE' : 'ENV',
+    lfoRate: v => v.toFixed(2) + ' Hz', lfoDelay: secs,
+    lfoPitch: v => pct(v),
+    chorus: v => ['OFF', 'CHORUS I', 'CHORUS II', 'CHORUS I+II'][Math.round(v)],
+    volume: v => pct(v / 1.5)
+};
+const fmt = (k, v) => (FMT[k] || pct)(v);
+
+function valToNorm(k, v) {
+    const { min, max } = meta[ID[k]];
+    switch (TAPER[k]) {
+        case 'log': return Math.log(v / min) / Math.log(max / min);
+        case 'pow2': return Math.sqrt(Math.max(0, (v - min) / (max - min)));
+        default: return (v - min) / (max - min);
+    }
+}
+function normToVal(k, n) {
+    const { min, max } = meta[ID[k]];
+    n = Math.min(1, Math.max(0, n));
+    switch (TAPER[k]) {
+        case 'log': return min * Math.pow(max / min, n);
+        case 'pow2': return min + (max - min) * n * n;
+        default: return min + (max - min) * n;
+    }
+}
+
+// ======================================================================
+//  Presets: Authentic Roland Juno Factory Library (Bank A, Bank B, Juno-60)
+// ======================================================================
+const PRESETS = {
+  init: {
+    name: 'Init Patch'
+  },
+  a11_brass: {
+    name: 'A11 Brass',
+    octave: 1, saw: 0.85, pulse: 0.0, sub: 0.2, subOct: 0,
+    hpf: 0.0, cutoff: 0.32, res: 0.18, fenv: 0.55, keytrack: 0.5,
+    fA: 0.08, fD: 0.5, fS: 0.45, fR: 0.25,
+    aA: 0.01, aD: 0.5, aS: 0.85, aR: 0.25,
+    chorus: 1, drift: 0.3
+  },
+  a12_brass_swell: {
+    name: 'A12 Brass Swell',
+    octave: 1, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.0, cutoff: 0.2, res: 0.25, fenv: 0.65, keytrack: 0.5,
+    fA: 0.35, fD: 0.8, fS: 0.6, fR: 0.4,
+    aA: 0.25, aD: 0.8, aS: 0.9, aR: 0.4,
+    chorus: 1, drift: 0.35
+  },
+  a13_trumpet: {
+    name: 'A13 Trumpet',
+    octave: 2, saw: 0.75, pulse: 0.4, pw: 0.35, sub: 0.0,
+    hpf: 0.1, cutoff: 0.46, res: 0.22, fenv: 0.48, keytrack: 0.65,
+    fA: 0.02, fD: 0.45, fS: 0.65, fR: 0.15,
+    aA: 0.01, aD: 0.45, aS: 0.85, aR: 0.15,
+    lfoRate: 5.5, lfoDelay: 0.4, lfoPitch: 0.1,
+    chorus: 0, drift: 0.25
+  },
+  a14_flutes: {
+    name: 'A14 Flutes',
+    octave: 2, saw: 0.0, pulse: 0.8, pw: 0.5, sub: 0.15, noise: 0.04,
+    hpf: 0.15, cutoff: 0.45, res: 0.15, fenv: 0.2, keytrack: 0.8,
+    fA: 0.08, fD: 0.5, fS: 0.7, fR: 0.25,
+    aA: 0.06, aD: 0.5, aS: 0.85, aR: 0.25,
+    lfoRate: 4.8, lfoDelay: 0.3, lfoPitch: 0.08,
+    chorus: 1, drift: 0.2
+  },
+  a15_moving_strings: {
+    name: 'A15 Moving Strings',
+    octave: 1, saw: 0.85, pulse: 0.5, pwmDepth: 0.6, pwmSrc: 1, sub: 0.25,
+    lfoRate: 0.6, lfoDelay: 0.0,
+    hpf: 0.1, cutoff: 0.52, res: 0.1, fenv: 0.22, keytrack: 0.65,
+    fA: 0.45, fD: 1.2, fS: 0.75, fR: 1.0,
+    aA: 0.35, aD: 1.0, aS: 0.85, aR: 1.0,
+    chorus: 1, drift: 0.45
+  },
+  a16_brass_strings: {
+    name: 'A16 Brass & Strings',
+    octave: 1, saw: 0.85, pulse: 0.4, sub: 0.3,
+    hpf: 0.05, cutoff: 0.4, res: 0.16, fenv: 0.45, keytrack: 0.6,
+    fA: 0.18, fD: 0.8, fS: 0.65, fR: 0.5,
+    aA: 0.08, aD: 0.8, aS: 0.85, aR: 0.5,
+    chorus: 1, drift: 0.4
+  },
+  a17_choir: {
+    name: 'A17 Choir',
+    octave: 1, saw: 0.0, pulse: 0.85, pw: 0.25, pwmDepth: 0.3, pwmSrc: 1, sub: 0.3, noise: 0.05,
+    lfoRate: 0.8,
+    hpf: 0.12, cutoff: 0.38, res: 0.45, fenv: 0.2, keytrack: 0.85,
+    fA: 0.3, fD: 1.0, fS: 0.7, fR: 0.6,
+    aA: 0.25, aD: 1.0, aS: 0.8, aR: 0.6,
+    chorus: 2, drift: 0.4
+  },
+  a18_piano_i: {
+    name: 'A18 Piano I',
+    octave: 1, saw: 0.45, pulse: 0.6, pw: 0.22, sub: 0.35,
+    hpf: 0.0, cutoff: 0.42, res: 0.06, fenv: 0.55, keytrack: 0.8,
+    fA: 0.002, fD: 0.8, fS: 0.15, fR: 0.3,
+    aA: 0.002, aD: 1.2, aS: 0.2, aR: 0.3,
+    chorus: 1, drift: 0.25
+  },
+  a21_organ_i: {
+    name: 'A21 Organ I',
+    octave: 1, saw: 0.6, pulse: 0.6, pw: 0.5, sub: 0.7,
+    hpf: 0.0, cutoff: 0.75, res: 0.0, fenv: 0.0, keytrack: 1.0,
+    vca: 1, // GATE mode
+    chorus: 2, drift: 0.2
+  },
+  a22_organ_ii: {
+    name: 'A22 Organ II',
+    octave: 1, saw: 0.0, pulse: 0.7, pw: 0.5, sub: 0.5,
+    hpf: 0.08, cutoff: 0.65, res: 0.22, fenv: 0.6, keytrack: 0.85,
+    fA: 0.001, fD: 0.08, fS: 0.0, fR: 0.05,
+    vca: 1, // GATE mode
+    chorus: 1, drift: 0.2
+  },
+  a23_combo_organ: {
+    name: 'A23 Combo Organ',
+    octave: 1, saw: 0.5, pulse: 0.5, pw: 0.5, sub: 0.5,
+    hpf: 0.0, cutoff: 0.8, res: 0.0, fenv: 0.0, keytrack: 1.0,
+    vca: 1,
+    chorus: 3, drift: 0.3 // Mode I+II rotary shimmer!
+  },
+  a24_calliope: {
+    name: 'A24 Calliope',
+    octave: 2, saw: 0.0, pulse: 0.75, pw: 0.5, sub: 0.4,
+    hpf: 0.05, cutoff: 0.55, res: 0.35, fenv: 0.3, keytrack: 0.85,
+    fA: 0.05, fD: 0.4, fS: 0.6, fR: 0.2,
+    aA: 0.03, aD: 0.4, aS: 0.8, aR: 0.2,
+    lfoRate: 6.0, lfoDelay: 0.0, lfoPitch: 0.12,
+    chorus: 1, drift: 0.3
+  },
+  a25_donald_pluck: {
+    name: 'A25 Donald Pluck',
+    octave: 1, saw: 0.2, pulse: 0.85, pw: 0.15, sub: 0.25,
+    hpf: 0.05, cutoff: 0.26, res: 0.42, fenv: 0.7, keytrack: 0.6,
+    fA: 0.002, fD: 0.22, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.3, aS: 0.0, aR: 0.15,
+    chorus: 1, drift: 0.25
+  },
+  a26_celeste: {
+    name: 'A26 Celeste',
+    octave: 2, saw: 0.0, pulse: 0.8, pw: 0.5, sub: 0.0,
+    hpf: 0.2, cutoff: 0.42, res: 0.32, fenv: 0.4, keytrack: 0.9,
+    fA: 0.002, fD: 0.7, fS: 0.0, fR: 0.5,
+    aA: 0.002, aD: 0.9, aS: 0.0, aR: 0.6,
+    chorus: 2, drift: 0.2
+  },
+  a27_epiano_i: {
+    name: 'A27 Elect. Piano I',
+    octave: 1, saw: 0.0, pulse: 0.75, pw: 0.3, sub: 0.4,
+    hpf: 0.0, cutoff: 0.36, res: 0.16, fenv: 0.46, keytrack: 0.75,
+    fA: 0.002, fD: 0.9, fS: 0.2, fR: 0.4,
+    aA: 0.002, aD: 1.2, aS: 0.25, aR: 0.4,
+    chorus: 1, drift: 0.3
+  },
+  a31_chimes: {
+    name: 'A31 Clock Chimes',
+    octave: 2, saw: 0.3, pulse: 0.6, pw: 0.2, sub: 0.0,
+    hpf: 0.25, cutoff: 0.65, res: 0.52, fenv: 0.42, keytrack: 0.85,
+    fA: 0.002, fD: 1.4, fS: 0.0, fR: 1.2,
+    aA: 0.002, aD: 1.8, aS: 0.0, aR: 1.3,
+    chorus: 2, drift: 0.2
+  },
+  a32_steel_drums: {
+    name: 'A32 Steel Drums',
+    octave: 1, saw: 0.0, pulse: 0.85, pw: 0.25, sub: 0.3,
+    hpf: 0.0, cutoff: 0.3, res: 0.65, fenv: 0.65, keytrack: 0.8,
+    fA: 0.002, fD: 0.3, fS: 0.0, fR: 0.25,
+    aA: 0.002, aD: 0.45, aS: 0.0, aR: 0.25,
+    chorus: 1, drift: 0.25
+  },
+  a33_xylophone: {
+    name: 'A33 Xylophone',
+    octave: 2, saw: 0.0, pulse: 0.9, pw: 0.45, sub: 0.0,
+    hpf: 0.25, cutoff: 0.45, res: 0.4, fenv: 0.5, keytrack: 0.9,
+    fA: 0.002, fD: 0.35, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.4, aS: 0.0, aR: 0.2,
+    chorus: 0, drift: 0.2
+  },
+  a36_strings_iii: {
+    name: 'A36 Strings III',
+    octave: 1, saw: 1.0, pulse: 0.0, sub: 0.4,
+    hpf: 0.1, cutoff: 0.6, res: 0.1, fenv: 0.2, keytrack: 0.7,
+    fA: 0.25, fD: 0.8, fS: 0.85, fR: 0.8,
+    aA: 0.2, aD: 0.8, aS: 0.9, aR: 0.8,
+    chorus: 2, drift: 0.4
+  },
+  a37_pizzicato: {
+    name: 'A37 Pizzicato',
+    octave: 1, saw: 0.7, pulse: 0.4, sub: 0.3,
+    hpf: 0.05, cutoff: 0.22, res: 0.2, fenv: 0.75, keytrack: 0.65,
+    fA: 0.002, fD: 0.18, fS: 0.0, fR: 0.12,
+    aA: 0.002, aD: 0.25, aS: 0.0, aR: 0.15,
+    chorus: 1, drift: 0.25
+  },
+  a43_brass_ens: {
+    name: 'A43 Brass Ensemble',
+    octave: 0, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.0, cutoff: 0.35, res: 0.2, fenv: 0.6, keytrack: 0.5,
+    fA: 0.12, fD: 0.6, fS: 0.55, fR: 0.35,
+    aA: 0.06, aD: 0.6, aS: 0.85, aR: 0.35,
+    chorus: 1, drift: 0.4
+  },
+  a44_guitar: {
+    name: 'A44 Guitar',
+    octave: 1, saw: 0.5, pulse: 0.6, pw: 0.2, sub: 0.2,
+    hpf: 0.05, cutoff: 0.32, res: 0.15, fenv: 0.55, keytrack: 0.65,
+    fA: 0.002, fD: 0.45, fS: 0.1, fR: 0.25,
+    aA: 0.002, aD: 0.6, aS: 0.15, aR: 0.25,
+    chorus: 1, drift: 0.25
+  },
+  a47_funky_i: {
+    name: 'A47 Funky I',
+    octave: 1, saw: 0.0, pulse: 0.9, pw: 0.15, sub: 0.25,
+    hpf: 0.08, cutoff: 0.25, res: 0.45, fenv: 0.7, keytrack: 0.6,
+    fA: 0.002, fD: 0.22, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.3, aS: 0.0, aR: 0.15,
+    chorus: 0, drift: 0.25
+  },
+  a48_synth_bass_i: {
+    name: 'A48 Synth Bass I',
+    octave: 0, saw: 0.6, pulse: 0.4, pw: 0.5, sub: 0.85, subOct: 0,
+    hpf: 0.0, cutoff: 0.28, res: 0.35, fenv: 0.55, keytrack: 0.3,
+    fA: 0.002, fD: 0.28, fS: 0.1, fR: 0.18,
+    aA: 0.002, aD: 0.35, aS: 0.8, aR: 0.18,
+    ota: 0.35, chorus: 0, drift: 0.2
+  },
+  a51_lead_i: {
+    name: 'A51 Lead I',
+    octave: 1, saw: 0.8, pulse: 0.5, pwmDepth: 0.4, pwmSrc: 1, sub: 0.3,
+    lfoRate: 4.5, lfoDelay: 0.45, lfoPitch: 0.12,
+    hpf: 0.05, cutoff: 0.55, res: 0.3, fenv: 0.3, keytrack: 0.75,
+    fA: 0.01, fD: 0.5, fS: 0.8, fR: 0.3,
+    aA: 0.01, aD: 0.5, aS: 1.0, aR: 0.3,
+    chorus: 1, drift: 0.35
+  },
+  a55_synth_bass_ii: {
+    name: 'A55 Synth Bass II',
+    octave: 0, saw: 0.3, pulse: 0.6, pw: 0.5, sub: 0.95, subOct: 0,
+    hpf: 0.0, cutoff: 0.22, res: 0.6, fenv: 0.7, keytrack: 0.25,
+    fA: 0.002, fD: 0.32, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.4, aS: 0.75, aR: 0.2,
+    ota: 0.45, chorus: 0, drift: 0.2
+  },
+  a61_piano_ii: {
+    name: 'A61 Piano II',
+    octave: 1, saw: 0.35, pulse: 0.7, pw: 0.3, sub: 0.4,
+    hpf: 0.0, cutoff: 0.45, res: 0.08, fenv: 0.45, keytrack: 0.8,
+    fA: 0.002, fD: 1.0, fS: 0.15, fR: 0.35,
+    aA: 0.002, aD: 1.4, aS: 0.2, aR: 0.35,
+    chorus: 2, drift: 0.3
+  },
+  a62_clav: {
+    name: 'A62 Clav',
+    octave: 1, saw: 0.0, pulse: 1.0, pw: 0.12, sub: 0.0,
+    hpf: 0.1, cutoff: 0.38, res: 0.3, fenv: 0.5, keytrack: 0.7,
+    fA: 0.002, fD: 0.25, fS: 0.0, fR: 0.15,
+    aA: 0.002, aD: 0.35, aS: 0.0, aR: 0.15,
+    chorus: 0, drift: 0.2
+  },
+  a68_synth_pad: {
+    name: 'A68 Synth Pad',
+    octave: 1, saw: 0.7, pulse: 0.6, pwmDepth: 0.5, pwmSrc: 1, sub: 0.3,
+    lfoRate: 0.3,
+    hpf: 0.1, cutoff: 0.42, res: 0.15, fenv: 0.35, keytrack: 0.6,
+    fA: 1.2, fD: 2.0, fS: 0.7, fR: 1.8,
+    aA: 0.9, aD: 1.8, aS: 0.85, aR: 1.8,
+    chorus: 2, drift: 0.5
+  },
+  a71_sweep_i: {
+    name: 'A71 Sweep I',
+    octave: 1, saw: 0.9, pulse: 0.0, sub: 0.3,
+    hpf: 0.05, cutoff: 0.15, res: 0.5, fenv: 0.8, keytrack: 0.4,
+    fA: 1.8, fD: 2.5, fS: 0.5, fR: 2.0,
+    aA: 1.2, aD: 2.2, aS: 0.85, aR: 2.0,
+    chorus: 2, drift: 0.5
+  },
+  a72_pluck_sweep: {
+    name: 'A72 Pluck Sweep',
+    octave: 1, saw: 0.8, pulse: 0.0, sub: 0.2,
+    hpf: 0.05, cutoff: 0.2, res: 0.6, fenv: 0.75, keytrack: 0.5,
+    fA: 0.002, fD: 0.45, fS: 0.15, fR: 0.3,
+    aA: 0.002, aD: 0.6, aS: 0.2, aR: 0.3,
+    chorus: 1, drift: 0.3
+  },
+  b11_strings_i: {
+    name: 'B11 Strings I',
+    octave: 1, saw: 1.0, pulse: 0.0, sub: 0.25,
+    hpf: 0.15, cutoff: 0.58, res: 0.08, fenv: 0.15, keytrack: 0.65,
+    fA: 0.35, fD: 1.2, fS: 0.8, fR: 1.0,
+    aA: 0.35, aD: 1.0, aS: 0.9, aR: 1.0,
+    chorus: 1, drift: 0.4
+  },
+  b13_chorus_vibes: {
+    name: 'B13 Chorus Vibes',
+    octave: 1, saw: 0.0, pulse: 0.75, pw: 0.5, sub: 0.0,
+    hpf: 0.12, cutoff: 0.42, res: 0.2, fenv: 0.4, keytrack: 0.85,
+    fA: 0.002, fD: 0.9, fS: 0.05, fR: 0.6,
+    aA: 0.002, aD: 1.2, aS: 0.05, aR: 0.7,
+    lfoRate: 5.0, lfoDelay: 0.2, lfoPitch: 0.08,
+    chorus: 1, drift: 0.25
+  },
+  b15_harpsichord: {
+    name: 'B15 Harpsichord',
+    octave: 2, saw: 0.4, pulse: 0.8, pw: 0.12, sub: 0.0,
+    hpf: 0.2, cutoff: 0.65, res: 0.15, fenv: 0.3, keytrack: 0.8,
+    fA: 0.002, fD: 0.5, fS: 0.0, fR: 0.2,
+    aA: 0.002, aD: 0.6, aS: 0.0, aR: 0.2,
+    chorus: 0, drift: 0.2
+  },
+  b23_orch_pad: {
+    name: 'B23 Orchestral Pad',
+    octave: 1, saw: 0.75, pulse: 0.5, pwmDepth: 0.4, pwmSrc: 1, sub: 0.35,
+    lfoRate: 0.4,
+    hpf: 0.1, cutoff: 0.48, res: 0.12, fenv: 0.25, keytrack: 0.6,
+    fA: 0.8, fD: 1.5, fS: 0.75, fR: 1.5,
+    aA: 0.7, aD: 1.5, aS: 0.85, aR: 1.5,
+    chorus: 2, drift: 0.5
+  },
+  b34_chorus_funk: {
+    name: 'B34 Chorus Funk',
+    octave: 1, saw: 0.5, pulse: 0.7, pw: 0.25, sub: 0.4,
+    hpf: 0.05, cutoff: 0.3, res: 0.4, fenv: 0.65, keytrack: 0.6,
+    fA: 0.002, fD: 0.28, fS: 0.1, fR: 0.2,
+    aA: 0.002, aD: 0.35, aS: 0.15, aR: 0.2,
+    chorus: 1, drift: 0.3
+  },
+  b41_reso_rise: {
+    name: 'B41 Resonant Rise',
+    octave: 1, saw: 0.8, pulse: 0.0, sub: 0.3,
+    hpf: 0.05, cutoff: 0.18, res: 0.75, fenv: 0.8, keytrack: 0.5,
+    fA: 1.5, fD: 2.0, fS: 0.5, fR: 1.5,
+    aA: 0.8, aD: 1.8, aS: 0.9, aR: 1.5,
+    chorus: 2, drift: 0.45
+  },
+  b56_ethereal: {
+    name: 'B56 Ethereal Pad',
+    octave: 1, saw: 0.6, pulse: 0.6, pwmDepth: 0.6, pwmSrc: 1, sub: 0.2, noise: 0.04,
+    lfoRate: 0.25,
+    hpf: 0.1, cutoff: 0.38, res: 0.25, fenv: 0.3, keytrack: 0.6,
+    fA: 2.0, fD: 3.0, fS: 0.7, fR: 2.5,
+    aA: 1.5, aD: 2.5, aS: 0.85, aR: 2.5,
+    chorus: 3, drift: 0.65 // Chorus I+II
+  },
+  juno60_hoover: {
+    name: 'Juno-60 Hoover',
+    octave: 1, saw: 1.0, pulse: 0.85, pwmDepth: 0.8, pwmSrc: 1, sub: 0.45, subOct: 1,
+    lfoRate: 1.2,
+    hpf: 0.0, cutoff: 0.68, res: 0.25, fenv: 0.35, keytrack: 0.7,
+    fA: 0.05, fD: 0.8, fS: 0.8, fR: 0.5,
+    aA: 0.02, aD: 0.8, aS: 0.95, aR: 0.5,
+    chorus: 3, drift: 0.6 // Chorus I+II
+  }
+};
+const presetKeys = Object.keys(PRESETS);
+
+// ======================================================================
+//  Macros: effective param = clamp(base + macroValue * amount)
+// ======================================================================
+const DEFAULT_MACROS = () => [
+    { displayName: 'Cutoff',    bipolar: true,  value: 0, modifiers: [{ key: 'cutoff',   amount: 0.5 }] },
+    { displayName: 'Resonance', bipolar: false, value: 0, modifiers: [{ key: 'res',      amount: 0.6 }] },
+    { displayName: 'Env Mod',   bipolar: true,  value: 0, modifiers: [{ key: 'fenv',     amount: 1.0 }] },
+    { displayName: 'Sub / Bass',bipolar: false, value: 0, modifiers: [{ key: 'sub',      amount: 0.8 }, { key: 'ota', amount: 0.3 }] },
+    { displayName: 'PWM',       bipolar: false, value: 0, modifiers: [{ key: 'pwmDepth', amount: 0.7 }] },
+    { displayName: 'Release',   bipolar: false, value: 0, modifiers: [{ key: 'aR', amount: 3.0 }, { key: 'fR', amount: 3.0 }] }
+];
+let macros = DEFAULT_MACROS();
+
+// ======================================================================
+//  Engine glue
+// ======================================================================
+let Module = null, J = {}, bufL = 0, bufR = 0;
+const BLOCK = 512;
+let audioCtx = null, scriptNode = null, analyser = null, running = false;
+
+function pushParams() {
+    if (!J.set_param) return;
+    const eff = Array.from(base);
+    for (const m of macros) {
+        for (const mod of m.modifiers) eff[ID[mod.key]] += m.value * mod.amount;
+    }
+    for (let i = 0; i < NPARAMS; i++) {
+        J.set_param(i, Math.min(meta[i].max, Math.max(meta[i].min, eff[i])));
+    }
+}
+
+// ======================================================================
+//  UI building
+// ======================================================================
+const widgets = {}; // key -> { refresh() }
+const lcdName = document.getElementById('lcdName');
+const lcdVal = document.getElementById('lcdVal');
+function lcd(name, val) { lcdName.textContent = name.toUpperCase(); lcdVal.textContent = val; }
+
+function setBase(k, v, silent) {
+    base[ID[k]] = v;
+    pushParams();
+    if (!silent) lcd(NAMES[k], fmt(k, v));
+    widgets[k] && widgets[k].refresh();
+}
+
+function mkSlider(k, label, opts = {}) {
+    const ctl = document.createElement('div');
+    ctl.className = 'ctl' + (opts.hot ? ' hot' : '');
+    const s = document.createElement('div');
+    s.className = 'slider' + (meta[ID[k]].min < 0 ? ' bipolar' : '');
+    s.tabIndex = 0;
+    s.innerHTML = '<div class="ticks"></div><div class="slot"></div><div class="cap"></div>';
+    const cap = s.querySelector('.cap');
+    const lab = document.createElement('label');
+    lab.textContent = label;
+    ctl.append(s, lab);
+
+    const H = 132, CH = 24;
+    const refresh = () => {
+        const n = valToNorm(k, base[ID[k]]);
+        cap.style.top = ((1 - n) * (H - CH)) + 'px';
+    };
+    const fromEvent = e => {
+        const r = s.getBoundingClientRect();
+        const n = 1 - ((e.clientY - r.top - CH / 2) / (H - CH));
+        setBase(k, normToVal(k, n));
+    };
+    s.addEventListener('pointerdown', e => { s.setPointerCapture(e.pointerId); fromEvent(e); s.dataset.drag = '1'; });
+    s.addEventListener('pointermove', e => { if (s.dataset.drag) fromEvent(e); });
+    s.addEventListener('pointerup', () => { delete s.dataset.drag; });
+    s.addEventListener('dblclick', () => setBase(k, meta[ID[k]].def));
+    s.addEventListener('wheel', e => {
+        e.preventDefault();
+        setBase(k, normToVal(k, valToNorm(k, base[ID[k]]) + (e.deltaY < 0 ? 0.02 : -0.02)));
+    }, { passive: false });
+    s.addEventListener('keydown', e => {
+        const step = e.shiftKey ? 0.1 : 0.02;
+        if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { setBase(k, normToVal(k, valToNorm(k, base[ID[k]]) + step)); e.preventDefault(); }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { setBase(k, normToVal(k, valToNorm(k, base[ID[k]]) - step)); e.preventDefault(); }
+    });
+    widgets[k] = { refresh };
+    refresh();
+    return ctl;
+}
+
+function mkSwitch(k, title, options, wide) {
+    // options: [{label, val}]
+    const sw = document.createElement('div');
+    sw.className = 'sw' + (wide ? ' wide' : '');
+    if (title) { const h = document.createElement('h4'); h.textContent = title; sw.append(h); }
+    const btns = options.map(o => {
+        const b = document.createElement('button');
+        b.textContent = o.label;
+        b.addEventListener('click', () => setBase(k, o.val));
+        sw.append(b);
+        return { b, val: o.val };
+    });
+    const refresh = () => btns.forEach(x => x.b.classList.toggle('on', Math.round(base[ID[k]]) === x.val));
+    widgets[k] = { refresh };
+    refresh();
+    return sw;
+}
+
+function mkChorus() {
+    const sw = document.createElement('div');
+    sw.className = 'sw wide';
+    const h = document.createElement('h4'); h.textContent = 'MODE'; sw.append(h);
+    const mk = (label, bit) => {
+        const b = document.createElement('button'); b.textContent = label;
+        b.addEventListener('click', () => {
+            const cur = Math.round(base[ID.chorus]);
+            const hasI = cur === 1 || cur === 3, hasII = cur === 2 || cur === 3;
+            const nI = bit === 1 ? !hasI : hasI, nII = bit === 2 ? !hasII : hasII;
+            setBase('chorus', nI && nII ? 3 : nI ? 1 : nII ? 2 : 0);
+        });
+        sw.append(b); return b;
+    };
+    const bI = mk('I', 1), bII = mk('II', 2);
+    widgets.chorus = { refresh() {
+        const cur = Math.round(base[ID.chorus]);
+        bI.classList.toggle('on', cur === 1 || cur === 3);
+        bII.classList.toggle('on', cur === 2 || cur === 3);
+    } };
+    widgets.chorus.refresh();
+    return sw;
+}
+
+function section(title, color, children) {
+    const s = document.createElement('div');
+    s.className = 'section';
+    s.style.setProperty('--sec', color);
+    const h = document.createElement('h3'); h.textContent = title;
+    const row = document.createElement('div'); row.className = 'row';
+    row.append(...children);
+    s.append(h, row);
+    return s;
+}
+
+function buildPanel() {
+    const panel = document.getElementById('panel');
+    panel.append(
+        section('LFO', 'var(--c-lfo)', [
+            mkSlider('lfoRate', 'Rate'), mkSlider('lfoDelay', 'Delay')
+        ]),
+        section('DCO', 'var(--c-dco)', [
+            mkSwitch('octave', 'RANGE', [{label:"16'",val:0},{label:"8'",val:1},{label:"4'",val:2}]),
+            mkSwitch('pwmSrc', 'PWM', [{label:'MAN',val:0},{label:'LFO',val:1},{label:'ENV',val:2}]),
+            mkSlider('lfoPitch', 'LFO'), mkSlider('pwmDepth', 'PWM'), mkSlider('pw', 'PW'),
+            mkSlider('pulse', 'Pulse'), mkSlider('saw', 'Saw'), mkSlider('sub', 'Sub'),
+            mkSwitch('subOct', 'SUB', [{label:'-1',val:0},{label:'-2',val:1}]),
+            mkSlider('noise', 'Noise'), mkSlider('tune', 'Tune'), mkSlider('drift', 'Drift', { hot: true })
+        ]),
+        section('HPF', 'var(--c-hpf)', [ mkSlider('hpf', 'HPF') ]),
+        section('VCF', 'var(--c-vcf)', [
+            mkSlider('cutoff', 'Freq'), mkSlider('res', 'Res'), mkSlider('fenv', 'Env'),
+            mkSlider('flfo', 'LFO'), mkSlider('keytrack', 'Kybd'), mkSlider('ota', 'Drive')
+        ]),
+        section('VCA', 'var(--c-vca)', [
+            mkSwitch('vca', 'MODE', [{label:'ENV',val:0},{label:'GATE',val:1}])
+        ]),
+        section('ENV 1 · FILTER', 'var(--c-env)', [
+            mkSlider('fA', 'A'), mkSlider('fD', 'D'), mkSlider('fS', 'S'), mkSlider('fR', 'R')
+        ]),
+        section('ENV 2 · AMP', 'var(--c-env)', [
+            mkSlider('aA', 'A'), mkSlider('aD', 'D'), mkSlider('aS', 'S'), mkSlider('aR', 'R')
+        ]),
+        section('CHORUS', 'var(--c-cho)', [ mkChorus() ]),
+        section('OUT', '#bbb', [ mkSlider('volume', 'Volume') ])
+    );
+}
+
+function refreshAllWidgets() { Object.values(widgets).forEach(w => w.refresh()); }
+
+// ---------------- Macro cards ----------------
+const macroEls = [];
+function buildMacros() {
+    const grid = document.getElementById('macroGrid');
+    grid.innerHTML = '';
+    macroEls.length = 0;
+    macros.forEach((m, i) => {
+        const card = document.createElement('div'); card.className = 'macro';
+        const mods = m.modifiers.map(x => `${NAMES[x.key]} ${x.amount >= 0 ? '+' : ''}${x.amount}`).join('<br>');
+        card.innerHTML = `<div class="mh"><span>${i + 1} &middot; ${m.displayName}</span><span>0</span></div>
+            <input type="range" min="${m.bipolar ? -1 : 0}" max="1" step="0.01" value="0">
+            <div class="mt">${m.bipolar ? 'bipolar' : 'unipolar'} &rarr;<br>${mods}</div>`;
+        const input = card.querySelector('input'), out = card.querySelector('.mh span:last-child');
+        input.addEventListener('input', () => {
+            m.value = parseFloat(input.value);
+            out.textContent = Math.round(m.value * (m.bipolar ? 63 : 127));
+            pushParams();
+            lcd('Macro ' + (i + 1) + ' ' + m.displayName, out.textContent);
+        });
+        input.addEventListener('dblclick', () => { input.value = 0; input.dispatchEvent(new Event('input')); });
+        grid.append(card);
+    });
+}
+
+// ---------------- Presets ----------------
+const presetSel = document.getElementById('presetSel');
+const patchName = document.getElementById('patchName');
+presetKeys.forEach(k => {
+    const o = document.createElement('option'); o.value = k; o.textContent = PRESETS[k].name; presetSel.append(o);
+});
+function paramsFromPreset(p) {
+    const out = new Float32Array(NPARAMS);
+    for (let i = 0; i < NPARAMS; i++) out[i] = (p[KEYS[i]] !== undefined) ? p[KEYS[i]] : meta[i].def;
+    return out;
+}
+function loadPreset(key) {
+    const p = PRESETS[key];
+    base.set(paramsFromPreset(p));
+    macros = (p.macros || DEFAULT_MACROS()).map(m => ({ ...m, value: 0 }));
+    buildMacros();
+    patchName.value = p.name;
+    presetSel.value = key;
+    refreshAllWidgets();
+    pushParams();
+    lcd('Patch', p.name);
+}
+presetSel.addEventListener('change', () => loadPreset(presetSel.value));
+document.getElementById('btnPrev').addEventListener('click', () => {
+    loadPreset(presetKeys[(presetKeys.indexOf(presetSel.value) + presetKeys.length - 1) % presetKeys.length]);
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+    loadPreset(presetKeys[(presetKeys.indexOf(presetSel.value) + 1) % presetKeys.length]);
+});
+
+// ======================================================================
+//  Keyboard (on-screen, computer, MIDI)
+// ======================================================================
+let kbBase = 48; // C3
+const held = new Set();
+const keyEls = {};
+function noteOn(n, v = 0.85) {
+    if (!J.note_on || held.has(n)) return;
+    held.add(n); J.note_on(n, v);
+    keyEls[n] && keyEls[n].classList.add('down');
+}
+function noteOff(n) {
+    if (!J.note_off || !held.has(n)) return;
+    held.delete(n); J.note_off(n);
+    keyEls[n] && keyEls[n].classList.remove('down');
+}
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const isBlack = n => [1,3,6,8,10].includes(n % 12);
+function buildKeys() {
+    const wrap = document.getElementById('keys');
+    wrap.innerHTML = '';
+    for (const k in keyEls) delete keyEls[k];
+    const lo = kbBase, hi = kbBase + 48;
+    let w = 0;
+    const WKW = 38;
+    for (let n = lo; n < hi; n++) {
+        const el = document.createElement('div');
+        if (!isBlack(n)) { el.className = 'wk'; el.style.left = (w * WKW) + 'px'; w++; }
+        else { el.className = 'bk'; el.style.left = (w * WKW - 12) + 'px'; }
+        el.dataset.note = n; wrap.append(el); keyEls[n] = el;
+    }
+    wrap.style.width = (w * WKW) + 'px';
+    document.getElementById('octLabel').textContent =
+        NOTE_NAMES[lo % 12] + (Math.floor(lo / 12) - 1) + ' – ' + NOTE_NAMES[(hi - 1) % 12] + (Math.floor((hi - 1) / 12) - 1);
+}
+{
+    const wrap = document.getElementById('keys');
+    let activeNote = null;
+    wrap.addEventListener('pointerdown', e => {
+        const n = e.target.dataset && e.target.dataset.note;
+        if (n === undefined) return;
+        wrap.setPointerCapture(e.pointerId);
+        activeNote = parseInt(n, 10); noteOn(activeNote);
+    });
+    wrap.addEventListener('pointermove', e => {
+        if (activeNote === null) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const n = el && el.dataset && el.dataset.note !== undefined ? parseInt(el.dataset.note, 10) : null;
+        if (n !== null && n !== activeNote) { noteOff(activeNote); activeNote = n; noteOn(n); }
+    });
+    const up = () => { if (activeNote !== null) { noteOff(activeNote); activeNote = null; } };
+    wrap.addEventListener('pointerup', up);
+    wrap.addEventListener('pointercancel', up);
+}
+document.getElementById('octDown').addEventListener('click', () => { kbBase = Math.max(0, kbBase - 12); buildKeys(); });
+document.getElementById('octUp').addEventListener('click', () => { kbBase = Math.min(72, kbBase + 12); buildKeys(); });
+
+const KEYMAP_LOW = 'zsxdcvgbhnjm'.split('');
+const KEYMAP_HIGH = 'q2w3er5t6y7u'.split('');
+function keyToNote(key) {
+    let i = KEYMAP_LOW.indexOf(key); if (i >= 0) return kbBase + i;
+    i = KEYMAP_HIGH.indexOf(key); if (i >= 0) return kbBase + 12 + i;
+    if (key === 'i') return kbBase + 24; if (key === '9') return kbBase + 25; if (key === 'o') return kbBase + 26;
+    if (key === '0') return kbBase + 27; if (key === 'p') return kbBase + 28;
+    return null;
+}
+window.addEventListener('keydown', e => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement.type !== 'range') return;
+    if (e.key === '[') { document.getElementById('octDown').click(); return; }
+    if (e.key === ']') { document.getElementById('octUp').click(); return; }
+    const n = keyToNote(e.key.toLowerCase());
+    if (n !== null) noteOn(n);
+});
+window.addEventListener('keyup', e => {
+    const n = keyToNote(e.key.toLowerCase());
+    if (n !== null) noteOff(n);
+});
+window.addEventListener('blur', () => { [...held].forEach(noteOff); });
+
+if (navigator.requestMIDIAccess) {
+    navigator.requestMIDIAccess().then(access => {
+        const hook = inp => { inp.onmidimessage = m => {
+            const [st, d1, d2] = m.data, cmd = st & 0xf0;
+            if (cmd === 0x90 && d2 > 0) noteOn(d1, d2 / 127);
+            else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) noteOff(d1);
+        }; };
+        access.inputs.forEach(hook);
+        access.onstatechange = () => access.inputs.forEach(hook);
+    }).catch(() => {});
+}
+
+// ======================================================================
+//  Audio + visuals
+// ======================================================================
+const btnAudio = document.getElementById('btnAudio');
+btnAudio.addEventListener('click', async () => {
+    if (!J.render) return;
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        J.init(audioCtx.sampleRate);
+        pushParams();
+        analyser = audioCtx.createAnalyser(); analyser.fftSize = 1024;
+        scriptNode = audioCtx.createScriptProcessor(BLOCK, 0, 2);
+        scriptNode.onaudioprocess = e => {
+            J.render(bufL, bufR, BLOCK);
+            e.outputBuffer.getChannelData(0).set(Module.HEAPF32.subarray(bufL >> 2, (bufL >> 2) + BLOCK));
+            e.outputBuffer.getChannelData(1).set(Module.HEAPF32.subarray(bufR >> 2, (bufR >> 2) + BLOCK));
+        };
+        scriptNode.connect(analyser); analyser.connect(audioCtx.destination);
+        drawLoop();
+    }
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    running = !running;
+    if (running) { btnAudio.textContent = 'AUDIO ACTIVE'; btnAudio.classList.add('active'); }
+    else { audioCtx.suspend(); btnAudio.textContent = 'RESUME AUDIO'; btnAudio.classList.remove('active'); }
+});
+
+const voicesEl = document.getElementById('voices');
+const voiceLeds = [];
+for (let i = 0; i < 8; i++) { const s = document.createElement('span'); voicesEl.append(s); voiceLeds.push(s); }
+const scope = document.getElementById('scope'), sctx = scope.getContext('2d');
+function drawLoop() {
+    const data = new Float32Array(analyser.fftSize);
+    const frame = () => {
+        analyser.getFloatTimeDomainData(data);
+        sctx.fillStyle = '#1b1409'; sctx.fillRect(0, 0, scope.width, scope.height);
+        sctx.strokeStyle = '#ffb84a'; sctx.lineWidth = 1.5; sctx.shadowColor = '#ffb84a'; sctx.shadowBlur = 5;
+        sctx.beginPath();
+        // trigger on rising zero crossing
+        let start = 0; for (let i = 1; i < data.length / 2; i++) { if (data[i - 1] < 0 && data[i] >= 0) { start = i; break; } }
+        for (let x = 0; x < scope.width; x++) {
+            const v = data[start + Math.floor(x * 2.5)] || 0;
+            const y = scope.height / 2 - v * (scope.height / 2 - 3) * 1.6;
+            x ? sctx.lineTo(x, y) : sctx.moveTo(x, y);
+        }
+        sctx.stroke();
+        const nv = J.active_voices ? J.active_voices() : 0;
+        voiceLeds.forEach((l, i) => l.classList.toggle('on', i < nv));
+        requestAnimationFrame(frame);
+    };
+    frame();
+}
+
+// ======================================================================
+//  Patch export (Nanopb-compatible protobuf, same layout as TEAR patches)
+// ======================================================================
+function encodeVarint(val) {
+    const bytes = [];
+    while (val > 0x7f) { bytes.push((val & 0x7f) | 0x80); val >>>= 7; }
+    bytes.push(val & 0x7f);
+    return bytes;
+}
+function f32le(x) {
+    const b = new ArrayBuffer(4); new DataView(b).setFloat32(0, x, true);
+    return Array.from(new Uint8Array(b));
+}
+// Nanopb uses fixed-size arrays: 8 macros, 6 modifiers per macro (padded when any are used).
+function encodePatchBinary(params, patchMacros) {
+    const bytes = [];
+    bytes.push(0x08, ...encodeVarint(INSTRUMENT_TYPE_ID));           // field 1: instrument_type_id
+    for (let i = 0; i < NPARAMS; i++) bytes.push(0x32, 0x05, 0x0D, ...f32le(params[i] || 0)); // field 6: params
+    for (let m = 0; m < 8; m++) {
+        const mb = [];
+        let name = `Macro ${m + 1}`, bipolar = false, mods = [];
+        if (m < 6) {
+            const mc = (patchMacros && patchMacros[m]) || {};
+            name = mc.displayName || name; bipolar = !!mc.bipolar;
+            mods = (mc.modifiers || []).filter(x => x && ID[x.key] !== undefined);
+        } else if (m === 6) { name = 'Velocity'; }
+        else { name = 'Pressure'; }
+        const nb = new TextEncoder().encode(name);
+        mb.push((1 << 3) | 2, ...encodeVarint(nb.length), ...nb);
+        mb.push((2 << 3) | 0, bipolar ? 1 : 0);
+        mb.push((3 << 3) | 0, ...encodeVarint(mods.length));
+        if (mods.length > 0) {
+            for (let i = 0; i < 6; i++) {
+                const mod = i < mods.length ? mods[i] : null;
+                const pb = [(1 << 3) | 0, ...encodeVarint(mod ? ID[mod.key] : 0), (2 << 3) | 5, ...f32le(mod ? mod.amount : 0)];
+                mb.push((4 << 3) | 2, ...encodeVarint(pb.length), ...pb);
+            }
+        }
+        bytes.push(0x42, ...encodeVarint(mb.length), ...mb);
+    }
+    return new Uint8Array(bytes);
+}
+function createZip(files) {
+    const crcTable = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); crcTable[i] = c >>> 0; }
+    const crc32 = buf => { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+    const parts = [], cdParts = []; let offset = 0;
+    for (const f of files) {
+        const nameBytes = new TextEncoder().encode(f.name), data = f.data, crc = crc32(data), size = data.length;
+        const lh = new Uint8Array(30), lv = new DataView(lh.buffer);
+        lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true);
+        lv.setUint32(14, crc, true); lv.setUint32(18, size, true); lv.setUint32(22, size, true); lv.setUint16(26, nameBytes.length, true);
+        const localOffset = offset; parts.push(lh, nameBytes, data); offset += 30 + nameBytes.length + size;
+        const cd = new Uint8Array(46), cv = new DataView(cd.buffer);
+        cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+        cv.setUint32(16, crc, true); cv.setUint32(20, size, true); cv.setUint32(24, size, true);
+        cv.setUint16(28, nameBytes.length, true); cv.setUint32(42, localOffset, true);
+        cdParts.push(cd, nameBytes);
+    }
+    const cdStart = offset; let cdSize = 0;
+    for (const b of cdParts) { parts.push(b); cdSize += b.length; }
+    const eocd = new Uint8Array(22), ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+    ev.setUint32(12, cdSize, true); ev.setUint32(16, cdStart, true);
+    parts.push(eocd);
+    const out = new Uint8Array(parts.reduce((a, p) => a + p.length, 0)); let p = 0;
+    for (const part of parts) { out.set(part, p); p += part.length; }
+    return out;
+}
+const safe = s => s.replace(/[/\\?%*:|"<>]/g, '_');
+function download(bytes, name, type) {
+    const url = URL.createObjectURL(new Blob([bytes], { type }));
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function status(msg, err) {
+    const el = document.getElementById('status');
+    el.textContent = msg; el.style.color = err ? '#ff8a7a' : '#8bd18f';
+}
+document.getElementById('btnExport').addEventListener('click', () => {
+    const name = safe(patchName.value.trim() || 'Juno_Patch');
+    const bytes = encodePatchBinary(base, macros);
+    download(bytes, name + '.patch', 'application/octet-stream');
+    status(`Exported "${name}.patch" (${bytes.length} bytes). Copy to SD:/Patches/JUNO/ on your Tracker Mini.`);
+});
+document.getElementById('btnExportAll').addEventListener('click', () => {
+    try {
+        const files = presetKeys.map(k => {
+            const p = PRESETS[k];
+            return { name: `JUNO/${safe(p.name)}.patch`, data: encodePatchBinary(paramsFromPreset(p), p.macros || DEFAULT_MACROS()) };
+        });
+        download(createZip(files), 'JUNO_Patches.zip', 'application/zip');
+        status(`Exported ${files.length} patches to JUNO_Patches.zip. Unzip into SD:/Patches/ on your Tracker Mini.`);
+    } catch (e) { status('Export failed: ' + e.message, true); }
+});
+
+// ======================================================================
+//  Boot
+// ======================================================================
+JunoModule().then(mod => {
+    Module = mod;
+    const w = (n, r, a) => Module.cwrap('juno_' + n, r, a);
+    J = {
+        init: w('init', null, ['number']), note_on: w('note_on', null, ['number', 'number']),
+        note_off: w('note_off', null, ['number']), set_param: w('set_param', null, ['number', 'number']),
+        render: w('render', null, ['number', 'number', 'number']), active_voices: w('active_voices', 'number', [])
+    };
+    const pmin = w('param_min', 'number', ['number']), pmax = w('param_max', 'number', ['number']), pdef = w('param_default', 'number', ['number']);
+    if (w('param_count', 'number', [])() !== NPARAMS) throw new Error('Parameter count mismatch between UI and WASM engine');
+    for (let i = 0; i < NPARAMS; i++) meta[i] = { min: pmin(i), max: pmax(i), def: pdef(i) };
+    bufL = Module._malloc(BLOCK * 4); bufR = Module._malloc(BLOCK * 4);
+    buildPanel(); buildKeys(); loadPreset('init');
+    lcd('Ready', 'Press START AUDIO');
+}).catch(err => {
+    const f = document.getElementById('fatal');
+    f.style.display = 'block';
+    f.innerHTML = '<b>Could not load the WASM engine.</b><br>' + err + '<br>Run <code>tools/juno_harness/build.sh</code> then <code>tools/juno_harness/serve.sh</code> (browsers block WASM loading from file://).';
+});
+</script>
+</body>
+</html>

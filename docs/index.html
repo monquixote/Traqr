@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyend Tracker Mini &bull; Custom Synth Engines</title>
+    <style>
+        :root {
+            --bg-deep: #0c0e12;
+            --bg-card: #15181e;
+            --bg-panel: #1e222b;
+            --border: #2d3340;
+            --text-main: #f0f3f6;
+            --text-dim: #9aa1ad;
+            --accent-juno: #ffb84a;
+            --accent-juno-strip: #e5533d;
+            --accent-tear: #00e5ff;
+            --accent-orange: #ff7b00;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+            background: linear-gradient(180deg, #ffffff, #b0b8c4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lead {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* Synth Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 28px;
+            margin-bottom: 56px;
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .card.card-juno:hover {
+            border-color: rgba(255, 184, 74, 0.6);
+        }
+
+        .card.card-tear:hover {
+            border-color: rgba(0, 229, 255, 0.6);
+        }
+
+        .card-header-stripe {
+            height: 6px;
+            width: 100%;
+        }
+
+        .stripe-juno {
+            background: linear-gradient(90deg, #e5533d 0 25%, #f08a3c 25% 50%, #e8c24a 50% 75%, #b9d04a 75%);
+        }
+
+        .stripe-tear {
+            background: linear-gradient(90deg, #ff7b00, #00e5ff);
+        }
+
+        .card-body {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .synth-logo-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .juno-logo-text {
+            font-size: 1.8rem;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: 2px;
+            color: #ffffff;
+        }
+
+        .tear-logo-badge {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-tear));
+            color: #000;
+            font-weight: 900;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 14px;
+        }
+
+        .card-juno .card-subtitle {
+            color: var(--accent-juno);
+        }
+
+        .card-tear .card-subtitle {
+            color: var(--accent-tear);
+        }
+
+        .card-desc {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #ccd2db;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            flex: 1;
+            min-width: 170px;
+            text-align: center;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-juno {
+            background: linear-gradient(180deg, #ffc46a, #e49b2a);
+            color: #111;
+            border: 1px solid #d48b1a;
+            box-shadow: 0 4px 14px rgba(228, 155, 42, 0.3);
+        }
+
+        .btn-juno:hover {
+            background: linear-gradient(180deg, #ffd38a, #f0a736);
+            transform: translateY(-1px);
+        }
+
+        .btn-tear {
+            background: linear-gradient(180deg, #00f0ff, #00a8cc);
+            color: #000;
+            border: 1px solid #008fae;
+            box-shadow: 0 4px 14px rgba(0, 229, 255, 0.3);
+        }
+
+        .btn-tear:hover {
+            background: linear-gradient(180deg, #33f3ff, #00bce4);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            text-align: center;
+            text-decoration: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #282e3b;
+            border-color: #434c5e;
+            color: #fff;
+        }
+
+        /* Info Section */
+        .info-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-top: 20px;
+        }
+
+        .info-card h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .step-num {
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: var(--accent-tear);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .step h3 {
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 0.88rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 28px 20px;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge-pill">Polyend Tracker Mini &bull; Custom DSP Engines</div>
+            <h1>Interactive Synthesizer Portals</h1>
+            <p class="lead">
+                Play, design, and audition custom sound engines directly in your browser with real-time C++20 WebAssembly audio harnesses, then export patches directly to your Tracker Mini.
+            </p>
+        </header>
+
+        <div class="grid">
+            <!-- JUNO SYNTH CARD -->
+            <div class="card card-juno">
+                <div class="card-header-stripe stripe-juno"></div>
+                <div class="card-body">
+                    <div class="synth-logo-row">
+                        <div class="juno-logo-text">JUNO</div>
+                        <span class="tag" style="color: var(--accent-juno); border-color: rgba(255, 184, 74, 0.4);">8 VOICES</span>
+                    </div>
+                    <div class="card-subtitle">Classic Polyphonic DCO Synthesizer</div>
+                    <p class="card-desc">
+                        Faithful recreation of the legendary 1980s polyphonic synth. Featuring pulse with PWM, saw, sub-oscillator, resonant 4-pole low-pass filter with self-oscillation, high-pass filter, authentic dual BBD chorus (Modes I, II, and I+II), analog voice drift, ADSR envelope, and 18 classic factory patches.
+                    </p>
+                    <div class="tag-list">
+                        <span class="tag">8-Voice Polyphony</span>
+                        <span class="tag">Sub Oscillator &amp; Noise</span>
+                        <span class="tag">Resonant 4-Pole VCF</span>
+                        <span class="tag">Dual BBD Chorus</span>
+                        <span class="tag">Analog Drift</span>
+                        <span class="tag">18 Presets</span>
+                    </div>
+                    <div class="btn-group">
+                        <a href="synths/juno/" class="btn-primary btn-juno">🎛️ Launch JUNO Web Synth &rarr;</a>
+                        <a href="patches/JUNO_Patches.zip" class="btn-secondary" download>📥 Presets (.zip)</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEAR SYNTH CARD -->
+            <div class="card card-tear">
+                <div class="card-header-stripe stripe-tear"></div>
+                <div class="card-body">
+                    <div class="synth-logo-row">
+                        <span class="tear-logo-badge">TEAR</span>
+                        <span class="tag" style="color: var(--accent-tear); border-color: rgba(0, 229, 255, 0.4);">EXPERIMENTAL</span>
+                    </div>
+                    <div class="card-subtitle">Phase-Tearing Sync Synthesizer</div>
+                    <p class="card-desc">
+                        Advanced sync and phase distortion engine designed for aggressive leads, metallic basses, formant sweeps, and cinematic textures. Manipulates waveform discontinuities at variable phase angles with dual sync oscillators, resonance feedback, stereo chorus, and 18 custom factory patches.
+                    </p>
+                    <div class="tag-list">
+                        <span class="tag">Phase Tearing Sync</span>
+                        <span class="tag">Variable Discontinuity</span>
+                        <span class="tag">Resonance Feedback</span>
+                        <span class="tag">Stereo Chorus / Delay</span>
+                        <span class="tag">Formant Control</span>
+                        <span class="tag">18 Presets</span>
+                    </div>
+                    <div class="btn-group">
+                        <a href="synths/tear/" class="btn-primary btn-tear">⚡ Launch TEAR Web Synth &rarr;</a>
+                        <a href="patches/TEAR_Patches.zip" class="btn-secondary" download>📥 Presets (.zip)</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRACKER HARDWARE INSTALL GUIDE -->
+        <div class="info-card">
+            <h2>Hardware Installation Guide for Polyend Tracker Mini</h2>
+            <div class="info-steps">
+                <div class="step">
+                    <div class="step-num">Step 1</div>
+                    <h3>Install Firmware</h3>
+                    <p>
+                        Copy the custom firmware file (<code>TrackerMini_NL_1.0.11.ptf</code>) to the <code>/Firmware/</code> folder on your Tracker Mini MicroSD card. In Tracker Settings, choose <strong>Firmware Update</strong>.
+                    </p>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 2</div>
+                    <h3>Load Presets</h3>
+                    <p>
+                        Extract the downloaded presets into <code>/Instruments/Synths/JUNO/</code> and <code>/Instruments/Synths/TEAR/</code> on your MicroSD card.
+                    </p>
+                </div>
+                <div class="step">
+                    <div class="step-num">Step 3</div>
+                    <h3>Play &amp; Automate</h3>
+                    <p>
+                        In Instrument Parameters, select the engine or load any <code>.patch</code> preset. Map macros to cutoff, chorus, drift, and resonance for expressive live automation!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Polyend Tracker Mini Custom Synth Firmware &bull; Built with C++20, WebAssembly &amp; Web Audio API</p>
+    </footer>
+</body>
+</html>

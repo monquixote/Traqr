@@ -4,6 +4,7 @@
 #include "PolySynth/sdk/InstrumentTypeRegistry.h"
 #include "engines/ChiptuneSynthVoice.h"
 #include "engines/TearSynthVoice.h"
+#include "engines/JunoSynthVoice.h"
 
 namespace polysynth
 {
@@ -36,6 +37,8 @@ void InstrumentTypeRegistry::registerInstrumentTypes(
                                createChiptuneSynth());
     registry.addInstrumentType(static_cast<int>(InstrumentTypeId::kTearSynth),
                                createTearSynth());
+    registry.addInstrumentType(static_cast<int>(InstrumentTypeId::kJunoSynth),
+                               createJunoSynth());
 }
 
 } // namespace polysynth

@@ -88,48 +88,353 @@
             box-shadow: 0 0 14px rgba(0, 255, 102, 0.4);
         }
 
-        /* Preset Bar */
-        .preset-bar {
+        /* Patch Chooser & Preset Toolbar */
+        .patch-bar {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
             margin-bottom: 16px;
             background: var(--bg-panel);
-            padding: 10px 16px;
+            padding: 12px 18px;
             border-radius: 8px;
             border: 1px solid var(--border);
             flex-wrap: wrap;
         }
 
-        .preset-label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
+        .patch-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .preset-btn {
+        .patch-label {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 800;
+        }
+
+        .patch-select {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 210px;
+            outline: none;
+        }
+
+        .patch-select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+        }
+
+        .patch-nav-btn {
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-main);
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-size: 0.82rem;
+            padding: 8px 14px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
             transition: all 0.15s ease;
         }
 
-        .preset-btn:hover {
+        .patch-nav-btn:hover {
             border-color: var(--accent-cyan);
             color: var(--accent-cyan);
         }
 
-        .preset-btn.active {
-            background: var(--accent-cyan);
-            color: #000;
-            font-weight: 700;
+        .patch-name-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--accent-cyan);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: monospace;
+            font-weight: bold;
+            width: 180px;
+            outline: none;
+        }
+
+        .patch-name-input:focus {
             border-color: var(--accent-cyan);
+        }
+
+        .patch-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #00b4d8, #00e5ff);
+            color: #000;
+        }
+
+        .export-btn:hover {
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .export-all-btn {
+            background: linear-gradient(135deg, #7928ca, #ff0080);
+            color: #fff;
+        }
+
+        .export-all-btn:hover {
+            box-shadow: 0 0 12px rgba(255, 0, 128, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .import-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .import-btn:hover {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+            transform: translateY(-1px);
+        }
+
+        .patch-hint {
+            width: 100%;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border);
+            margin-top: 4px;
+        }
+
+        .patch-status {
+            color: var(--accent-green);
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+
+        /* 6-Macro Performance Bar */
+        .macro-container {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .macro-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .macro-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent-orange);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .macro-config-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .macro-config-toggle:hover, .macro-config-toggle.active {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .macro-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 960px) {
+            .macro-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 580px) {
+            .macro-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .macro-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .macro-card:hover {
+            border-color: var(--accent-orange);
+        }
+
+        .macro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .macro-dest-tag {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .macro-val-display {
+            font-family: monospace;
+            font-size: 0.82rem;
+            font-weight: bold;
+            color: var(--accent-orange);
+        }
+
+        .macro-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: var(--knob-track);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .macro-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-orange);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 123, 0, 0.5);
+            transition: transform 0.1s;
+        }
+
+        .macro-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Macro Config Drawer */
+        .macro-config-panel {
+            display: none;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 4px;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .macro-config-panel.open {
+            display: flex;
+        }
+
+        .macro-config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 12px;
+        }
+
+        .config-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .config-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .config-row label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .config-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            outline: none;
+        }
+
+        .config-input:focus {
+            border-color: var(--accent-orange);
+        }
+
+        .mod-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 6px;
         }
 
         /* Scope & Spectrum Display */
@@ -171,7 +476,7 @@
         /* Synth Grid */
         .synth-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
             gap: 16px;
             margin-bottom: 16px;
         }
@@ -359,30 +664,123 @@
             color: var(--text-dim);
             font-size: 0.75rem;
         }
+
+        /* Drag and Drop Overlay */
+        .drop-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 229, 255, 0.15);
+            border: 4px dashed var(--accent-cyan);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+        .drop-overlay.visible {
+            display: flex;
+        }
     </style>
 </head>
 <body>
+
+    <div class="drop-overlay" id="dropOverlay">Drop .patch file here to load into TEAR</div>
 
     <header>
         <div class="header-title">
             <span class="logo-tag">TEAR</span>
             <div>
                 <h1 style="font-size: 1.15rem; font-weight: 700; letter-spacing: 0.5px;">Phase-Tearing Sync Synthesizer</h1>
-                <div class="header-sub">Polyend Tracker Mini Custom DSP Engine // C++20 compiled to WebAssembly</div>
+                <div class="header-sub">Polyend Tracker Mini Custom DSP Engine // C++20 WebAssembly Audio Harness</div>
             </div>
         </div>
-        <button id="btnAudio" class="audio-status-btn">START AUDIO</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="../../" class="octave-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 8px 14px; font-weight: 600;">🏠 All Synths</a>
+            <a href="../juno/" class="octave-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-weight: 700; color: #ffb84a; border-color: rgba(255, 184, 74, 0.5); background: rgba(255, 184, 74, 0.08);">🎛️ JUNO Synth &rarr;</a>
+            <button id="btnAudio" class="audio-status-btn">START AUDIO</button>
+        </div>
     </header>
 
-    <!-- Presets -->
-    <div class="preset-bar">
-        <span class="preset-label">Presets:</span>
-        <button class="preset-btn active" data-preset="laser">Laser Tear Lead</button>
-        <button class="preset-btn" data-preset="daft">Daft Sync Wall</button>
-        <button class="preset-btn" data-preset="vocal">Vocal Formant Sweep</button>
-        <button class="preset-btn" data-preset="bass">Tear Bass Shred</button>
-        <button class="preset-btn" data-preset="ring">Industrial Ring</button>
-        <button class="preset-btn" data-preset="soft">Soft Reverse Growl</button>
+    <!-- Patch Chooser Toolbar -->
+    <div class="patch-bar">
+        <div class="patch-group">
+            <span class="patch-label">Patch:</span>
+            <button class="patch-nav-btn" id="btnPrevPatch" title="Previous Patch">◀</button>
+            <select id="patchSelect" class="patch-select">
+                <option value="laser">Laser Tear Lead</option>
+                <option value="daft">Daft Sync Wall</option>
+                <option value="vocal">Vocal Formant Sweep</option>
+                <option value="bass">Tear Bass Shred</option>
+                <option value="ring">Industrial Ring</option>
+                <option value="soft">Soft Reverse Growl</option>
+                <option value="acid">Acid Sync Screamer</option>
+                <option value="chiptune">Chiptune Aggro</option>
+                <option value="cyber_reese">Cyberpunk Reese</option>
+                <option value="tear_pluck">Tear Crystal Pluck</option>
+                <option value="vangelis_brass">Vangelis CS Brass</option>
+                <option value="laser_shredder">Modular Laser Shred</option>
+                <option value="throat_chant">Tibetan Monk Drone</option>
+                <option value="glitch_perc">Industrial Anvil Clang</option>
+                <option value="liquid_acid">Liquid 303 Squish</option>
+                <option value="hyperpop_saw">Hyperpop Super Sync</option>
+                <option value="alien_radio">Alien Shortwave</option>
+                <option value="dark_pad">Dark Cosmic Pad</option>
+                <option value="custom" disabled>[Custom / Imported Patch]</option>
+            </select>
+            <button class="patch-nav-btn" id="btnNextPatch" title="Next Patch">▶</button>
+            <input type="text" id="patchNameInput" class="patch-name-input" value="Laser Tear Lead" placeholder="Patch Name" maxlength="24">
+        </div>
+
+        <div class="patch-actions">
+            <button id="btnExportPatch" class="action-btn export-btn" title="Download current .patch file compatible with Tracker Mini SD card">
+                💾 Export .patch
+            </button>
+            <button id="btnExportAllPatches" class="action-btn export-all-btn" title="Download all 18 patches packaged as TEAR_Patches.zip ready for SD card">
+                📦 Export All (.zip)
+            </button>
+            <button id="btnImportPatch" class="action-btn import-btn" title="Load .patch file from your computer">
+                📁 Import .patch
+            </button>
+            <input type="file" id="fileImportPatch" accept=".patch" style="display:none">
+        </div>
+
+        <div class="patch-hint">
+            <span>💾 Copy exported <code>.patch</code> files to <code>/Patches/TEAR/</code> on your Polyend Tracker Mini SD card.</span>
+            <span id="patchStatusMsg" class="patch-status">Ready</span>
+        </div>
+    </div>
+
+    <!-- 6 Hardware-Mapped Synth Macros Bar -->
+    <div class="macro-container">
+        <div class="macro-top">
+            <div class="macro-title">
+                <span>🎛️ Synth Macros (Tracker Mini Hardware Mapped)</span>
+            </div>
+            <button id="btnToggleMacroConfig" class="macro-config-toggle">⚙️ Configure Macros</button>
+        </div>
+
+        <!-- 6 Macro Knobs -->
+        <div class="macro-grid" id="macroGrid">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Collapsible Macro Configuration Panel -->
+        <div class="macro-config-panel" id="macroConfigPanel">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                <span style="font-size:0.85rem; font-weight:bold; color:var(--accent-orange);">Macro Modulation & Routing Setup</span>
+                <div style="display:flex; gap:8px;">
+                    <button id="btnResetMacros" class="macro-config-toggle" style="color:var(--text-dim);">Reset Defaults</button>
+                    <button id="btnCloseMacroConfig" class="macro-config-toggle" style="color:var(--accent-cyan);">Done</button>
+                </div>
+            </div>
+            <div class="macro-config-grid" id="macroConfigGrid">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
     </div>
 
     <!-- Visualizers -->
@@ -397,7 +795,7 @@
         </div>
     </div>
 
-    <!-- Main Synth Controls -->
+    <!-- Main Synth Controls (All 28 Parameters) -->
     <div class="synth-grid">
         <!-- 1. Sync Oscillator -->
         <div class="panel-box">
@@ -434,6 +832,13 @@
                     <option value="1">-2 Octaves</option>
                 </select>
             </div>
+            <div class="control-row">
+                <div class="control-label"><span>Pitch Tune / Fine</span><span id="val_tuning">0 st / 0 ct</span></div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="range" id="param_tune" min="-24" max="24" step="1" value="0" title="Tune (semitones)">
+                    <input type="range" id="param_fine" min="-100" max="100" step="1" value="0" title="Fine (cents)">
+                </div>
+            </div>
         </div>
 
         <!-- 2. Sync Modulation -->
@@ -460,10 +865,10 @@
             </div>
         </div>
 
-        <!-- 3. ZDF Filter -->
+        <!-- 3. ZDF Filter & Filter Envelope -->
         <div class="panel-box">
             <div class="panel-header">
-                <span>3. ZDF Filter</span>
+                <span>3. ZDF Filter & Envelope</span>
                 <span>VCF</span>
             </div>
             <div class="control-row">
@@ -475,23 +880,37 @@
                 </select>
             </div>
             <div class="control-row">
-                <div class="control-label"><span>Cutoff Frequency</span><span id="val_cutoff">8000 Hz</span></div>
-                <input type="range" id="param_cutoff" min="20" max="18000" step="10" value="8000">
+                <div class="control-label"><span>Cutoff Frequency</span><span id="val_cutoff">12000 Hz</span></div>
+                <input type="range" id="param_cutoff" min="20" max="18000" step="10" value="12000">
             </div>
             <div class="control-row">
-                <div class="control-label"><span>Resonance</span><span id="val_res">20%</span></div>
-                <input type="range" id="param_res" min="0" max="0.96" step="0.01" value="0.2">
+                <div class="control-label"><span>Resonance</span><span id="val_res">15%</span></div>
+                <input type="range" id="param_res" min="0" max="0.95" step="0.01" value="0.15">
             </div>
             <div class="control-row">
-                <div class="control-label"><span>Filter Env Amount</span><span id="val_fenv">+30%</span></div>
-                <input type="range" id="param_fenv" min="-1" max="1" step="0.02" value="0.3">
+                <div class="control-label"><span>Filter Env Amount</span><span id="val_fenv">0%</span></div>
+                <input type="range" id="param_fenv" min="-1" max="1" step="0.02" value="0">
+            </div>
+            <div class="control-row">
+                <div class="control-label"><span>Filter Attack / Release</span><span id="val_flt_ar">10ms / 300ms</span></div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="range" id="param_flt_attack" min="0.001" max="2.0" step="0.005" value="0.01" title="Filter Attack">
+                    <input type="range" id="param_flt_release" min="0.01" max="3.0" step="0.01" value="0.3" title="Filter Release">
+                </div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><span>Filter Decay / Sustain</span><span id="val_flt_ds">500ms / 20%</span></div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="range" id="param_flt_decay" min="0.01" max="3.0" step="0.01" value="0.5" title="Filter Decay">
+                    <input type="range" id="param_flt_sustain" min="0" max="1" step="0.01" value="0.2" title="Filter Sustain">
+                </div>
             </div>
         </div>
 
-        <!-- 4. Saturation & Amp -->
+        <!-- 4. Saturation & Amplifier -->
         <div class="panel-box">
             <div class="panel-header">
-                <span>4. Saturation & Amp</span>
+                <span>4. Saturation & Amplifier</span>
                 <span>VCA / DRIVE</span>
             </div>
             <div class="control-row">
@@ -511,15 +930,30 @@
             <div class="control-row">
                 <div class="control-label"><span>Amp Attack / Release</span><span id="val_amp_ar">5ms / 250ms</span></div>
                 <div style="display: flex; gap: 8px;">
-                    <input type="range" id="param_attack" min="0.001" max="2.0" step="0.005" value="0.005" title="Attack">
-                    <input type="range" id="param_release" min="0.01" max="3.0" step="0.01" value="0.25" title="Release">
+                    <input type="range" id="param_attack" min="0.001" max="2.0" step="0.005" value="0.005" title="Amp Attack">
+                    <input type="range" id="param_release" min="0.01" max="3.0" step="0.01" value="0.25" title="Amp Release">
                 </div>
             </div>
             <div class="control-row">
                 <div class="control-label"><span>Amp Decay / Sustain</span><span id="val_amp_ds">400ms / 70%</span></div>
                 <div style="display: flex; gap: 8px;">
-                    <input type="range" id="param_decay" min="0.01" max="3.0" step="0.01" value="0.4" title="Decay">
-                    <input type="range" id="param_sustain" min="0" max="1" step="0.01" value="0.7" title="Sustain">
+                    <input type="range" id="param_decay" min="0.01" max="3.0" step="0.01" value="0.4" title="Amp Decay">
+                    <input type="range" id="param_sustain" min="0" max="1" step="0.01" value="0.7" title="Amp Sustain">
+                </div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><span>Master Volume</span><span id="val_vol">100%</span></div>
+                <input type="range" id="param_vol" min="0" max="2.0" step="0.01" value="1.0">
+            </div>
+            <div class="control-row">
+                <div class="control-label"><span>Glide Mode & Time</span><span id="val_glide">Always / 0ms</span></div>
+                <div style="display: flex; gap: 8px;">
+                    <select id="param_playmode" style="flex:1;">
+                        <option value="0">Always</option>
+                        <option value="1">Overlap</option>
+                        <option value="2">Legato</option>
+                    </select>
+                    <input type="range" id="param_glide" min="0" max="2.0" step="0.01" value="0" style="flex:1;" title="Glide Time">
                 </div>
             </div>
         </div>
@@ -543,7 +977,7 @@
     </div>
 
     <footer>
-        Tracker Mini Firmware v1.0.4 NL &bull; TEAR Engine WASM Harness &bull; 44.1 kHz 32-bit Float Audio Engine
+        Tracker Mini Firmware v1.0.10 NL &bull; TEAR Engine WASM Harness &bull; 44.1 kHz 32-bit Float Audio Engine
     </footer>
 
     <!-- WASM Script Loader -->
@@ -554,34 +988,156 @@
         let scriptNode = null;
         let analyser = null;
         let isAudioRunning = false;
-        let wasmModule = null;
 
-        // C++ Param IDs enum matching TearDSP.h
+        // C++ Param IDs enum matching TearDSP.h and TearParamId (0..27)
         const P = {
-            SYNC_RATIO: 0,
-            SYNC_MODE: 1,
+            SYNC_MODE: 0,
+            SYNC_RATIO: 1,
             SLAVE_SHAPE: 2,
             SUB_LEVEL: 3,
             SUB_OCTAVE: 4,
-            SYNC_ENV_DECAY: 5,
-            SYNC_ENV_DEPTH: 6,
-            SYNC_LFO_RATE: 7,
-            SYNC_LFO_DEPTH: 8,
-            CUTOFF: 9,
-            RESONANCE: 10,
+            TUNE: 5,
+            FINE: 6,
+            SYNC_ENV_DECAY: 7,
+            SYNC_ENV_DEPTH: 8,
+            SYNC_LFO_RATE: 9,
+            SYNC_LFO_DEPTH: 10,
             FILTER_TYPE: 11,
-            FILTER_ENV_AMOUNT: 12,
-            AMP_ATTACK: 13,
-            AMP_DECAY: 14,
-            AMP_SUSTAIN: 15,
-            AMP_RELEASE: 16,
-            FILTER_ATTACK: 17,
-            FILTER_DECAY: 18,
-            FILTER_SUSTAIN: 19,
-            FILTER_RELEASE: 20,
-            DRIVE: 21,
-            SATURATION_TYPE: 22
+            CUTOFF: 12,
+            RESONANCE: 13,
+            FILTER_ENV_AMOUNT: 14,
+            FILTER_ATTACK: 15,
+            FILTER_DECAY: 16,
+            FILTER_SUSTAIN: 17,
+            FILTER_RELEASE: 18,
+            DRIVE: 19,
+            SATURATION_TYPE: 20,
+            AMP_ATTACK: 21,
+            AMP_DECAY: 22,
+            AMP_SUSTAIN: 23,
+            AMP_RELEASE: 24,
+            PLAY_MODE: 25,
+            GLIDE_TIME: 26,
+            VOLUME: 27
         };
+
+        const PARAM_NAMES = [
+            "0: Sync Mode",
+            "1: Sync Ratio (Pitch)",
+            "2: Slave Shape Morph",
+            "3: Sub Level",
+            "4: Sub Octave",
+            "5: Tune",
+            "6: Fine",
+            "7: Sync Env Decay",
+            "8: Sync Env Depth",
+            "9: Sync LFO Rate",
+            "10: Sync LFO Depth",
+            "11: Filter Model",
+            "12: Filter Cutoff",
+            "13: Filter Resonance",
+            "14: Filter Env Amount",
+            "15: Filter Attack",
+            "16: Filter Decay",
+            "17: Filter Sustain",
+            "18: Filter Release",
+            "19: Drive",
+            "20: Saturation Flavor",
+            "21: Amp Attack",
+            "22: Amp Decay",
+            "23: Amp Sustain",
+            "24: Amp Release",
+            "25: Play Mode",
+            "26: Glide Time",
+            "27: Master Volume"
+        ];
+
+        const PARAM_LIMITS = [
+            { min: 0, max: 4, isInt: true },
+            { min: 0, max: 48, isInt: false },
+            { min: 0, max: 1, isInt: false },
+            { min: 0, max: 1, isInt: false },
+            { min: 0, max: 1, isInt: true },
+            { min: -24, max: 24, isInt: true },
+            { min: -100, max: 100, isInt: true },
+            { min: 0.005, max: 3.0, isInt: false },
+            { min: -48, max: 48, isInt: false },
+            { min: 0.05, max: 25.0, isInt: false },
+            { min: 0, max: 24, isInt: false },
+            { min: 0, max: 2, isInt: true },
+            { min: 20, max: 18000, isInt: false },
+            { min: 0, max: 0.95, isInt: false },
+            { min: -1.0, max: 1.0, isInt: false },
+            { min: 0.001, max: 2.0, isInt: false },
+            { min: 0.01, max: 3.0, isInt: false },
+            { min: 0, max: 1.0, isInt: false },
+            { min: 0.01, max: 3.0, isInt: false },
+            { min: 0, max: 1.0, isInt: false },
+            { min: 0, max: 4, isInt: true },
+            { min: 0.001, max: 2.0, isInt: false },
+            { min: 0.01, max: 3.0, isInt: false },
+            { min: 0, max: 1.0, isInt: false },
+            { min: 0.01, max: 3.0, isInt: false },
+            { min: 0, max: 2, isInt: true },
+            { min: 0, max: 2.0, isInt: false },
+            { min: 0, max: 2.0, isInt: false }
+        ];
+
+        // Store base parameter values set on UI sliders
+        const baseParams = new Float32Array(28);
+
+        // 6 Tracker Mini User Macros
+        let macros = [
+            {
+                displayName: "Tear Pitch",
+                bipolar: false,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.SYNC_RATIO, amount: 24.0 }
+                ]
+            },
+            {
+                displayName: "Sync Env",
+                bipolar: true,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }
+                ]
+            },
+            {
+                displayName: "Sync LFO",
+                bipolar: false,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.SYNC_LFO_DEPTH, amount: 12.0 }
+                ]
+            },
+            {
+                displayName: "Cutoff",
+                bipolar: true,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.CUTOFF, amount: 1.0 },
+                    { paramId: P.RESONANCE, amount: 0.35 }
+                ]
+            },
+            {
+                displayName: "Drive",
+                bipolar: false,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.DRIVE, amount: 0.7 }
+                ]
+            },
+            {
+                displayName: "Shape Morph",
+                bipolar: true,
+                value: 0.0,
+                modifiers: [
+                    { paramId: P.SLAVE_SHAPE, amount: 0.6 }
+                ]
+            }
+        ];
 
         let tear_init, tear_note_on, tear_note_off, tear_set_param, tear_render;
         let wasmBufferPtr = null;
@@ -598,6 +1154,10 @@
 
             wasmBufferPtr = Module._malloc(BUFFER_SIZE * 4);
             console.log("TEAR WASM DSP Engine Initialized.");
+            syncAllBaseParamsFromUI();
+            recomputeAllParams();
+            renderMacroCards();
+            renderMacroConfigPanel();
         });
 
         // --- Audio Context Lifecycle ---
@@ -607,12 +1167,10 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 tear_init(audioCtx.sampleRate);
 
-                // Create analyser for scope and spectrum
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 1024;
                 analyser.smoothingTimeConstant = 0.8;
 
-                // ScriptProcessorNode for universal zero-latency block streaming
                 scriptNode = audioCtx.createScriptProcessor(BUFFER_SIZE, 0, 1);
                 scriptNode.onaudioprocess = (e) => {
                     const output = e.outputBuffer.getChannelData(0);
@@ -626,8 +1184,8 @@
                 scriptNode.connect(analyser);
                 analyser.connect(audioCtx.destination);
 
-                // Sync current UI params to engine
-                syncAllParamsToEngine();
+                syncAllBaseParamsFromUI();
+                recomputeAllParams();
                 startVisualizers();
             }
 
@@ -652,121 +1210,1228 @@
             }
         }
 
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('patchStatusMsg');
+            el.textContent = msg;
+            el.style.color = isError ? 'var(--accent-red)' : 'var(--accent-green)';
+            el.style.opacity = '1';
+            clearTimeout(el._timeout);
+            el._timeout = setTimeout(() => {
+                el.style.opacity = '0.7';
+            }, 3500);
+        }
+
         // --- Parameter Binding & UI Updates ---
         const controls = [
-            { el: 'param_mode', p: P.SYNC_MODE, display: 'val_mode', fmt: (v) => ['Hard Tear', 'Soft Reverse', 'Windowed Formant', 'Dual SuperTear', 'Ring Shred'][v] },
+            { el: 'param_mode', p: P.SYNC_MODE, display: 'val_mode', fmt: (v) => ['Hard Tear', 'Soft Reverse', 'Windowed Formant', 'Dual SuperTear', 'Ring Shred'][Math.round(v)] },
             { el: 'param_ratio', p: P.SYNC_RATIO, display: 'val_ratio', fmt: (v) => `+${parseFloat(v).toFixed(1)} st` },
-            { el: 'param_shape', p: P.SLAVE_SHAPE, display: 'val_shape', fmt: (v) => v < 0.25 ? `Saw (${v})` : (v < 0.75 ? `Pulse (${v})` : `DualSaw (${v})`) },
+            { el: 'param_shape', p: P.SLAVE_SHAPE, display: 'val_shape', fmt: (v) => v < 0.25 ? `Saw (${parseFloat(v).toFixed(2)})` : (v < 0.75 ? `Pulse (${parseFloat(v).toFixed(2)})` : `DualSaw (${parseFloat(v).toFixed(2)})`) },
             { el: 'param_sub', p: P.SUB_LEVEL, display: 'val_sub', fmt: (v) => `${Math.round(v * 100)}%` },
-            { el: 'param_suboct', p: P.SUB_OCTAVE, display: 'val_suboct', fmt: (v) => v == 0 ? '-1 Octave' : '-2 Octaves' },
+            { el: 'param_suboct', p: P.SUB_OCTAVE, display: 'val_suboct', fmt: (v) => Math.round(v) == 0 ? '-1 Octave' : '-2 Octaves' },
+            { el: 'param_tune', p: P.TUNE, update: updateTuning },
+            { el: 'param_fine', p: P.FINE, update: updateTuning },
             { el: 'param_env_decay', p: P.SYNC_ENV_DECAY, display: 'val_env_decay', fmt: (v) => `${Math.round(v * 1000)} ms` },
             { el: 'param_env_depth', p: P.SYNC_ENV_DEPTH, display: 'val_env_depth', fmt: (v) => `${v > 0 ? '+' : ''}${v} st` },
             { el: 'param_lfo_rate', p: P.SYNC_LFO_RATE, display: 'val_lfo_rate', fmt: (v) => `${parseFloat(v).toFixed(2)} Hz` },
             { el: 'param_lfo_depth', p: P.SYNC_LFO_DEPTH, display: 'val_lfo_depth', fmt: (v) => `${parseFloat(v).toFixed(1)} st` },
-            { el: 'param_ftype', p: P.FILTER_TYPE, display: 'val_ftype', fmt: (v) => ['Ladder 24dB', 'Warm SVF 12dB', 'Bypass'][v] },
+            { el: 'param_ftype', p: P.FILTER_TYPE, display: 'val_ftype', fmt: (v) => ['Ladder 24dB', 'Warm SVF 12dB', 'Bypass'][Math.round(v)] },
             { el: 'param_cutoff', p: P.CUTOFF, display: 'val_cutoff', fmt: (v) => `${Math.round(v)} Hz` },
             { el: 'param_res', p: P.RESONANCE, display: 'val_res', fmt: (v) => `${Math.round(v * 100)}%` },
             { el: 'param_fenv', p: P.FILTER_ENV_AMOUNT, display: 'val_fenv', fmt: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%` },
-            { el: 'param_sat', p: P.SATURATION_TYPE, display: 'val_sat', fmt: (v) => ['Modern Soft', 'Classic Hard', 'Tube / Valve', 'Tape', 'Transformer'][v] },
+            { el: 'param_flt_attack', p: P.FILTER_ATTACK, update: updateFilterAR },
+            { el: 'param_flt_release', p: P.FILTER_RELEASE, update: updateFilterAR },
+            { el: 'param_flt_decay', p: P.FILTER_DECAY, update: updateFilterDS },
+            { el: 'param_flt_sustain', p: P.FILTER_SUSTAIN, update: updateFilterDS },
+            { el: 'param_sat', p: P.SATURATION_TYPE, display: 'val_sat', fmt: (v) => ['Modern Soft', 'Classic Hard', 'Tube / Valve', 'Tape', 'Transformer'][Math.round(v)] },
             { el: 'param_drive', p: P.DRIVE, display: 'val_drive', fmt: (v) => `${Math.round(v * 100)}%` },
             { el: 'param_attack', p: P.AMP_ATTACK, update: updateAmpAR },
             { el: 'param_release', p: P.AMP_RELEASE, update: updateAmpAR },
             { el: 'param_decay', p: P.AMP_DECAY, update: updateAmpDS },
             { el: 'param_sustain', p: P.AMP_SUSTAIN, update: updateAmpDS },
+            { el: 'param_vol', p: P.VOLUME, display: 'val_vol', fmt: (v) => `${Math.round(v * 100)}%` },
+            { el: 'param_playmode', p: P.PLAY_MODE, update: updateGlide },
+            { el: 'param_glide', p: P.GLIDE_TIME, update: updateGlide },
         ];
+
+        function updateTuning() {
+            const t = parseInt(document.getElementById('param_tune').value, 10);
+            const f = parseInt(document.getElementById('param_fine').value, 10);
+            document.getElementById('val_tuning').textContent = `${t > 0 ? '+' : ''}${t} st / ${f > 0 ? '+' : ''}${f} ct`;
+        }
+
+        function updateFilterAR() {
+            const a = parseFloat(document.getElementById('param_flt_attack').value);
+            const r = parseFloat(document.getElementById('param_flt_release').value);
+            document.getElementById('val_flt_ar').textContent = `${Math.round(a * 1000)}ms / ${Math.round(r * 1000)}ms`;
+        }
+
+        function updateFilterDS() {
+            const d = parseFloat(document.getElementById('param_flt_decay').value);
+            const s = parseFloat(document.getElementById('param_flt_sustain').value);
+            document.getElementById('val_flt_ds').textContent = `${Math.round(d * 1000)}ms / ${Math.round(s * 100)}%`;
+        }
 
         function updateAmpAR() {
             const a = parseFloat(document.getElementById('param_attack').value);
             const r = parseFloat(document.getElementById('param_release').value);
-            setEngineParam(P.AMP_ATTACK, a);
-            setEngineParam(P.AMP_RELEASE, r);
-            document.getElementById('val_amp_ar').textContent = `${Math.round(a*1000)}ms / ${Math.round(r*1000)}ms`;
+            document.getElementById('val_amp_ar').textContent = `${Math.round(a * 1000)}ms / ${Math.round(r * 1000)}ms`;
         }
 
         function updateAmpDS() {
             const d = parseFloat(document.getElementById('param_decay').value);
             const s = parseFloat(document.getElementById('param_sustain').value);
-            setEngineParam(P.AMP_DECAY, d);
-            setEngineParam(P.AMP_SUSTAIN, s);
-            document.getElementById('val_amp_ds').textContent = `${Math.round(d*1000)}ms / ${Math.round(s*100)}%`;
+            document.getElementById('val_amp_ds').textContent = `${Math.round(d * 1000)}ms / ${Math.round(s * 100)}%`;
+        }
+
+        function updateGlide() {
+            const mode = parseInt(document.getElementById('param_playmode').value, 10);
+            const glide = parseFloat(document.getElementById('param_glide').value);
+            const modeNames = ['Always', 'Overlap', 'Legato'];
+            document.getElementById('val_glide').textContent = `${modeNames[mode]} / ${Math.round(glide * 1000)}ms`;
+        }
+
+        function syncAllBaseParamsFromUI() {
+            controls.forEach(c => {
+                const input = document.getElementById(c.el);
+                if (input && c.p !== undefined) {
+                    baseParams[c.p] = parseFloat(input.value);
+                }
+            });
+            updateTuning();
+            updateFilterAR();
+            updateFilterDS();
+            updateAmpAR();
+            updateAmpDS();
+            updateGlide();
         }
 
         controls.forEach(c => {
             const input = document.getElementById(c.el);
-            input.addEventListener('input', () => {
+            input.addEventListener('input', (e) => {
                 const val = parseFloat(input.value);
-                if (c.p !== undefined) setEngineParam(c.p, val);
+                if (c.p !== undefined) baseParams[c.p] = val;
                 if (c.display && c.fmt) document.getElementById(c.display).textContent = c.fmt(val);
                 if (c.update) c.update();
-            });
-        });
 
-        function syncAllParamsToEngine() {
-            controls.forEach(c => {
-                const input = document.getElementById(c.el);
-                const val = parseFloat(input.value);
-                if (c.p !== undefined) setEngineParam(c.p, val);
-            });
-            updateAmpAR();
-            updateAmpDS();
-        }
+                recomputeAllParams();
 
-        // --- Presets Implementation ---
-        const PRESETS = {
-            laser: {
-                param_mode: 0, param_ratio: 12, param_shape: 0, param_sub: 0.2, param_suboct: 0,
-                param_env_decay: 0.35, param_env_depth: 36, param_lfo_rate: 1.5, param_lfo_depth: 0,
-                param_ftype: 0, param_cutoff: 9500, param_res: 0.35, param_fenv: 0.2,
-                param_sat: 2, param_drive: 0.35, param_attack: 0.005, param_decay: 0.4, param_sustain: 0.6, param_release: 0.25
-            },
-            daft: {
-                param_mode: 3, param_ratio: 19, param_shape: 0.1, param_sub: 0.4, param_suboct: 0,
-                param_env_decay: 0.5, param_env_depth: 12, param_lfo_rate: 2.2, param_lfo_depth: 2.5,
-                param_ftype: 0, param_cutoff: 4500, param_res: 0.55, param_fenv: 0.4,
-                param_sat: 0, param_drive: 0.45, param_attack: 0.01, param_decay: 0.6, param_sustain: 0.8, param_release: 0.35
-            },
-            vocal: {
-                param_mode: 2, param_ratio: 16, param_shape: 0.5, param_sub: 0.15, param_suboct: 0,
-                param_env_decay: 0.7, param_env_depth: 24, param_lfo_rate: 4.0, param_lfo_depth: 4.0,
-                param_ftype: 1, param_cutoff: 6000, param_res: 0.65, param_fenv: 0.5,
-                param_sat: 3, param_drive: 0.3, param_attack: 0.02, param_decay: 0.5, param_sustain: 0.7, param_release: 0.3
-            },
-            bass: {
-                param_mode: 0, param_ratio: 7, param_shape: 0.2, param_sub: 0.75, param_suboct: 1,
-                param_env_decay: 0.22, param_env_depth: 19, param_lfo_rate: 0.8, param_lfo_depth: 0,
-                param_ftype: 0, param_cutoff: 2800, param_res: 0.45, param_fenv: 0.55,
-                param_sat: 3, param_drive: 0.5, param_attack: 0.005, param_decay: 0.35, param_sustain: 0.4, param_release: 0.2
-            },
-            ring: {
-                param_mode: 4, param_ratio: 15.5, param_shape: 0.6, param_sub: 0.3, param_suboct: 0,
-                param_env_decay: 0.4, param_env_depth: -24, param_lfo_rate: 6.0, param_lfo_depth: 8.0,
-                param_ftype: 0, param_cutoff: 7500, param_res: 0.4, param_fenv: 0.3,
-                param_sat: 4, param_drive: 0.6, param_attack: 0.005, param_decay: 0.4, param_sustain: 0.5, param_release: 0.25
-            },
-            soft: {
-                param_mode: 1, param_ratio: 10, param_shape: 0.3, param_sub: 0.35, param_suboct: 0,
-                param_env_decay: 0.6, param_env_depth: 28, param_lfo_rate: 1.2, param_lfo_depth: 3.0,
-                param_ftype: 1, param_cutoff: 5500, param_res: 0.5, param_fenv: 0.4,
-                param_sat: 2, param_drive: 0.4, param_attack: 0.015, param_decay: 0.5, param_sustain: 0.75, param_release: 0.4
-            }
-        };
-
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const presetKey = btn.getAttribute('data-preset');
-                const p = PRESETS[presetKey];
-                if (!p) return;
-
-                for (let k in p) {
-                    const input = document.getElementById(k);
-                    if (input) {
-                        input.value = p[k];
-                        input.dispatchEvent(new Event('input'));
+                if (e.isTrusted) {
+                    const sel = document.getElementById('patchSelect');
+                    if (sel.value !== 'custom') {
+                        sel.value = 'custom';
                     }
                 }
             });
+        });
+
+        // --- Realtime Macro Modulation Engine ---
+        function recomputeAllParams() {
+            const effective = new Float32Array(baseParams);
+
+            // Apply modulations from 6 macros
+            for (let m = 0; m < macros.length; m++) {
+                const macro = macros[m];
+                const mVal = macro.value || 0.0;
+                if (mVal === 0.0 || !macro.modifiers) continue;
+
+                for (const mod of macro.modifiers) {
+                    const pId = mod.paramId;
+                    if (pId === undefined || pId < 0 || pId >= 28) continue;
+                    const amt = mod.amount;
+
+                    if (pId === P.CUTOFF) {
+                        // Exponential frequency scaling for Cutoff
+                        const octaves = mVal * amt * 2.0;
+                        effective[pId] = effective[pId] * Math.pow(2.0, octaves);
+                    } else {
+                        effective[pId] += mVal * amt;
+                    }
+                }
+            }
+
+            // Clamp and send effective parameters to WASM engine
+            for (let i = 0; i < 28; i++) {
+                const lim = PARAM_LIMITS[i];
+                let val = effective[i];
+                val = Math.min(lim.max, Math.max(lim.min, val));
+                if (lim.isInt) val = Math.round(val);
+                setEngineParam(i, val);
+            }
+        }
+
+        // --- Render Macro Performance Knobs ---
+        function renderMacroCards() {
+            const grid = document.getElementById('macroGrid');
+            grid.innerHTML = '';
+
+            macros.forEach((macro, idx) => {
+                const card = document.createElement('div');
+                card.className = 'macro-card';
+
+                // Format destination tag text
+                let destTag = "No Target";
+                if (macro.modifiers && macro.modifiers.length > 0) {
+                    destTag = macro.modifiers.map(m => {
+                        const pName = PARAM_NAMES[m.paramId] ? PARAM_NAMES[m.paramId].replace(/^\d+:\s*/, '') : `P${m.paramId}`;
+                        return `${pName} (${m.amount > 0 ? '+' : ''}${parseFloat(m.amount.toFixed(1))})`;
+                    }).join(', ');
+                }
+
+                const min = macro.bipolar ? -1 : 0;
+                const max = 1;
+                const step = 0.01;
+                const currentVal = macro.value !== undefined ? macro.value : (macro.bipolar ? 0 : 0);
+
+                let valStr = `${Math.round(currentVal * 100)}%`;
+                if (macro.bipolar && currentVal > 0) valStr = `+${valStr}`;
+
+                card.innerHTML = `
+                    <div class="macro-header">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${macro.displayName}">M${idx+1}: ${macro.displayName}</span>
+                        <span class="macro-val-display" id="macro_val_${idx}">${valStr}</span>
+                    </div>
+                    <div class="macro-dest-tag" title="${destTag}">${destTag}</div>
+                    <input type="range" class="macro-slider" id="macro_slider_${idx}" min="${min}" max="${max}" step="${step}" value="${currentVal}">
+                `;
+
+                grid.appendChild(card);
+
+                const slider = card.querySelector(`#macro_slider_${idx}`);
+                const valDisplay = card.querySelector(`#macro_val_${idx}`);
+
+                slider.addEventListener('input', () => {
+                    macro.value = parseFloat(slider.value);
+                    let v = `${Math.round(macro.value * 100)}%`;
+                    if (macro.bipolar && macro.value > 0) v = `+${v}`;
+                    valDisplay.textContent = v;
+                    recomputeAllParams();
+                });
+
+                // Double click resets macro to default center/zero
+                slider.addEventListener('dblclick', () => {
+                    slider.value = 0;
+                    slider.dispatchEvent(new Event('input'));
+                });
+            });
+        }
+
+        // --- Render Macro Config Panel ---
+        function renderMacroConfigPanel() {
+            const configGrid = document.getElementById('macroConfigGrid');
+            configGrid.innerHTML = '';
+
+            macros.forEach((macro, idx) => {
+                const card = document.createElement('div');
+                card.className = 'config-card';
+
+                const mod1 = (macro.modifiers && macro.modifiers[0]) ? macro.modifiers[0] : { paramId: -1, amount: 0 };
+                const mod2 = (macro.modifiers && macro.modifiers[1]) ? macro.modifiers[1] : { paramId: -1, amount: 0 };
+
+                let paramOptions1 = `<option value="-1">-- None --</option>`;
+                let paramOptions2 = `<option value="-1">-- None --</option>`;
+                PARAM_NAMES.forEach((name, pIdx) => {
+                    paramOptions1 += `<option value="${pIdx}" ${mod1.paramId === pIdx ? 'selected' : ''}>${name}</option>`;
+                    paramOptions2 += `<option value="${pIdx}" ${mod2.paramId === pIdx ? 'selected' : ''}>${name}</option>`;
+                });
+
+                card.innerHTML = `
+                    <div class="config-title">
+                        <span>Macro ${idx+1}</span>
+                        <span style="font-size:0.7rem; color:var(--text-dim);">${macro.bipolar ? 'Bipolar' : 'Unipolar'}</span>
+                    </div>
+                    <div class="config-row">
+                        <label>Display Name</label>
+                        <input type="text" class="config-input" id="cfg_name_${idx}" value="${macro.displayName}" maxlength="20">
+                    </div>
+                    <div class="config-row">
+                        <label>Mode</label>
+                        <select class="config-input" id="cfg_mode_${idx}">
+                            <option value="0" ${!macro.bipolar ? 'selected' : ''}>Unipolar (0% to 100%)</option>
+                            <option value="1" ${macro.bipolar ? 'selected' : ''}>Bipolar (-100% to +100%)</option>
+                        </select>
+                    </div>
+                    <div class="config-row">
+                        <label>Target 1 & Depth</label>
+                        <div class="mod-row">
+                            <select class="config-input" id="cfg_target1_${idx}">${paramOptions1}</select>
+                            <input type="number" class="config-input" id="cfg_amt1_${idx}" value="${mod1.amount}" step="0.1">
+                        </div>
+                    </div>
+                    <div class="config-row">
+                        <label>Target 2 & Depth</label>
+                        <div class="mod-row">
+                            <select class="config-input" id="cfg_target2_${idx}">${paramOptions2}</select>
+                            <input type="number" class="config-input" id="cfg_amt2_${idx}" value="${mod2.amount}" step="0.1">
+                        </div>
+                    </div>
+                `;
+
+                configGrid.appendChild(card);
+
+                // Event listeners for config changes
+                const nameInput = card.querySelector(`#cfg_name_${idx}`);
+                const modeSelect = card.querySelector(`#cfg_mode_${idx}`);
+                const target1 = card.querySelector(`#cfg_target1_${idx}`);
+                const amt1 = card.querySelector(`#cfg_amt1_${idx}`);
+                const target2 = card.querySelector(`#cfg_target2_${idx}`);
+                const amt2 = card.querySelector(`#cfg_amt2_${idx}`);
+
+                function applyConfigUpdate() {
+                    macro.displayName = nameInput.value.trim() || `Macro ${idx+1}`;
+                    macro.bipolar = modeSelect.value === "1";
+                    macro.modifiers = [];
+
+                    const t1 = parseInt(target1.value, 10);
+                    if (t1 >= 0) {
+                        macro.modifiers.push({ paramId: t1, amount: parseFloat(amt1.value) || 0.0 });
+                    }
+                    const t2 = parseInt(target2.value, 10);
+                    if (t2 >= 0) {
+                        macro.modifiers.push({ paramId: t2, amount: parseFloat(amt2.value) || 0.0 });
+                    }
+
+                    renderMacroCards();
+                    recomputeAllParams();
+                }
+
+                nameInput.addEventListener('change', applyConfigUpdate);
+                modeSelect.addEventListener('change', applyConfigUpdate);
+                target1.addEventListener('change', applyConfigUpdate);
+                amt1.addEventListener('change', applyConfigUpdate);
+                target2.addEventListener('change', applyConfigUpdate);
+                amt2.addEventListener('change', applyConfigUpdate);
+            });
+        }
+
+        // Toggle Macro Config Panel
+        const btnToggleMacroConfig = document.getElementById('btnToggleMacroConfig');
+        const macroConfigPanel = document.getElementById('macroConfigPanel');
+        btnToggleMacroConfig.addEventListener('click', () => {
+            const isOpen = macroConfigPanel.classList.toggle('open');
+            btnToggleMacroConfig.classList.toggle('active', isOpen);
+            btnToggleMacroConfig.textContent = isOpen ? '✕ Close Config' : '⚙️ Configure Macros';
+        });
+
+        document.getElementById('btnCloseMacroConfig').addEventListener('click', () => {
+            macroConfigPanel.classList.remove('open');
+            btnToggleMacroConfig.classList.remove('active');
+            btnToggleMacroConfig.textContent = '⚙️ Configure Macros';
+        });
+
+        document.getElementById('btnResetMacros').addEventListener('click', () => {
+            macros = [
+                { displayName: "Tear Pitch", bipolar: false, value: 0.0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 24.0 }] },
+                { displayName: "Sync Env", bipolar: true, value: 0.0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                { displayName: "Sync LFO", bipolar: false, value: 0.0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 12.0 }] },
+                { displayName: "Cutoff", bipolar: true, value: 0.0, modifiers: [{ paramId: P.CUTOFF, amount: 1.0 }, { paramId: P.RESONANCE, amount: 0.35 }] },
+                { displayName: "Drive", bipolar: false, value: 0.0, modifiers: [{ paramId: P.DRIVE, amount: 0.7 }] },
+                { displayName: "Shape Morph", bipolar: true, value: 0.0, modifiers: [{ paramId: P.SLAVE_SHAPE, amount: 0.6 }] }
+            ];
+            renderMacroCards();
+            renderMacroConfigPanel();
+            recomputeAllParams();
+            showStatus("Reset macros to factory defaults");
+        });
+
+        // --- Complete Presets for All 28 Parameters ---
+        const PRESETS = {
+            laser: {
+                name: "Laser Tear Lead",
+                param_mode: 0, param_ratio: 12, param_shape: 0, param_sub: 0.2, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.35, param_env_depth: 36, param_lfo_rate: 1.5, param_lfo_depth: 0,
+                param_ftype: 0, param_cutoff: 9500, param_res: 0.35, param_fenv: 0.2,
+                param_flt_attack: 0.01, param_flt_decay: 0.5, param_flt_sustain: 0.2, param_flt_release: 0.3,
+                param_sat: 2, param_drive: 0.35, param_attack: 0.005, param_decay: 0.4, param_sustain: 0.6, param_release: 0.25,
+                param_playmode: 0, param_glide: 0, param_vol: 1.0,
+                macros: [
+                    { displayName: "Tear Pitch", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 24.0 }] },
+                    { displayName: "Sync Env", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                    { displayName: "Sync LFO", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 12.0 }] },
+                    { displayName: "Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.0 }, { paramId: P.RESONANCE, amount: 0.35 }] },
+                    { displayName: "Drive", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.7 }] },
+                    { displayName: "Shape Morph", bipolar: true, value: 0, modifiers: [{ paramId: P.SLAVE_SHAPE, amount: 0.6 }] }
+                ]
+            },
+            daft: {
+                name: "Daft Sync Wall",
+                param_mode: 3, param_ratio: 19, param_shape: 0.1, param_sub: 0.4, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.5, param_env_depth: 12, param_lfo_rate: 2.2, param_lfo_depth: 2.5,
+                param_ftype: 0, param_cutoff: 4500, param_res: 0.55, param_fenv: 0.4,
+                param_flt_attack: 0.01, param_flt_decay: 0.6, param_flt_sustain: 0.3, param_flt_release: 0.35,
+                param_sat: 0, param_drive: 0.45, param_attack: 0.01, param_decay: 0.6, param_sustain: 0.8, param_release: 0.35,
+                param_playmode: 0, param_glide: 0.05, param_vol: 1.0,
+                macros: [
+                    { displayName: "Sync Detune", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 12.0 }] },
+                    { displayName: "LFO Speed", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 8.0 }] },
+                    { displayName: "LFO Depth", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 12.0 }] },
+                    { displayName: "Filter Open", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.2 }, { paramId: P.RESONANCE, amount: 0.2 }] },
+                    { displayName: "Wall Drive", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.5 }] },
+                    { displayName: "Sub Power", bipolar: false, value: 0, modifiers: [{ paramId: P.SUB_LEVEL, amount: 0.5 }] }
+                ]
+            },
+            vocal: {
+                name: "Vocal Formant Sweep",
+                param_mode: 2, param_ratio: 16, param_shape: 0.5, param_sub: 0.15, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.7, param_env_depth: 24, param_lfo_rate: 4.0, param_lfo_depth: 4.0,
+                param_ftype: 1, param_cutoff: 6000, param_res: 0.65, param_fenv: 0.5,
+                param_flt_attack: 0.02, param_flt_decay: 0.5, param_flt_sustain: 0.3, param_flt_release: 0.3,
+                param_sat: 3, param_drive: 0.3, param_attack: 0.02, param_decay: 0.5, param_sustain: 0.7, param_release: 0.3,
+                param_playmode: 0, param_glide: 0, param_vol: 1.0,
+                macros: [
+                    { displayName: "Formant Vowel", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 16.0 }] },
+                    { displayName: "Vibrato Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 10.0 }] },
+                    { displayName: "Vibrato Depth", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 8.0 }] },
+                    { displayName: "Throat Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.0 }] },
+                    { displayName: "Tape Warmth", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.5 }] },
+                    { displayName: "Mouth Width", bipolar: true, value: 0, modifiers: [{ paramId: P.SLAVE_SHAPE, amount: 0.5 }] }
+                ]
+            },
+            bass: {
+                name: "Tear Bass Shred",
+                param_mode: 0, param_ratio: 7, param_shape: 0.2, param_sub: 0.75, param_suboct: 1,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.22, param_env_depth: 19, param_lfo_rate: 0.8, param_lfo_depth: 0,
+                param_ftype: 0, param_cutoff: 2800, param_res: 0.45, param_fenv: 0.55,
+                param_flt_attack: 0.005, param_flt_decay: 0.35, param_flt_sustain: 0.15, param_flt_release: 0.2,
+                param_sat: 3, param_drive: 0.5, param_attack: 0.005, param_decay: 0.35, param_sustain: 0.4, param_release: 0.2,
+                param_playmode: 2, param_glide: 0.08, param_vol: 1.0,
+                macros: [
+                    { displayName: "Tear Pitch", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 12.0 }] },
+                    { displayName: "Sub Boom", bipolar: false, value: 0, modifiers: [{ paramId: P.SUB_LEVEL, amount: 0.4 }] },
+                    { displayName: "Bite Attack", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                    { displayName: "Bass Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.2 }, { paramId: P.RESONANCE, amount: 0.3 }] },
+                    { displayName: "Saturation", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.5 }] },
+                    { displayName: "Glide Time", bipolar: false, value: 0, modifiers: [{ paramId: P.GLIDE_TIME, amount: 0.4 }] }
+                ]
+            },
+            ring: {
+                name: "Industrial Ring",
+                param_mode: 4, param_ratio: 15.5, param_shape: 0.6, param_sub: 0.3, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.4, param_env_depth: -24, param_lfo_rate: 6.0, param_lfo_depth: 8.0,
+                param_ftype: 0, param_cutoff: 7500, param_res: 0.4, param_fenv: 0.3,
+                param_flt_attack: 0.005, param_flt_decay: 0.4, param_flt_sustain: 0.2, param_flt_release: 0.25,
+                param_sat: 4, param_drive: 0.6, param_attack: 0.005, param_decay: 0.4, param_sustain: 0.5, param_release: 0.25,
+                param_playmode: 0, param_glide: 0, param_vol: 1.0,
+                macros: [
+                    { displayName: "Ring Frequency", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 18.0 }] },
+                    { displayName: "LFO Chaos", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 15.0 }] },
+                    { displayName: "Metal Resonance", bipolar: false, value: 0, modifiers: [{ paramId: P.RESONANCE, amount: 0.4 }] },
+                    { displayName: "Filter Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.0 }] },
+                    { displayName: "Core Drive", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.4 }] },
+                    { displayName: "Ring Env", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 36.0 }] }
+                ]
+            },
+            soft: {
+                name: "Soft Reverse Growl",
+                param_mode: 1, param_ratio: 10, param_shape: 0.3, param_sub: 0.35, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.6, param_env_depth: 28, param_lfo_rate: 1.2, param_lfo_depth: 3.0,
+                param_ftype: 1, param_cutoff: 5500, param_res: 0.5, param_fenv: 0.4,
+                param_flt_attack: 0.015, param_flt_decay: 0.5, param_flt_sustain: 0.25, param_flt_release: 0.4,
+                param_sat: 2, param_drive: 0.4, param_attack: 0.015, param_decay: 0.5, param_sustain: 0.75, param_release: 0.4,
+                param_playmode: 0, param_glide: 0, param_vol: 1.0,
+                macros: [
+                    { displayName: "Reverse Pitch", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 12.0 }] },
+                    { displayName: "Growl Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 4.0 }] },
+                    { displayName: "Growl Depth", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 6.0 }] },
+                    { displayName: "SVF Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.0 }, { paramId: P.RESONANCE, amount: 0.3 }] },
+                    { displayName: "Tube Drive", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.5 }] },
+                    { displayName: "Env Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DECAY, amount: 1.0 }] }
+                ]
+            },
+            acid: {
+                name: "Acid Sync Screamer",
+                param_mode: 0, param_ratio: 24, param_shape: 0.4, param_sub: 0.1, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.18, param_env_depth: 32, param_lfo_rate: 3.5, param_lfo_depth: 6.0,
+                param_ftype: 0, param_cutoff: 3800, param_res: 0.88, param_fenv: 0.75,
+                param_flt_attack: 0.002, param_flt_decay: 0.25, param_flt_sustain: 0.1, param_flt_release: 0.15,
+                param_sat: 1, param_drive: 0.65, param_attack: 0.002, param_decay: 0.3, param_sustain: 0.5, param_release: 0.15,
+                param_playmode: 2, param_glide: 0.12, param_vol: 0.95,
+                macros: [
+                    { displayName: "Acid Screamer", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 24.0 }] },
+                    { displayName: "Resonance Peak", bipolar: false, value: 0, modifiers: [{ paramId: P.RESONANCE, amount: 0.1 }] },
+                    { displayName: "Mod Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 10.0 }] },
+                    { displayName: "Acid Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.5 }] },
+                    { displayName: "Hard Clip", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.35 }] },
+                    { displayName: "Decay Punch", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DECAY, amount: 0.5 }] }
+                ]
+            },
+            chiptune: {
+                name: "Chiptune Aggro",
+                param_mode: 3, param_ratio: 12, param_shape: 0.5, param_sub: 0.5, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.08, param_env_depth: 48, param_lfo_rate: 12.0, param_lfo_depth: 0,
+                param_ftype: 2, param_cutoff: 18000, param_res: 0.0, param_fenv: 0.0,
+                param_flt_attack: 0.001, param_flt_decay: 0.2, param_flt_sustain: 0.0, param_flt_release: 0.1,
+                param_sat: 1, param_drive: 0.2, param_attack: 0.001, param_decay: 0.2, param_sustain: 0.6, param_release: 0.1,
+                param_playmode: 0, param_glide: 0, param_vol: 0.9,
+                macros: [
+                    { displayName: "Arp Interval", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 24.0 }] },
+                    { displayName: "Bit Crunch", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.6 }] },
+                    { displayName: "LFO Speed", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 20.0 }] },
+                    { displayName: "Octave Blaster", bipolar: false, value: 0, modifiers: [{ paramId: P.TUNE, amount: 12.0 }] },
+                    { displayName: "Square Width", bipolar: true, value: 0, modifiers: [{ paramId: P.SLAVE_SHAPE, amount: 0.4 }] },
+                    { displayName: "Sub Bass", bipolar: false, value: 0, modifiers: [{ paramId: P.SUB_LEVEL, amount: 0.5 }] }
+                ]
+            },
+            cyber_reese: {
+                name: "Cyberpunk Reese",
+                param_mode: 3, param_ratio: 2.75, param_shape: 0.15, param_sub: 0.85, param_suboct: 0,
+                param_tune: 0, param_fine: -5,
+                param_env_decay: 0.45, param_env_depth: 8.0, param_lfo_rate: 1.8, param_lfo_depth: 2.2,
+                param_ftype: 1, param_cutoff: 1800, param_res: 0.4, param_fenv: 0.35,
+                param_flt_attack: 0.01, param_flt_decay: 0.6, param_flt_sustain: 0.2, param_flt_release: 0.3,
+                param_sat: 3, param_drive: 0.62, param_attack: 0.01, param_decay: 0.5, param_sustain: 0.8, param_release: 0.3,
+                param_playmode: 2, param_glide: 0.07, param_vol: 1.0,
+                macros: [
+                    { displayName: "Reese Wobble", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 4.0 }] },
+                    { displayName: "Sub Boom", bipolar: false, value: 0, modifiers: [{ paramId: P.SUB_LEVEL, amount: 0.4 }] },
+                    { displayName: "Tear Crunch", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 6.0 }] },
+                    { displayName: "Reese Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.2 }, { paramId: P.RESONANCE, amount: 0.2 }] },
+                    { displayName: "Tape Heat", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.4 }] },
+                    { displayName: "Glide Speed", bipolar: false, value: 0, modifiers: [{ paramId: P.GLIDE_TIME, amount: 0.3 }] }
+                ]
+            },
+            tear_pluck: {
+                name: "Tear Crystal Pluck",
+                param_mode: 2, param_ratio: 17.5, param_shape: 0.6, param_sub: 0.1, param_suboct: 0,
+                param_tune: 12, param_fine: 0,
+                param_env_decay: 0.14, param_env_depth: -32.0, param_lfo_rate: 4.5, param_lfo_depth: 0.0,
+                param_ftype: 0, param_cutoff: 7500, param_res: 0.45, param_fenv: 0.6,
+                param_flt_attack: 0.001, param_flt_decay: 0.35, param_flt_sustain: 0.05, param_flt_release: 0.4,
+                param_sat: 0, param_drive: 0.22, param_attack: 0.001, param_decay: 0.45, param_sustain: 0.1, param_release: 0.5,
+                param_playmode: 0, param_glide: 0.0, param_vol: 0.95,
+                macros: [
+                    { displayName: "Bell Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.AMP_DECAY, amount: 0.6 }, { paramId: P.FILTER_DECAY, amount: 0.5 }] },
+                    { displayName: "Formant Vowel", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 14.0 }] },
+                    { displayName: "Pluck Sizzle", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                    { displayName: "Bell Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.2 }] },
+                    { displayName: "Soft Warmth", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.5 }] },
+                    { displayName: "Sparkle LFO", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 8.0 }] }
+                ]
+            },
+            vangelis_brass: {
+                name: "Vangelis CS Brass",
+                param_mode: 0, param_ratio: 7.2, param_shape: 0.35, param_sub: 0.25, param_suboct: 0,
+                param_tune: 0, param_fine: 3,
+                param_env_decay: 0.55, param_env_depth: 14.0, param_lfo_rate: 5.2, param_lfo_depth: 1.8,
+                param_ftype: 0, param_cutoff: 3200, param_res: 0.32, param_fenv: 0.48,
+                param_flt_attack: 0.08, param_flt_decay: 1.2, param_flt_sustain: 0.45, param_flt_release: 0.6,
+                param_sat: 2, param_drive: 0.3, param_attack: 0.06, param_decay: 0.9, param_sustain: 0.85, param_release: 0.7,
+                param_playmode: 0, param_glide: 0.02, param_vol: 1.0,
+                macros: [
+                    { displayName: "Brass Bloom", bipolar: true, value: 0, modifiers: [{ paramId: P.FILTER_ATTACK, amount: 0.3 }, { paramId: P.AMP_ATTACK, amount: 0.25 }] },
+                    { displayName: "Sync Bite", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 12.0 }] },
+                    { displayName: "CS Vibrato", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 6.0 }] },
+                    { displayName: "Brass Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.4 }] },
+                    { displayName: "Tube Warmth", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.45 }] },
+                    { displayName: "Release Tail", bipolar: true, value: 0, modifiers: [{ paramId: P.AMP_RELEASE, amount: 1.0 }, { paramId: P.FILTER_RELEASE, amount: 1.0 }] }
+                ]
+            },
+            laser_shredder: {
+                name: "Modular Laser Shred",
+                param_mode: 0, param_ratio: 28.0, param_shape: 0.45, param_sub: 0.15, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.05, param_env_depth: 48.0, param_lfo_rate: 14.0, param_lfo_depth: 12.0,
+                param_ftype: 0, param_cutoff: 9500, param_res: 0.55, param_fenv: 0.5,
+                param_flt_attack: 0.001, param_flt_decay: 0.18, param_flt_sustain: 0.15, param_flt_release: 0.2,
+                param_sat: 1, param_drive: 0.75, param_attack: 0.001, param_decay: 0.25, param_sustain: 0.4, param_release: 0.2,
+                param_playmode: 1, param_glide: 0.0, param_vol: 0.95,
+                macros: [
+                    { displayName: "Zap Pitch", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 18.0 }] },
+                    { displayName: "Laser Depth", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                    { displayName: "Shred Speed", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 16.0 }] },
+                    { displayName: "Filter Bite", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.3 }, { paramId: P.RESONANCE, amount: 0.25 }] },
+                    { displayName: "Diode Smash", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.3 }] },
+                    { displayName: "Zap Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DECAY, amount: 0.05 }] }
+                ]
+            },
+            throat_chant: {
+                name: "Tibetan Monk Drone",
+                param_mode: 2, param_ratio: 13.8, param_shape: 0.72, param_sub: 0.65, param_suboct: 0,
+                param_tune: -12, param_fine: 0,
+                param_env_decay: 1.2, param_env_depth: 18.0, param_lfo_rate: 4.2, param_lfo_depth: 3.2,
+                param_ftype: 1, param_cutoff: 2900, param_res: 0.74, param_fenv: 0.35,
+                param_flt_attack: 0.08, param_flt_decay: 1.0, param_flt_sustain: 0.6, param_flt_release: 0.8,
+                param_sat: 3, param_drive: 0.42, param_attack: 0.08, param_decay: 1.0, param_sustain: 0.9, param_release: 0.85,
+                param_playmode: 2, param_glide: 0.14, param_vol: 1.0,
+                macros: [
+                    { displayName: "Vowel Formant", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 16.0 }] },
+                    { displayName: "Throat Res", bipolar: false, value: 0, modifiers: [{ paramId: P.RESONANCE, amount: 0.2 }] },
+                    { displayName: "Chant Vibrato", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 6.0 }] },
+                    { displayName: "Mouth Open", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.1 }] },
+                    { displayName: "Tape Drone", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.4 }] },
+                    { displayName: "Vocal Glide", bipolar: false, value: 0, modifiers: [{ paramId: P.GLIDE_TIME, amount: 0.4 }] }
+                ]
+            },
+            glitch_perc: {
+                name: "Industrial Anvil Clang",
+                param_mode: 4, param_ratio: 27.4, param_shape: 0.85, param_sub: 0.25, param_suboct: 0,
+                param_tune: 7, param_fine: 15,
+                param_env_decay: 0.07, param_env_depth: -42.0, param_lfo_rate: 8.0, param_lfo_depth: 0.0,
+                param_ftype: 2, param_cutoff: 1200, param_res: 0.62, param_fenv: 0.4,
+                param_flt_attack: 0.001, param_flt_decay: 0.15, param_flt_sustain: 0.0, param_flt_release: 0.18,
+                param_sat: 4, param_drive: 0.82, param_attack: 0.001, param_decay: 0.18, param_sustain: 0.0, param_release: 0.22,
+                param_playmode: 1, param_glide: 0.0, param_vol: 0.95,
+                macros: [
+                    { displayName: "Clang Pitch", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 18.0 }] },
+                    { displayName: "Ring Drop", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 36.0 }] },
+                    { displayName: "Anvil Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.AMP_DECAY, amount: 0.4 }, { paramId: P.FILTER_DECAY, amount: 0.3 }] },
+                    { displayName: "HP Resonance", bipolar: false, value: 0, modifiers: [{ paramId: P.RESONANCE, amount: 0.3 }] },
+                    { displayName: "Wavefold Crush", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.25 }] },
+                    { displayName: "Clang Tune", bipolar: true, value: 0, modifiers: [{ paramId: P.TUNE, amount: 12.0 }] }
+                ]
+            },
+            liquid_acid: {
+                name: "Liquid 303 Squish",
+                param_mode: 1, param_ratio: 5.8, param_shape: 0.1, param_sub: 0.8, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.16, param_env_depth: 28.0, param_lfo_rate: 1.5, param_lfo_depth: 0.0,
+                param_ftype: 0, param_cutoff: 1600, param_res: 0.86, param_fenv: 0.72,
+                param_flt_attack: 0.002, param_flt_decay: 0.28, param_flt_sustain: 0.05, param_flt_release: 0.16,
+                param_sat: 2, param_drive: 0.52, param_attack: 0.002, param_decay: 0.32, param_sustain: 0.35, param_release: 0.18,
+                param_playmode: 2, param_glide: 0.12, param_vol: 1.0,
+                macros: [
+                    { displayName: "Squish Depth", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DEPTH, amount: 24.0 }] },
+                    { displayName: "Res Scream", bipolar: false, value: 0, modifiers: [{ paramId: P.RESONANCE, amount: 0.1 }] },
+                    { displayName: "Squish Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DECAY, amount: 0.4 }, { paramId: P.FILTER_DECAY, amount: 0.3 }] },
+                    { displayName: "Acid Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.5 }] },
+                    { displayName: "Tube Heat", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.4 }] },
+                    { displayName: "Slide Time", bipolar: false, value: 0, modifiers: [{ paramId: P.GLIDE_TIME, amount: 0.25 }] }
+                ]
+            },
+            hyperpop_saw: {
+                name: "Hyperpop Super Sync",
+                param_mode: 3, param_ratio: 14.5, param_shape: 0.4, param_sub: 0.35, param_suboct: 0,
+                param_tune: 0, param_fine: 0,
+                param_env_decay: 0.25, param_env_depth: 22.0, param_lfo_rate: 5.5, param_lfo_depth: 7.0,
+                param_ftype: 0, param_cutoff: 8800, param_res: 0.35, param_fenv: 0.3,
+                param_flt_attack: 0.002, param_flt_decay: 0.45, param_flt_sustain: 0.75, param_flt_release: 0.3,
+                param_sat: 1, param_drive: 0.65, param_attack: 0.002, param_decay: 0.4, param_sustain: 0.9, param_release: 0.35,
+                param_playmode: 0, param_glide: 0.0, param_vol: 0.92,
+                macros: [
+                    { displayName: "Hyper Detune", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 12.0 }] },
+                    { displayName: "Chorusing Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 8.0 }] },
+                    { displayName: "Wobble Depth", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 10.0 }] },
+                    { displayName: "Bright Open", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.2 }] },
+                    { displayName: "Diode Crunch", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.35 }] },
+                    { displayName: "Sub Punch", bipolar: false, value: 0, modifiers: [{ paramId: P.SUB_LEVEL, amount: 0.5 }] }
+                ]
+            },
+            alien_radio: {
+                name: "Alien Shortwave",
+                param_mode: 4, param_ratio: 11.2, param_shape: 0.78, param_sub: 0.1, param_suboct: 0,
+                param_tune: 0, param_fine: 20,
+                param_env_decay: 0.6, param_env_depth: -18.0, param_lfo_rate: 21.5, param_lfo_depth: 26.0,
+                param_ftype: 3, param_cutoff: 4600, param_res: 0.78, param_fenv: 0.4,
+                param_flt_attack: 0.01, param_flt_decay: 0.5, param_flt_sustain: 0.5, param_flt_release: 0.4,
+                param_sat: 3, param_drive: 0.58, param_attack: 0.01, param_decay: 0.5, param_sustain: 0.75, param_release: 0.4,
+                param_playmode: 0, param_glide: 0.04, param_vol: 0.95,
+                macros: [
+                    { displayName: "Carrier Freq", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 16.0 }] },
+                    { displayName: "Sideband Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 18.0 }] },
+                    { displayName: "FM Depth", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 20.0 }] },
+                    { displayName: "Radio Band", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.3 }, { paramId: P.RESONANCE, amount: 0.18 }] },
+                    { displayName: "Tape Static", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.4 }] },
+                    { displayName: "Radio Decay", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_ENV_DECAY, amount: 0.8 }] }
+                ]
+            },
+            dark_pad: {
+                name: "Dark Cosmic Pad",
+                param_mode: 1, param_ratio: 7.2, param_shape: 0.65, param_sub: 0.45, param_suboct: 0,
+                param_tune: 0, param_fine: 4,
+                param_env_decay: 1.8, param_env_depth: 8.0, param_lfo_rate: 0.35, param_lfo_depth: 3.5,
+                param_ftype: 0, param_cutoff: 2600, param_res: 0.28, param_fenv: 0.25,
+                param_flt_attack: 0.6, param_flt_decay: 1.5, param_flt_sustain: 0.8, param_flt_release: 1.2,
+                param_sat: 3, param_drive: 0.35, param_attack: 0.5, param_decay: 1.2, param_sustain: 0.88, param_release: 1.4,
+                param_playmode: 0, param_glide: 0.03, param_vol: 0.98,
+                macros: [
+                    { displayName: "Harmonic Drift", bipolar: true, value: 0, modifiers: [{ paramId: P.SYNC_RATIO, amount: 8.0 }] },
+                    { displayName: "Slow LFO Rate", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_RATE, amount: 1.5 }] },
+                    { displayName: "LFO Swell", bipolar: false, value: 0, modifiers: [{ paramId: P.SYNC_LFO_DEPTH, amount: 6.0 }] },
+                    { displayName: "Cosmic Cutoff", bipolar: true, value: 0, modifiers: [{ paramId: P.CUTOFF, amount: 1.4 }] },
+                    { displayName: "Warm Tape", bipolar: false, value: 0, modifiers: [{ paramId: P.DRIVE, amount: 0.45 }] },
+                    { displayName: "Pad Swell Time", bipolar: true, value: 0, modifiers: [{ paramId: P.AMP_ATTACK, amount: 1.5 }, { paramId: P.FILTER_ATTACK, amount: 1.5 }] }
+                ]
+            }
+        };
+
+        const presetKeys = Object.keys(PRESETS);
+        const patchSelect = document.getElementById('patchSelect');
+        const patchNameInput = document.getElementById('patchNameInput');
+
+        function loadPreset(key) {
+            const p = PRESETS[key];
+            if (!p) return;
+
+            patchSelect.value = key;
+            patchNameInput.value = p.name || patchSelect.options[patchSelect.selectedIndex].text;
+
+            for (let k in p) {
+                if (k === 'name' || k === 'macros') continue;
+                const input = document.getElementById(k);
+                if (input) {
+                    input.value = p[k];
+                    input.dispatchEvent(new Event('input'));
+                }
+            }
+
+            if (p.macros) {
+                macros = JSON.parse(JSON.stringify(p.macros));
+                renderMacroCards();
+                renderMacroConfigPanel();
+            }
+
+            recomputeAllParams();
+            showStatus(`Loaded preset "${p.name}"`);
+        }
+
+        patchSelect.addEventListener('change', () => {
+            if (patchSelect.value !== 'custom') {
+                loadPreset(patchSelect.value);
+            }
+        });
+
+        document.getElementById('btnPrevPatch').addEventListener('click', () => {
+            let idx = presetKeys.indexOf(patchSelect.value);
+            if (idx === -1) idx = 0;
+            idx = (idx - 1 + presetKeys.length) % presetKeys.length;
+            loadPreset(presetKeys[idx]);
+        });
+
+        document.getElementById('btnNextPatch').addEventListener('click', () => {
+            let idx = presetKeys.indexOf(patchSelect.value);
+            if (idx === -1) idx = -1;
+            idx = (idx + 1) % presetKeys.length;
+            loadPreset(presetKeys[idx]);
+        });
+
+        // --- Tracker Mini Binary .patch Export & Import (Nanopb / Protobuf) ---
+        // Tracker Mini File Structure:
+        // Field 1: instrument_type_id = 9 (kTearSynth) -> Tag 1, Wire Type 0 (0x08, 0x09)
+        // Field 6: repeated Param params = 6 -> Tag 6, Wire Type 2 (0x32, 0x05, 0x0D, float32_LE)
+        // Field 8: repeated Macro macros = 8 -> Tag 8, Wire Type 2 (0x42, length, submessage)
+        //   Macro Submessage Fields:
+        //     Field 1: displayName (string) -> Tag 1, Wire Type 2
+        //     Field 2: bipolar (bool) -> Tag 2, Wire Type 0
+        //     Field 3: modifiers_count (int32) -> Tag 3, Wire Type 0
+        //     Field 4: repeated ParamModifier modifiers -> Tag 4, Wire Type 2
+        //       ParamModifier Submessage:
+        //         Field 1: param_id (int32) -> Tag 1, Wire Type 0
+        //         Field 2: amount (float) -> Tag 2, Wire Type 5
+
+        function encodeVarint(val) {
+            const bytes = [];
+            while (val > 0x7f) {
+                bytes.push((val & 0x7f) | 0x80);
+                val >>>= 7;
+            }
+            bytes.push(val & 0x7f);
+            return bytes;
+        }
+
+        function encodePatchBinary(params, patchMacros) {
+            const bytes = [];
+
+            // 1. Field 1: instrument_type_id = 9 (kTearSynth)
+            bytes.push(0x08, 0x09);
+
+            // 2. Field 6: repeated Param params (all 28 params)
+            for (let i = 0; i < 28; i++) {
+                const fBuf = new ArrayBuffer(4);
+                new DataView(fBuf).setFloat32(0, params[i] || 0.0, true);
+                const fb = new Uint8Array(fBuf);
+                bytes.push(0x32, 0x05, 0x0D, fb[0], fb[1], fb[2], fb[3]);
+            }
+
+            // 3. Field 8: repeated Macro macros (Nanopb requires all 8 macros)
+            //    Macros 0..5: User Macros 1..6
+            //    Macro 6: System Macro (Velocity -> Volume, param 20)
+            //    Macro 7: System Macro (Pressure)
+            for (let m = 0; m < 8; m++) {
+                const mBytes = [];
+                let displayName = `Macro ${m+1}`;
+                let bipolar = false;
+                let validModifiers = [];
+
+                if (m < 6) {
+                    const macro = (patchMacros && patchMacros[m]) || {};
+                    displayName = macro.displayName || `Macro ${m+1}`;
+                    bipolar = !!macro.bipolar;
+                    validModifiers = (macro.modifiers || []).filter(mod => mod && mod.paramId !== undefined && mod.paramId >= 0);
+                } else if (m === 6) {
+                    // System Macro: Velocity
+                    displayName = "Velocity";
+                    bipolar = false;
+                    validModifiers = [{ paramId: 20, amount: 1.0 }];
+                } else {
+                    // System Macro: Pressure
+                    displayName = "Pressure";
+                    bipolar = false;
+                    validModifiers = [];
+                }
+
+                // Macro Field 1: displayName (string)
+                const nameBytes = new TextEncoder().encode(displayName);
+                mBytes.push((1 << 3) | 2, ...encodeVarint(nameBytes.length), ...nameBytes);
+
+                // Macro Field 2: bipolar (bool)
+                mBytes.push((2 << 3) | 0, bipolar ? 1 : 0);
+
+                const modCount = validModifiers.length;
+
+                // Macro Field 3: modifiers_count (int32 varint) -> Tag 3, Wire Type 0
+                mBytes.push((3 << 3) | 0, ...encodeVarint(modCount));
+
+                // Macro Field 4: repeated ParamModifier modifiers
+                // NOTE: Nanopb's polysynth_Macro.modifiers is a static fixed-count array of 6.
+                // If modifiers are present (modCount > 0), Nanopb strictly requires EXACTLY 6
+                // elements in the wire format. The tracker's deserialize logic loops only
+                // modifiers_count times and ignores padded dummy elements.
+                if (modCount > 0) {
+                    for (let i = 0; i < 6; i++) {
+                        const mod = i < modCount ? validModifiers[i] : { paramId: 0, amount: 0.0 };
+                        const modBytes = [];
+
+                        // ParamModifier Field 1: param_id (varint)
+                        modBytes.push((1 << 3) | 0, ...encodeVarint(mod.paramId || 0));
+
+                        // ParamModifier Field 2: amount (float)
+                        const amtBuf = new ArrayBuffer(4);
+                        new DataView(amtBuf).setFloat32(0, mod.amount || 0.0, true);
+                        const ab = new Uint8Array(amtBuf);
+                        modBytes.push((2 << 3) | 5, ab[0], ab[1], ab[2], ab[3]);
+
+                        mBytes.push((4 << 3) | 2, ...encodeVarint(modBytes.length), ...modBytes);
+                    }
+                }
+
+                bytes.push(0x42, ...encodeVarint(mBytes.length), ...mBytes);
+            }
+
+            return new Uint8Array(bytes);
+        }
+
+        function exportPatchFile() {
+            const patchName = (patchNameInput.value.trim() || 'Tear_Patch').replace(/[/\\?%*:|"<>]/g, '_');
+            const uint8 = encodePatchBinary(baseParams, macros);
+
+            const blob = new Blob([uint8], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${patchName}.patch`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showStatus(`Exported "${patchName}.patch" (${uint8.length} bytes)! Copy to SD:/Patches/TEAR/ on your Tracker Mini SD card.`);
+        }
+
+        // Lightweight pure-JS uncompressed ZIP archive generator
+        function createZip(files) {
+            function crc32(buf) {
+                let table = crc32.table;
+                if (!table) {
+                    table = crc32.table = new Uint32Array(256);
+                    for (let i = 0; i < 256; i++) {
+                        let c = i;
+                        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                        table[i] = c >>> 0;
+                    }
+                }
+                let c = 0xFFFFFFFF;
+                for (let i = 0; i < buf.length; i++) c = table[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+                return (c ^ 0xFFFFFFFF) >>> 0;
+            }
+
+            const parts = [];
+            const cdEntries = [];
+            let offset = 0;
+
+            for (const file of files) {
+                const nameBytes = new TextEncoder().encode(file.name);
+                const data = file.data instanceof Uint8Array ? file.data : new Uint8Array(file.data);
+                const crc = crc32(data);
+                const size = data.length;
+
+                // Local file header (30 bytes)
+                const lh = new Uint8Array(30);
+                const lv = new DataView(lh.buffer);
+                lv.setUint32(0, 0x04034b50, true);
+                lv.setUint16(4, 20, true);
+                lv.setUint16(6, 0, true);
+                lv.setUint16(8, 0, true); // store method 0
+                lv.setUint16(10, 0, true);
+                lv.setUint16(12, 0, true);
+                lv.setUint32(14, crc, true);
+                lv.setUint32(18, size, true);
+                lv.setUint32(22, size, true);
+                lv.setUint16(26, nameBytes.length, true);
+                lv.setUint16(28, 0, true);
+
+                const localOffset = offset;
+                parts.push(lh, nameBytes, data);
+                offset += lh.length + nameBytes.length + size;
+
+                // Central directory header (46 bytes)
+                const cd = new Uint8Array(46);
+                const cv = new DataView(cd.buffer);
+                cv.setUint32(0, 0x02014b50, true);
+                cv.setUint16(4, 20, true);
+                cv.setUint16(6, 20, true);
+                cv.setUint16(8, 0, true);
+                cv.setUint16(10, 0, true);
+                cv.setUint16(12, 0, true);
+                cv.setUint16(14, 0, true);
+                cv.setUint32(16, crc, true);
+                cv.setUint32(20, size, true);
+                cv.setUint32(24, size, true);
+                cv.setUint16(28, nameBytes.length, true);
+                cv.setUint16(30, 0, true);
+                cv.setUint16(32, 0, true);
+                cv.setUint16(34, 0, true);
+                cv.setUint16(36, 0, true);
+                cv.setUint32(38, 0, true);
+                cv.setUint32(42, localOffset, true);
+
+                cdEntries.push(cd, nameBytes);
+            }
+
+            const cdStart = offset;
+            let cdSize = 0;
+            for (const b of cdEntries) {
+                parts.push(b);
+                cdSize += b.length;
+            }
+
+            // End of central directory record (22 bytes)
+            const eocd = new Uint8Array(22);
+            const ev = new DataView(eocd.buffer);
+            ev.setUint32(0, 0x06054b50, true);
+            ev.setUint16(4, 0, true);
+            ev.setUint16(6, 0, true);
+            ev.setUint16(8, files.length, true);
+            ev.setUint16(10, files.length, true);
+            ev.setUint32(12, cdSize, true);
+            ev.setUint32(16, cdStart, true);
+            ev.setUint16(20, 0, true);
+
+            parts.push(eocd);
+
+            let totalLen = parts.reduce((acc, p) => acc + p.length, 0);
+            const out = new Uint8Array(totalLen);
+            let ptr = 0;
+            for (const p of parts) {
+                out.set(p, ptr);
+                ptr += p.length;
+            }
+            return out;
+        }
+
+        function exportAllPatchesZip() {
+            try {
+                const files = [];
+                for (const key of presetKeys) {
+                    const p = PRESETS[key];
+                    if (!p) continue;
+                    const params = new Float32Array(28);
+                    for (let i = 0; i < 28; i++) {
+                        params[i] = p[paramTargets[i]] || 0.0;
+                    }
+                    const patchData = encodePatchBinary(params, p.macros || []);
+                    const safeName = (p.name || key).replace(/[/\\?%*:|"<>]/g, '_');
+                    files.push({
+                        name: `TEAR/${safeName}.patch`,
+                        data: patchData
+                    });
+                }
+
+                const zipBytes = createZip(files);
+                const blob = new Blob([zipBytes], { type: 'application/zip' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'TEAR_Patches.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showStatus(`Exported all ${files.length} patches to "TEAR_Patches.zip"! Unzip into SD:/Patches/ on your SD card.`);
+            } catch (err) {
+                console.error("Export all failed:", err);
+                showStatus("Failed to export all patches: " + err.message, true);
+            }
+        }
+
+        document.getElementById('btnExportPatch').addEventListener('click', exportPatchFile);
+        document.getElementById('btnExportAllPatches').addEventListener('click', exportAllPatchesZip);
+
+        // Import .patch file reader
+        function importPatchFile(arrayBuffer, filename = '') {
+            try {
+                const view = new DataView(arrayBuffer);
+                const bytes = new Uint8Array(arrayBuffer);
+                let offset = 0;
+                let instrumentTypeId = null;
+                const loadedParams = [];
+                const loadedMacros = [];
+
+                while (offset < bytes.length) {
+                    let tagByte = bytes[offset++];
+                    let tag = tagByte & 0x7F;
+                    let shift = 7;
+                    while (tagByte & 0x80) {
+                        tagByte = bytes[offset++];
+                        tag |= (tagByte & 0x7F) << shift;
+                        shift += 7;
+                    }
+
+                    const fieldNum = tag >>> 3;
+                    const wireType = tag & 0x07;
+
+                    if (fieldNum === 1 && wireType === 0) {
+                        // instrument_type_id
+                        let val = bytes[offset++];
+                        let vshift = 7;
+                        while (val & 0x80) {
+                            val = (val & 0x7F) | ((bytes[offset++] & 0x7F) << vshift);
+                            vshift += 7;
+                        }
+                        instrumentTypeId = val;
+                    } else if (fieldNum === 6 && wireType === 2) {
+                        // repeated Param submessage
+                        let len = bytes[offset++];
+                        let lshift = 7;
+                        while (len & 0x80) {
+                            len = (len & 0x7F) | ((bytes[offset++] & 0x7F) << lshift);
+                            lshift += 7;
+                        }
+
+                        const subEnd = offset + len;
+                        let paramVal = 0.0;
+                        while (offset < subEnd) {
+                            const subTag = bytes[offset++];
+                            const subField = subTag >>> 3;
+                            const subWire = subTag & 0x07;
+                            if (subField === 1 && subWire === 5) {
+                                paramVal = view.getFloat32(offset, true);
+                                offset += 4;
+                            } else if (subWire === 0) {
+                                while (bytes[offset++] & 0x80);
+                            } else if (subWire === 1) {
+                                offset += 8;
+                            } else if (subWire === 2) {
+                                const slen = bytes[offset++];
+                                offset += slen;
+                            } else if (subWire === 5) {
+                                offset += 4;
+                            }
+                        }
+                        loadedParams.push(paramVal);
+                        offset = subEnd;
+                    } else if (fieldNum === 8 && wireType === 2) {
+                        // repeated Macro submessage
+                        let len = bytes[offset++];
+                        let mshift = 7;
+                        while (len & 0x80) {
+                            len = (len & 0x7F) | ((bytes[offset++] & 0x7F) << mshift);
+                            mshift += 7;
+                        }
+
+                        const mEnd = offset + len;
+                        const macro = { displayName: "", bipolar: false, value: 0.0, modifiers: [] };
+
+                        while (offset < mEnd) {
+                            let mTag = bytes[offset++];
+                            let mfNum = mTag >>> 3;
+                            let mwType = mTag & 7;
+
+                            if (mfNum === 1 && mwType === 2) {
+                                // displayName
+                                let sLen = bytes[offset++];
+                                let slshift = 7;
+                                while (sLen & 0x80) {
+                                    sLen = (sLen & 0x7F) | ((bytes[offset++] & 0x7F) << slshift);
+                                    slshift += 7;
+                                }
+                                macro.displayName = new TextDecoder().decode(bytes.subarray(offset, offset + sLen));
+                                offset += sLen;
+                            } else if (mfNum === 2 && mwType === 0) {
+                                macro.bipolar = bytes[offset++] !== 0;
+                            } else if (mfNum === 3 && mwType === 0) {
+                                // Field 3: modifiers_count (varint)
+                                let count = bytes[offset++];
+                                let cshift = 7;
+                                while (count & 0x80) {
+                                    count = (count & 0x7F) | ((bytes[offset++] & 0x7F) << cshift);
+                                    cshift += 7;
+                                }
+                                macro.modifiersCount = count;
+                            } else if (mfNum === 3 && mwType === 5) {
+                                // Legacy harness float value compatibility
+                                macro.value = view.getFloat32(offset, true);
+                                offset += 4;
+                            } else if (mfNum === 4 && mwType === 2) {
+                                // ParamModifier
+                                let modLen = bytes[offset++];
+                                let modshift = 7;
+                                while (modLen & 0x80) {
+                                    modLen = (modLen & 0x7F) | ((bytes[offset++] & 0x7F) << modshift);
+                                    modshift += 7;
+                                }
+                                const modEnd = offset + modLen;
+                                const mod = { paramId: 0, amount: 0.0 };
+                                while (offset < modEnd) {
+                                    let modTag = bytes[offset++];
+                                    let modfNum = modTag >>> 3;
+                                    let modwType = modTag & 7;
+                                    if (modfNum === 1 && modwType === 0) {
+                                        let pVal = bytes[offset++];
+                                        let pshift = 7;
+                                        while (pVal & 0x80) {
+                                            pVal = (pVal & 0x7F) | ((bytes[offset++] & 0x7F) << pshift);
+                                            pshift += 7;
+                                        }
+                                        mod.paramId = pVal;
+                                    } else if (modfNum === 2 && modwType === 5) {
+                                        mod.amount = view.getFloat32(offset, true);
+                                        offset += 4;
+                                    }
+                                }
+                                macro.modifiers.push(mod);
+                                offset = modEnd;
+                            } else {
+                                if (mwType === 0) while (bytes[offset++] & 0x80);
+                                else if (mwType === 1) offset += 8;
+                                else if (mwType === 2) {
+                                    let slen = bytes[offset++];
+                                    offset += slen;
+                                } else if (mwType === 5) offset += 4;
+                            }
+                        }
+                        if (macro.modifiersCount !== undefined && macro.modifiers.length > macro.modifiersCount) {
+                            macro.modifiers = macro.modifiers.slice(0, macro.modifiersCount);
+                        }
+                        loadedMacros.push(macro);
+                        offset = mEnd;
+                    } else {
+                        // Skip other fields
+                        if (wireType === 0) {
+                            while (bytes[offset++] & 0x80);
+                        } else if (wireType === 1) {
+                            offset += 8;
+                        } else if (wireType === 2) {
+                            let len = bytes[offset++];
+                            let lshift = 7;
+                            while (len & 0x80) {
+                                len = (len & 0x7F) | ((bytes[offset++] & 0x7F) << lshift);
+                                lshift += 7;
+                            }
+                            offset += len;
+                        } else if (wireType === 5) {
+                            offset += 4;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                if (instrumentTypeId !== 9) {
+                    console.warn(`Instrument ID is ${instrumentTypeId} (expected 9 for TEAR). Proceeding with parameter load.`);
+                }
+
+                if (loadedParams.length === 0) {
+                    showStatus("Error: No parameters found in .patch file", true);
+                    return;
+                }
+
+                // Apply parameters to UI inputs
+                const paramTargets = [
+                    'param_mode', 'param_ratio', 'param_shape', 'param_sub', 'param_suboct',
+                    'param_tune', 'param_fine', 'param_env_decay', 'param_env_depth',
+                    'param_lfo_rate', 'param_lfo_depth', 'param_ftype', 'param_cutoff',
+                    'param_res', 'param_fenv', 'param_flt_attack', 'param_flt_decay',
+                    'param_flt_sustain', 'param_flt_release', 'param_drive', 'param_sat',
+                    'param_attack', 'param_decay', 'param_sustain', 'param_release',
+                    'param_playmode', 'param_glide', 'param_vol'
+                ];
+
+                for (let i = 0; i < loadedParams.length && i < paramTargets.length; i++) {
+                    const el = document.getElementById(paramTargets[i]);
+                    if (el) {
+                        el.value = loadedParams[i];
+                        el.dispatchEvent(new Event('input'));
+                    }
+                    baseParams[i] = loadedParams[i];
+                }
+
+                // If patch file contained macros, update macros (use top 6 user macros)
+                if (loadedMacros.length > 0) {
+                    macros = loadedMacros.slice(0, 6);
+                    renderMacroCards();
+                    renderMacroConfigPanel();
+                }
+
+                recomputeAllParams();
+
+                let patchName = filename.replace(/\.patch$/i, '');
+                if (!patchName) patchName = "Imported Patch";
+                patchNameInput.value = patchName;
+                patchSelect.value = "custom";
+
+                showStatus(`Imported "${patchName}" (${loadedParams.length} params, ${loadedMacros.length} macros loaded)`);
+            } catch (err) {
+                console.error("Patch import error:", err);
+                showStatus("Failed to parse .patch file: " + err.message, true);
+            }
+        }
+
+        const fileImportPatch = document.getElementById('fileImportPatch');
+        document.getElementById('btnImportPatch').addEventListener('click', () => {
+            fileImportPatch.value = '';
+            fileImportPatch.click();
+        });
+
+        fileImportPatch.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                importPatchFile(evt.target.result, file.name);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Drag & Drop .patch support
+        const dropOverlay = document.getElementById('dropOverlay');
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropOverlay.classList.add('visible');
+        });
+        window.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget === null) {
+                dropOverlay.classList.remove('visible');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropOverlay.classList.remove('visible');
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    importPatchFile(evt.target.result, file.name);
+                };
+                reader.readAsArrayBuffer(file);
+            }
         });
 
         // --- Visualizers Canvas Loop ---
@@ -800,7 +2465,6 @@
                 scopeCtx.fillStyle = '#090b0e';
                 scopeCtx.fillRect(0, 0, sw, sh);
 
-                // Grid lines
                 scopeCtx.strokeStyle = '#18202c';
                 scopeCtx.lineWidth = 1;
                 scopeCtx.beginPath();
@@ -850,7 +2514,6 @@
         // --- Keyboard Setup ---
         let currentOctave = 4;
         const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const whiteIndices = [0, 2, 4, 5, 7, 9, 11];
         const blackPositions = {
             1: 6.8,   // C#
             3: 20.8,  // D#
@@ -864,7 +2527,6 @@
 
         function buildKeyboard() {
             pianoContainer.innerHTML = '';
-            // 2 octaves = 24 keys
             for (let oct = 0; oct < 2; oct++) {
                 for (let i = 0; i < 12; i++) {
                     const midiNote = (currentOctave + oct) * 12 + i;
@@ -877,7 +2539,6 @@
                         key.textContent = `${notes[i]}${currentOctave + oct}`;
                     } else {
                         key.className = 'black-key';
-                        // calculate left percentage across 2 octaves
                         const octOffset = oct * 50;
                         const keyLeft = octOffset + (blackPositions[i] * 0.5);
                         key.style.left = `${keyLeft}%`;
@@ -934,6 +2595,7 @@
 
         window.addEventListener('keydown', (e) => {
             if (e.repeat || !(e.code in keyMap)) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             if (!audioCtx) btnAudio.click();
             const note = currentOctave * 12 + keyMap[e.code];
             pressedKeys.add(e.code);

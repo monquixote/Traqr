@@ -7,8 +7,8 @@
 #include <cstdio>
 #include <cstring>
 
-static const char* const kPerfSynthModelNames[8] = {
-    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR"
+static const char* const kPerfSynthModelNames[9] = {
+    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR", "JUNO"
 };
 
 cSynthPerfRow::cSynthPerfRow(strControlProperties* properties)
@@ -210,7 +210,7 @@ void cSynthPerfRow::update()
     // 2. Header Text
     char headerBuf[48];
     const char* engineName =
-      (data->synthType < 8) ? kPerfSynthModelNames[data->synthType] : "SYN";
+      (data->synthType < 9) ? kPerfSynthModelNames[data->synthType] : "SYN";
     if (data->voiceCount == 0)
     {
         snprintf(headerBuf, sizeof(headerBuf), "SYNTH %d [%s OFF]", data->synthIdx + 1, engineName);

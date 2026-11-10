@@ -5,7 +5,9 @@ on:
     branches: [ main ]
     paths:
       - 'tools/tear_harness/**'
-      - 'docs/synths/**'
+      - 'tools/juno_harness/**'
+      - 'docs/**'
+      - 'patches/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -43,16 +45,30 @@ jobs:
             -s EXPORT_NAME="TearModule" \
             -s EXPORTED_FUNCTIONS="['_tear_init','_tear_reset','_tear_note_on','_tear_note_off','_tear_set_param','_tear_get_param','_tear_render','_tear_is_playing','_malloc','_free']" \
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
-            -o _site/tear_dsp.js
+            -o _site/synths/tear/tear_dsp.js
+
+      - name: Build JUNO DSP WebAssembly Engine
+        run: |
+          mkdir -p _site/synths/juno
+          emcc tools/juno_harness/main_wasm.cpp tools/juno_harness/JunoDSP.cpp \
+            -O3 -std=c++20 \
+            -s WASM=1 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME="JunoModule" \
+            -s EXPORTED_FUNCTIONS="['_juno_init','_juno_reset','_juno_note_on','_juno_note_off','_juno_all_notes_off','_juno_set_param','_juno_get_param','_juno_render','_juno_active_voices','_juno_param_count','_juno_param_min','_juno_param_max','_juno_param_default','_malloc','_free']" \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
+            -o _site/synths/juno/juno_dsp.js
 
       - name: Assemble Web Pages
         run: |
-          # Copy root page
-          cp tools/tear_harness/index.html _site/index.html
-          # Copy to /synths/tear/ as well
-          cp _site/index.html _site/synths/tear/index.html
-          cp _site/tear_dsp.js _site/synths/tear/tear_dsp.js
-          cp _site/tear_dsp.wasm _site/synths/tear/tear_dsp.wasm
+          # Copy synth pages
+          cp tools/tear_harness/index.html _site/synths/tear/index.html
+          cp tools/juno_harness/index.html _site/synths/juno/index.html
+          # Root portal landing page
+          cp docs/index.html _site/index.html
+          # Copy preset bundles for direct download
+          mkdir -p _site/patches
+          cp patches/*.zip _site/patches/ || true
           # Ensure GitHub Pages does not run Jekyll
           touch _site/.nojekyll
 
