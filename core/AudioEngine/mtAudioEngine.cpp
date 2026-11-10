@@ -1393,6 +1393,67 @@ float audioEngine::calculateParamValue(int synthIdx, SynthParam param)
     return result;
 }
 
+float audioEngine::getLiveSynthParam(int synthIdx, SynthParam param)
+{
+    if (synthIdx < 0 || synthIdx >= kSynthParts || param < 0 || param >= SynthParam::kSynthParamsCount)
+    {
+        return 0.0f;
+    }
+
+    DISABLE_AUDIO_INTERRUPTS();
+    auto& synthParamSource = synthParams[synthIdx][param];
+
+    float result = 0.0f;
+    if (synthParamSource[SynthValuesSource::kInstrument].has_value())
+    {
+        result = synthParamSource[SynthValuesSource::kInstrument].value();
+    }
+    else
+    {
+        const auto& part = mtProject.values.synthPart[synthIdx];
+        if (param >= SynthParam::kMacro1 && param <= SynthParam::kMacro6)
+        {
+            result = static_cast<float>(part.macroValue[param - SynthParam::kMacro1]);
+        }
+        else if (param == SynthParam::kDelaySend)
+        {
+            result = part.delaySend;
+        }
+        else if (param == SynthParam::kReverbSend)
+        {
+            result = part.reverbSend;
+        }
+        else if (param == SynthParam::kVolume)
+        {
+            result = part.gainDb;
+        }
+        else if (param == SynthParam::kPanning)
+        {
+            result = static_cast<float>(part.panning);
+        }
+    }
+
+    if (synthParamSource[SynthValuesSource::kFx2].has_value())
+    {
+        result = synthParamSource[SynthValuesSource::kFx2].value();
+    }
+
+    if (synthParamSource[SynthValuesSource::kFx1].has_value())
+    {
+        result = synthParamSource[SynthValuesSource::kFx1].value();
+    }
+
+    if (synthParamSource[SynthValuesSource::kPerformance].has_value())
+    {
+        result = result + synthParamSource[SynthValuesSource::kPerformance].value();
+    }
+
+    result = clamp<float>(result, synthParamsBoundaries[param].min, synthParamsBoundaries[param].max);
+    ENABLE_AUDIO_INTERRUPTS();
+
+    return result;
+}
+
 #endif
 
 AUDIO_CORE_RAM void audioEngine::setLastUsedVoice(uint8_t v)

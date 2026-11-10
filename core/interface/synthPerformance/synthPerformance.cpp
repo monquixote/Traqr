@@ -204,18 +204,31 @@ void cSynthPerformance::update()
 
     for (int s = 0; s < kSynthParts; s++)
     {
+        int16_t prevBarValues[8];
+        memcpy(prevBarValues, rowData[s].paramBarValues, sizeof(prevBarValues));
+        float prevGain = rowData[s].gainDb;
+        float prevPan = rowData[s].panning;
+
+        populateRowData(s);
+
+        bool barChanged = (memcmp(prevBarValues, rowData[s].paramBarValues, sizeof(prevBarValues)) != 0);
+        bool gainChanged = (prevGain != rowData[s].gainDb || prevPan != rowData[s].panning);
         bool rmsChanged = (rmsTrackers[s][0].level != rmsTrackers[s][0].lastShownLevel) ||
                           (rmsTrackers[s][1].level != rmsTrackers[s][1].lastShownLevel);
 
-        if (dirtyRow[s] || rmsChanged)
+        if (dirtyRow[s] || barChanged || gainChanged || rmsChanged)
         {
             rmsTrackers[s][0].lastShownLevel = rmsTrackers[s][0].level;
             rmsTrackers[s][1].lastShownLevel = rmsTrackers[s][1].level;
             dirtyRow[s] = false;
 
-            populateRowData(s);
             display.refreshControl(rowControl[s]);
             anyRefreshed = true;
+
+            if (s == selectedSynth && (barChanged || gainChanged))
+            {
+                dirtyBottomLabels = true;
+            }
         }
     }
 
@@ -264,8 +277,8 @@ void cSynthPerformance::populateRowData(int synthIdx)
     d.maxVoiceCount = synth ? static_cast<uint8_t>(synth->getMaxVoiceCount(synthIdx)) : 8;
     d.isRowSelected = (synthIdx == selectedSynth);
     d.selectedCol = selectedCol;
-    d.gainDb = part.gainDb;
-    d.panning = part.panning;
+    d.gainDb = engine.getLiveSynthParam(synthIdx, audioEngine::SynthParam::kVolume);
+    d.panning = engine.getLiveSynthParam(synthIdx, audioEngine::SynthParam::kPanning);
     d.rmsLevelL = rmsTrackers[synthIdx][0].level;
     d.rmsLevelR = rmsTrackers[synthIdx][1].level;
 
@@ -296,7 +309,10 @@ void cSynthPerformance::populateRowData(int synthIdx)
 
                 bool bipolar = macro.bipolar;
                 int maxVal = bipolar ? (kCCMidValue * 2) : kCCMaxValue;
-                int rawVal = part.macroValue[col];
+                float liveVal = engine.getLiveSynthParam(
+                  synthIdx,
+                  static_cast<audioEngine::SynthParam>(audioEngine::SynthParam::kMacro1 + col));
+                int rawVal = clamp<int>(static_cast<int>(roundf(liveVal)), 0, maxVal);
 
                 d.paramBipolar[col] = bipolar;
                 if (bipolar)
@@ -329,14 +345,16 @@ void cSynthPerformance::populateRowData(int synthIdx)
     // Column 6: Delay Send
     polystrncpy(d.paramShortNames[6], "Delay", sizeof(d.paramShortNames[6]));
     d.paramBipolar[6] = false;
-    int delayVal = clamp<int>(static_cast<int>(roundf(part.delaySend)), 0, 100);
+    float liveDelay = engine.getLiveSynthParam(synthIdx, audioEngine::SynthParam::kDelaySend);
+    int delayVal = clamp<int>(static_cast<int>(roundf(liveDelay)), 0, 100);
     d.paramBarValues[6] = static_cast<int16_t>(delayVal);
     snprintf(d.paramValueTexts[6], sizeof(d.paramValueTexts[6]), "%d", delayVal);
 
     // Column 7: Reverb Send
     polystrncpy(d.paramShortNames[7], "Reverb", sizeof(d.paramShortNames[7]));
     d.paramBipolar[7] = false;
-    int reverbVal = clamp<int>(static_cast<int>(roundf(part.reverbSend)), 0, 100);
+    float liveReverb = engine.getLiveSynthParam(synthIdx, audioEngine::SynthParam::kReverbSend);
+    int reverbVal = clamp<int>(static_cast<int>(roundf(liveReverb)), 0, 100);
     d.paramBarValues[7] = static_cast<int16_t>(reverbVal);
     snprintf(d.paramValueTexts[7], sizeof(d.paramValueTexts[7]), "%d", reverbVal);
 #else
@@ -379,7 +397,10 @@ void cSynthPerformance::refreshBottomLabels()
 
                 bool bipolar = macro.bipolar;
                 int maxVal = bipolar ? (kCCMidValue * 2) : kCCMaxValue;
-                int rawVal = part.macroValue[col];
+                float liveVal = engine.getLiveSynthParam(
+                  selectedSynth,
+                  static_cast<audioEngine::SynthParam>(audioEngine::SynthParam::kMacro1 + col));
+                int rawVal = clamp<int>(static_cast<int>(roundf(liveVal)), 0, maxVal);
                 int dispVal = bipolar ? mapClamped(rawVal, 0, maxVal, -63, 63) : rawVal;
 
                 snprintf(bottomLabelValues[col], sizeof(bottomLabelValues[col]), "%d ", dispVal);
@@ -396,14 +417,16 @@ void cSynthPerformance::refreshBottomLabels()
 
     // Column 6: Delay Send
     snprintf(bottomLabelNames[6], sizeof(bottomLabelNames[6]), "Delay send");
+    float liveDelay = engine.getLiveSynthParam(selectedSynth, audioEngine::SynthParam::kDelaySend);
     float delayDb = instrumentEditor.calcInstrumentSendsDecybelValue(
-      static_cast<uint8_t>(clamp<int>(static_cast<int>(roundf(part.delaySend)), 0, 100)));
+      static_cast<uint8_t>(clamp<int>(static_cast<int>(roundf(liveDelay)), 0, 100)));
     snprintf(bottomLabelValues[6], sizeof(bottomLabelValues[6]), "%0.1f dB", (double)delayDb);
 
     // Column 7: Reverb Send
     snprintf(bottomLabelNames[7], sizeof(bottomLabelNames[7]), "Reverb send");
+    float liveReverb = engine.getLiveSynthParam(selectedSynth, audioEngine::SynthParam::kReverbSend);
     float reverbDb = instrumentEditor.calcInstrumentSendsDecybelValue(
-      static_cast<uint8_t>(clamp<int>(static_cast<int>(roundf(part.reverbSend)), 0, 100)));
+      static_cast<uint8_t>(clamp<int>(static_cast<int>(roundf(liveReverb)), 0, 100)));
     snprintf(bottomLabelValues[7], sizeof(bottomLabelValues[7]), "%0.1f dB", (double)reverbDb);
 
     for (uint8_t i = 0; i < 8; i++)

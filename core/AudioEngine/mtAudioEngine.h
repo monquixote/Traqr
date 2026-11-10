@@ -133,6 +133,7 @@ class audioEngine
     void seqSynthFx(uint8_t fx_id, uint8_t fx_val, uint8_t fx_n, uint8_t synthIdx);
     void refreshSynthInstrumentParams(SynthPartSettings& synthSettings, int synthIdx);
     float getSynthVoiceRMS(uint8_t channel, int synthIdx);
+    float getLiveSynthParam(int synthIdx, SynthParam param);
 #endif
     void muteTrack(uint8_t channel, uint8_t state);
     void soloTrack(uint8_t channel, uint8_t state);
