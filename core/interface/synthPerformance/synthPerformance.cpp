@@ -40,6 +40,7 @@ static void functInstr(uint8_t state);
 static void functMiniMiddle(uint8_t state);
 static void functPads(uint8_t pad, uint8_t state, int16_t velo);
 
+#if GUI_HANDLE_SYNTH
 static void updateSingleRms(cSynthPerformance::RmsTracker& tracker, float sample)
 {
     if (sample >= 0.0f)
@@ -74,6 +75,7 @@ static void updateSingleRms(cSynthPerformance::RmsTracker& tracker, float sample
         tracker.level = (tracker.level > 4) ? (tracker.level - 4) : 0;
     }
 }
+#endif
 
 void cSynthPerformance::initDisplayControls()
 {
@@ -335,6 +337,8 @@ void cSynthPerformance::populateRowData(int synthIdx)
     int reverbVal = clamp<int>(static_cast<int>(roundf(part.reverbSend)), 0, 100);
     d.paramBarValues[7] = static_cast<int16_t>(reverbVal);
     snprintf(d.paramValueTexts[7], sizeof(d.paramValueTexts[7]), "%d", reverbVal);
+#else
+    (void)synthIdx;
 #endif
 }
 
@@ -443,6 +447,11 @@ void cSynthPerformance::showFullScreen()
 
 void cSynthPerformance::selectSynthRow(int synthIdx)
 {
+    if (kSynthParts <= 0)
+    {
+        return;
+    }
+
     int clamped = clamp<int>(synthIdx, 0, kSynthParts - 1);
     if (clamped == selectedSynth)
     {
@@ -503,6 +512,8 @@ void cSynthPerformance::changeSelectedParam(int16_t delta)
     refreshRow(selectedSynth);
     refreshBottomLabels();
     display.synchronizeRefresh();
+#else
+    (void)delta;
 #endif
 }
 
@@ -516,6 +527,8 @@ void cSynthPerformance::changeSelectedSynthGain(int16_t delta)
 
     refreshRow(selectedSynth);
     display.synchronizeRefresh();
+#else
+    (void)delta;
 #endif
 }
 
@@ -660,7 +673,10 @@ static void functScreenButton(uint8_t button)
     if (SP->selectedCol == button)
     {
         // Pressing the already-selected column button cycles through Synth 1 -> 2 -> 3
-        SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+        if (kSynthParts > 0)
+        {
+            SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+        }
     }
     else
     {
@@ -723,7 +739,10 @@ static void functInstr(uint8_t state)
 {
     if (state == buttonPress)
     {
-        SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+        if (kSynthParts > 0)
+        {
+            SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+        }
     }
 }
 
