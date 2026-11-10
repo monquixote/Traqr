@@ -7,6 +7,27 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        type: boolean
+        default: false
+      tag_name:
+        description: 'Release tag name (e.g. v1.0.11)'
+        required: false
+        type: string
+        default: 'v1.0.11'
+      release_title:
+        description: 'Release title'
+        required: false
+        type: string
+        default: 'Polyend Tracker CE v1.0.11 (JUNO & TEAR Engines)'
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -55,7 +76,7 @@ jobs:
         run: |
           set -o pipefail
           POSTFIX_ARGS=""
-          if [[ "${{ github.ref }}" != refs/tags/v* ]]; then
+          if [[ "${{ github.ref }}" != refs/tags/v* && "${{ inputs.publish_release }}" != "true" ]]; then
             SHORT_SHA=$(git rev-parse --short=7 HEAD)
             POSTFIX_ARGS="ORIGINAL_POSTFIX=CE_${SHORT_SHA} PLUS_POSTFIX=CE_${SHORT_SHA} MINI_POSTFIX=CE_${SHORT_SHA}"
           fi
@@ -197,17 +218,20 @@ jobs:
             }
 
       - name: Package .ptfx Effects for GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         run: |
           cd editor-fx-sdk/build
           zip -r ../../build/PolyendTracker_CE_Effects.zip Effects README.txt
 
-      - name: Publish GitHub Release on Version Tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         uses: softprops/action-gh-release@v2
         with:
-          name: Polyend Tracker CE ${{ github.ref_name }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag_name || 'v1.0.11' }}
+          name: ${{ inputs.release_title || format('Polyend Tracker CE {0}', startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag_name || 'v1.0.11') }}
+          prerelease: ${{ inputs.prerelease || false }}
           generate_release_notes: true
           files: |
             build/*.ptf
             build/PolyendTracker_CE_Effects.zip
+            patches/*.zip

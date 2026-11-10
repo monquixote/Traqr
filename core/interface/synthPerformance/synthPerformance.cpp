@@ -1,7 +1,9 @@
 #include "synthPerformance/synthPerformance.h"
 
 #include "Platform.h"
+#if GUI_HANDLE_SYNTH
 #include "PolySynth/Patch.h"
+#endif
 #include "ampLogarythmicValues.h"
 #include "config.h"
 #include "core/interface.h"
@@ -673,10 +675,12 @@ static void functScreenButton(uint8_t button)
     if (SP->selectedCol == button)
     {
         // Pressing the already-selected column button cycles through Synth 1 -> 2 -> 3
+#if GUI_HANDLE_SYNTH
         if (kSynthParts > 0)
         {
-            SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+            SP->selectSynthRow((SP->selectedSynth + 1) % (kSynthParts > 0 ? kSynthParts : 1));
         }
+#endif
     }
     else
     {
@@ -739,10 +743,12 @@ static void functInstr(uint8_t state)
 {
     if (state == buttonPress)
     {
+#if GUI_HANDLE_SYNTH
         if (kSynthParts > 0)
         {
-            SP->selectSynthRow((SP->selectedSynth + 1) % kSynthParts);
+            SP->selectSynthRow((SP->selectedSynth + 1) % (kSynthParts > 0 ? kSynthParts : 1));
         }
+#endif
     }
 }
 

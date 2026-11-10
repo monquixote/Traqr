@@ -51,8 +51,13 @@ class cSynthPerformance : public ModuleBase
     uint8_t selectedSynth = 0;
     uint8_t selectedCol = 0;
 
+#if GUI_HANDLE_SYNTH
     hControl rowControl[kSynthParts] = { -1, -1, -1 };
     strSynthPerfRowData rowData[kSynthParts];
+#else
+    hControl rowControl[1] = { -1 };
+    strSynthPerfRowData rowData[1];
+#endif
 
     hControl label[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
     hControl bgLabel = -1;
@@ -60,10 +65,17 @@ class cSynthPerformance : public ModuleBase
     char bottomLabelNames[8][24] = { { 0 } };
     char bottomLabelValues[8][16] = { { 0 } };
 
+#if GUI_HANDLE_SYNTH
     bool dirtyRow[kSynthParts] = { false, false, false };
     bool dirtyBottomLabels = false;
 
     RmsTracker rmsTrackers[kSynthParts][2];
+#else
+    bool dirtyRow[1] = { false };
+    bool dirtyBottomLabels = false;
+
+    RmsTracker rmsTrackers[1][2];
+#endif
     elapsedMillis uiRefreshTimer;
 };
 
