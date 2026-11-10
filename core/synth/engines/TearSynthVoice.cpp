@@ -99,19 +99,18 @@ static constexpr std::array<const char*, 2> kSubOctaveNames = {
     "-1 Octave", "-2 Octaves",
 };
 
-// PolyBLEP anti-aliasing residual for step discontinuity
-inline float polyBLEP(float t, float dt)
+// PolyBLEP anti-aliasing residual for step discontinuity (division-free using invDt)
+inline float polyBLEP(float t, float dt, float invDt)
 {
-    if (dt <= 0.0f) return 0.0f;
     if (t < dt)
     {
-        const float r = t / dt;
-        return r + r - r * r - 1.0f;
+        const float r = t * invDt;
+        return r * (2.0f - r) - 1.0f;
     }
     else if (t > 1.0f - dt)
     {
-        const float r = (t - 1.0f) / dt;
-        return r * r + r + r + 1.0f;
+        const float r = (t - 1.0f) * invDt;
+        return r * (r + 2.0f) + 1.0f;
     }
     return 0.0f;
 }
@@ -131,43 +130,52 @@ inline float fastTan(float x)
     return x * (1.0f + x2 * (0.33333333f + x2 * (0.13333333f + x2 * 0.05396825f)));
 }
 
-// Evaluate raw waveform from phase with PolyBLEP
-inline float evalShape(float phase, float shape, float dt)
+// Precomputed filter coefficients for block-rate evaluation
+struct LadderCoeffs
 {
-    // Always keep phase strictly in [0, 1)
-    phase -= std::floor(phase);
-    if (phase < 0.0f) phase += 1.0f;
+    float G;
+    float G2;
+    float G3;
+    float k;
+    float denomInv;
+};
 
-    // Sawtooth in [-1, +1]
-    float saw = 2.0f * phase - 1.0f;
-    saw -= polyBLEP(phase, dt);
+struct SVFCoeffs
+{
+    float g;
+    float gPlusDamping;
+    float h;
+};
+
+// Evaluate raw waveform from phase with PolyBLEP
+inline float evalShape(float phase, float shape, float dt, float invDt)
+{
+    if (phase >= 1.0f) phase -= static_cast<int>(phase);
+    else if (phase < 0.0f)
+    {
+        phase += 1.0f;
+        if (phase < 0.0f) phase -= static_cast<int>(phase) - 1.0f;
+    }
+
+    const float blep0 = polyBLEP(phase, dt, invDt);
+    const float saw = 2.0f * phase - 1.0f - blep0;
+
+    float pShift = phase + 0.5f;
+    if (pShift >= 1.0f) pShift -= 1.0f;
+    const float blepShift = polyBLEP(pShift, dt, invDt);
+    const float sq = ((phase < 0.5f) ? 1.0f : -1.0f) + blep0 - blepShift;
 
     if (shape <= 0.5f)
     {
         const float morph = shape * 2.0f;
-        float sq = (phase < 0.5f) ? 1.0f : -1.0f;
-        sq += polyBLEP(phase, dt);
-        float pShift = phase + 0.5f;
-        if (pShift >= 1.0f) pShift -= 1.0f;
-        sq -= polyBLEP(pShift, dt);
-        return saw * (1.0f - morph) + sq * morph;
+        return saw + morph * (sq - saw);
     }
     else
     {
         const float morph = (shape - 0.5f) * 2.0f;
-        float sq = (phase < 0.5f) ? 1.0f : -1.0f;
-        sq += polyBLEP(phase, dt);
-        float pShift = phase + 0.5f;
-        if (pShift >= 1.0f) pShift -= 1.0f;
-        sq -= polyBLEP(pShift, dt);
-
-        float saw2Phase = phase + 0.5f;
-        if (saw2Phase >= 1.0f) saw2Phase -= 1.0f;
-        float saw2 = 2.0f * saw2Phase - 1.0f;
-        saw2 -= polyBLEP(saw2Phase, dt);
+        const float saw2 = 2.0f * pShift - 1.0f - blepShift;
         const float dualSaw = 0.5f * (saw + saw2);
-
-        return sq * (1.0f - morph) + dualSaw * morph;
+        return sq + morph * (dualSaw - sq);
     }
 }
 
@@ -261,83 +269,32 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
 
         const float res = std::clamp(filterResonance, 0.0f, 0.98f);
         const float driveGain = 1.0f + driveAmount * 3.0f;
+        const float tapeCoeff = 0.45f + 0.35f * (1.0f - driveAmount);
+        const float transCoeff = 0.28f + 0.15f * driveAmount;
 
-        for (size_t i = 0; i < out.size(); ++i)
+        constexpr int kCtl = 16;
+        int done = 0;
+        const int totalSamples = static_cast<int>(out.size());
+
+        LadderCoeffs ladderCoeffs{};
+        SVFCoeffs svfCoeffs{};
+
+        while (done < totalSamples)
         {
-            // 1. Process Amp ADSR
-            switch (ampEnvStage)
+            if (ampEnvStage == EnvStage::kIdle)
             {
-                case EnvStage::kAttack:
-                    ampEnvLevel += ampAttackInc;
-                    if (ampEnvLevel >= 1.0f)
-                    {
-                        ampEnvLevel = 1.0f;
-                        ampEnvStage = EnvStage::kDecay;
-                    }
-                    break;
-                case EnvStage::kDecay:
-                    ampEnvLevel -= ampDecayDec;
-                    if (ampEnvLevel <= ampSustainLevel)
-                    {
-                        ampEnvLevel = ampSustainLevel;
-                        ampEnvStage = (ampSustainLevel <= 0.0001f) ? EnvStage::kIdle : EnvStage::kSustain;
-                    }
-                    break;
-                case EnvStage::kSustain:
-                    ampEnvLevel = ampSustainLevel;
-                    break;
-                case EnvStage::kRelease:
-                    ampEnvLevel -= ampReleaseDec;
-                    if (ampEnvLevel <= 0.0001f)
-                    {
-                        ampEnvLevel = 0.0f;
-                        ampEnvStage = EnvStage::kIdle;
-                    }
-                    break;
-                case EnvStage::kIdle:
-                    out[i] = 0.0f;
-                    continue;
+                std::fill(out.begin() + done, out.end(), 0.0f);
+                return;
             }
 
-            // 2. Process Filter ADSR
-            switch (filterEnvStage)
-            {
-                case EnvStage::kAttack:
-                    filterEnvLevel += filterAttackInc;
-                    if (filterEnvLevel >= 1.0f)
-                    {
-                        filterEnvLevel = 1.0f;
-                        filterEnvStage = EnvStage::kDecay;
-                    }
-                    break;
-                case EnvStage::kDecay:
-                    filterEnvLevel -= filterDecayDec;
-                    if (filterEnvLevel <= filterSustainLevel)
-                    {
-                        filterEnvLevel = filterSustainLevel;
-                        filterEnvStage = (filterSustainLevel <= 0.0001f) ? EnvStage::kIdle : EnvStage::kSustain;
-                    }
-                    break;
-                case EnvStage::kSustain:
-                    filterEnvLevel = filterSustainLevel;
-                    break;
-                case EnvStage::kRelease:
-                    filterEnvLevel -= filterReleaseDec;
-                    if (filterEnvLevel <= 0.0001f)
-                    {
-                        filterEnvLevel = 0.0f;
-                        filterEnvStage = EnvStage::kIdle;
-                    }
-                    break;
-                case EnvStage::kIdle:
-                    break;
-            }
+            const int chunk = std::min(kCtl, totalSamples - done);
 
-            // 3. Process Glide
+            // --- Control Rate Updates ---
+            // 1. Process Glide
             if (std::abs(currentGlideNote - targetGlideNote) > 0.001f)
             {
                 const float diff = targetGlideNote - currentGlideNote;
-                const float step = std::min(std::abs(diff), glideStep * 24.0f);
+                const float step = std::min(std::abs(diff), glideStep * 24.0f * chunk);
                 currentGlideNote += (diff > 0.0f) ? step : -step;
             }
             else
@@ -345,21 +302,21 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
                 currentGlideNote = targetGlideNote;
             }
 
-            // 4. Modulations
+            // 2. Modulations
             if (syncEnvVal > 0.0f)
             {
-                syncEnvVal -= syncEnvDec;
-                if (syncEnvVal < 0.0f) syncEnvVal = 0.0f;
+                syncEnvVal = std::max(0.0f, syncEnvVal - syncEnvDec * chunk);
             }
 
-            syncLfoPhase += syncLfoPhaseInc;
-            if (syncLfoPhase >= 1.0f) syncLfoPhase -= 1.0f;
+            syncLfoPhase += syncLfoPhaseInc * chunk;
+            if (syncLfoPhase >= 1.0f) syncLfoPhase -= static_cast<int>(syncLfoPhase);
             const float lfoVal = sdk::fastSine(syncLfoPhase);
 
             const float totalMasterNote = currentGlideNote + baseNoteOffset;
             const float fMaster = std::clamp(440.0f * sdk::fastPow2((totalMasterNote - 69.0f) * (1.0f / 12.0f)),
                                              10.0f, sr * 0.45f);
             const float dtMaster = fMaster * invSr;
+            const float invDtMaster = (dtMaster > 0.0f) ? (1.0f / dtMaster) : 0.0f;
 
             float syncSemitones = syncRatioSemitones + (syncEnvVal * syncEnvDepthSemi) + (lfoVal * syncLfoDepthSemi);
             syncSemitones = std::clamp(syncSemitones, -24.0f, 60.0f);
@@ -367,125 +324,243 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
 
             const float fSlave1 = std::clamp(fMaster * syncFreqMult, 10.0f, sr * 0.48f);
             const float dtSlave1 = fSlave1 * invSr;
+            const float invDtSlave1 = (dtSlave1 > 0.0f) ? (1.0f / dtSlave1) : 0.0f;
 
             const float fSlave2 = std::clamp(fSlave1 * 1.0081f, 10.0f, sr * 0.48f);
             const float dtSlave2 = fSlave2 * invSr;
+            const float invDtSlave2 = (dtSlave2 > 0.0f) ? (1.0f / dtSlave2) : 0.0f;
 
-            // 5. Advance Master Phase & detect wrap
-            masterPhase += dtMaster;
-            bool syncTriggered = false;
-            float tFrac = 0.0f;
-
-            if (masterPhase >= 1.0f)
-            {
-                masterPhase -= 1.0f;
-                syncTriggered = true;
-                tFrac = std::clamp(masterPhase / dtMaster, 0.0f, 0.999f);
-            }
-
-            // 6. Synthesize Slave Oscillator
-            float slaveOut = 0.0f;
-            if (syncMode == SyncMode::kSoftReverse)
-            {
-                if (syncTriggered) slaveDirection = -slaveDirection;
-                slavePhase1 += dtSlave1 * slaveDirection;
-                if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
-                else if (slavePhase1 < 0.0f) slavePhase1 += 1.0f;
-                slaveOut = evalShape(slavePhase1, slaveShape, dtSlave1);
-            }
-            else if (syncMode == SyncMode::kWindowedFormant)
-            {
-                if (syncTriggered) slavePhase1 = tFrac * dtSlave1;
-                else
-                {
-                    slavePhase1 += dtSlave1;
-                    if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
-                }
-                const float rawSlave = evalShape(slavePhase1, slaveShape, dtSlave1);
-                const float win = 0.5f * (1.0f - sdk::fastSine(masterPhase - 0.25f));
-                slaveOut = rawSlave * win;
-            }
-            else if (syncMode == SyncMode::kDualSuperTear)
-            {
-                if (syncTriggered)
-                {
-                    slavePhase1 = tFrac * dtSlave1;
-                    slavePhase2 = tFrac * dtSlave2;
-                }
-                else
-                {
-                    slavePhase1 += dtSlave1;
-                    if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
-                    slavePhase2 += dtSlave2;
-                    if (slavePhase2 >= 1.0f) slavePhase2 -= 1.0f;
-                }
-                const float s1 = evalShape(slavePhase1, slaveShape, dtSlave1);
-                const float s2 = evalShape(slavePhase2, slaveShape, dtSlave2);
-                slaveOut = 0.5f * (s1 + s2);
-            }
-            else if (syncMode == SyncMode::kRingShred)
-            {
-                if (syncTriggered) slavePhase1 = tFrac * dtSlave1;
-                else
-                {
-                    slavePhase1 += dtSlave1;
-                    if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
-                }
-                const float s = evalShape(slavePhase1, slaveShape, dtSlave1);
-                const float m = 2.0f * masterPhase - 1.0f - polyBLEP(masterPhase, dtMaster);
-                slaveOut = s * m * 1.5f;
-            }
-            else
-            {
-                // Mode 0: Hard Tear
-                if (syncTriggered)
-                {
-                    float phaseBefore = slavePhase1 + dtSlave1 * (1.0f - tFrac);
-                    phaseBefore -= std::floor(phaseBefore);
-                    const float valBefore = evalShape(phaseBefore, slaveShape, dtSlave1);
-                    slavePhase1 = tFrac * dtSlave1;
-                    if (slavePhase1 >= 1.0f) slavePhase1 -= std::floor(slavePhase1);
-                    const float valAfter = evalShape(slavePhase1, slaveShape, dtSlave1);
-                    const float delta = valAfter - valBefore;
-                    slaveOut = valAfter - delta * (1.0f - tFrac);
-                }
-                else
-                {
-                    slavePhase1 += dtSlave1;
-                    if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
-                    slaveOut = evalShape(slavePhase1, slaveShape, dtSlave1);
-                }
-            }
-
-            // 7. Sub-Oscillator
-            const float dtSub = dtMaster * subDiv;
-            subPhase += dtSub;
-            if (subPhase >= 1.0f) subPhase -= 1.0f;
-            const float subTri = 4.0f * std::abs(subPhase - 0.5f) - 1.0f;
-
-            const float oscMix = (slaveOut * mainOscGain) + (subTri * subLevel);
-
-            // 8. Zero-Delay Feedback Filter with unipolar envelope modulation
+            // 3. Filter Cutoff and Coefficients
             const float targetCutoff = std::clamp(
               filterCutoffHz * sdk::fastPow2(filterEnvAmount * filterEnvLevel * 4.0f),
               20.0f,
               sr * 0.45f);
 
-            float filtered = oscMix;
             if (filterType == FilterType::kLadder24)
             {
-                filtered = renderLadder(oscMix, targetCutoff, res, invSr);
+                const float omega = std::numbers::pi_v<float> * targetCutoff * invSr;
+                float g = fastTan(omega);
+                if (g > 2.0f) g = 2.0f;
+
+                const float G = g / (1.0f + g);
+                const float k = 3.82f * (0.35f * res + 0.65f * res * res);
+                const float G2 = G * G;
+                const float G3 = G2 * G;
+                const float G4 = G3 * G;
+                const float denomInv = 1.0f / (1.0f + k * G4);
+                ladderCoeffs = { G, G2, G3, k, denomInv };
             }
             else if (filterType == FilterType::kWarmSVF12)
             {
-                filtered = renderWarmSVF(oscMix, targetCutoff, res, invSr);
+                const float omega = std::numbers::pi_v<float> * targetCutoff * invSr;
+                float g = fastTan(omega);
+                if (g > 2.0f) g = 2.0f;
+
+                const float damping = 2.0f * (1.0f - res * 0.97f);
+                const float gPlusDamping = g + damping;
+                const float h = 1.0f / (1.0f + g * gPlusDamping);
+                svfCoeffs = { g, gPlusDamping, h };
             }
 
-            // 9. Saturation Stage & Drive
-            const float saturated = applySaturation(filtered, driveAmount, driveGain, saturationType);
+            // --- Audio Rate Loop for this Chunk ---
+            for (int i = 0; i < chunk; ++i)
+            {
+                // 1. Process Amp ADSR
+                switch (ampEnvStage)
+                {
+                    case EnvStage::kAttack:
+                        ampEnvLevel += ampAttackInc;
+                        if (ampEnvLevel >= 1.0f)
+                        {
+                            ampEnvLevel = 1.0f;
+                            ampEnvStage = EnvStage::kDecay;
+                        }
+                        break;
+                    case EnvStage::kDecay:
+                        ampEnvLevel -= ampDecayDec;
+                        if (ampEnvLevel <= ampSustainLevel)
+                        {
+                            ampEnvLevel = ampSustainLevel;
+                            ampEnvStage = (ampSustainLevel <= 0.0001f) ? EnvStage::kIdle : EnvStage::kSustain;
+                        }
+                        break;
+                    case EnvStage::kSustain:
+                        ampEnvLevel = ampSustainLevel;
+                        break;
+                    case EnvStage::kRelease:
+                        ampEnvLevel -= ampReleaseDec;
+                        if (ampEnvLevel <= 0.0001f)
+                        {
+                            ampEnvLevel = 0.0f;
+                            ampEnvStage = EnvStage::kIdle;
+                        }
+                        break;
+                    case EnvStage::kIdle:
+                        out[done + i] = 0.0f;
+                        continue;
+                }
 
-            // 10. Amp Envelope & Master Gain
-            out[i] = saturated * ampEnvLevel * volumeMult;
+                // 2. Process Filter ADSR
+                switch (filterEnvStage)
+                {
+                    case EnvStage::kAttack:
+                        filterEnvLevel += filterAttackInc;
+                        if (filterEnvLevel >= 1.0f)
+                        {
+                            filterEnvLevel = 1.0f;
+                            filterEnvStage = EnvStage::kDecay;
+                        }
+                        break;
+                    case EnvStage::kDecay:
+                        filterEnvLevel -= filterDecayDec;
+                        if (filterEnvLevel <= filterSustainLevel)
+                        {
+                            filterEnvLevel = filterSustainLevel;
+                            filterEnvStage = (filterSustainLevel <= 0.0001f) ? EnvStage::kIdle : EnvStage::kSustain;
+                        }
+                        break;
+                    case EnvStage::kSustain:
+                        filterEnvLevel = filterSustainLevel;
+                        break;
+                    case EnvStage::kRelease:
+                        filterEnvLevel -= filterReleaseDec;
+                        if (filterEnvLevel <= 0.0001f)
+                        {
+                            filterEnvLevel = 0.0f;
+                            filterEnvStage = EnvStage::kIdle;
+                        }
+                        break;
+                    case EnvStage::kIdle:
+                        break;
+                }
+
+                // 3. Advance Master Phase & detect wrap
+                masterPhase += dtMaster;
+                bool syncTriggered = false;
+                float tFrac = 0.0f;
+
+                if (masterPhase >= 1.0f)
+                {
+                    masterPhase -= 1.0f;
+                    syncTriggered = true;
+                    tFrac = std::clamp(masterPhase * invDtMaster, 0.0f, 0.999f);
+                }
+
+                // 4. Synthesize Slave Oscillator
+                float slaveOut = 0.0f;
+                if (syncMode == SyncMode::kSoftReverse)
+                {
+                    if (syncTriggered) slaveDirection = -slaveDirection;
+                    slavePhase1 += dtSlave1 * slaveDirection;
+                    if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
+                    else if (slavePhase1 < 0.0f) slavePhase1 += 1.0f;
+                    slaveOut = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                }
+                else if (syncMode == SyncMode::kWindowedFormant)
+                {
+                    if (syncTriggered) slavePhase1 = tFrac * dtSlave1;
+                    else
+                    {
+                        slavePhase1 += dtSlave1;
+                        if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
+                    }
+                    const float rawSlave = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                    const float win = 0.5f * (1.0f - sdk::fastSine(masterPhase - 0.25f));
+                    slaveOut = rawSlave * win;
+                }
+                else if (syncMode == SyncMode::kDualSuperTear)
+                {
+                    if (syncTriggered)
+                    {
+                        slavePhase1 = tFrac * dtSlave1;
+                        slavePhase2 = tFrac * dtSlave2;
+                    }
+                    else
+                    {
+                        slavePhase1 += dtSlave1;
+                        if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
+                        slavePhase2 += dtSlave2;
+                        if (slavePhase2 >= 1.0f) slavePhase2 -= 1.0f;
+                    }
+                    const float s1 = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                    const float s2 = evalShape(slavePhase2, slaveShape, dtSlave2, invDtSlave2);
+                    slaveOut = 0.5f * (s1 + s2);
+                }
+                else if (syncMode == SyncMode::kRingShred)
+                {
+                    if (syncTriggered) slavePhase1 = tFrac * dtSlave1;
+                    else
+                    {
+                        slavePhase1 += dtSlave1;
+                        if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
+                    }
+                    const float s = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                    const float m = 2.0f * masterPhase - 1.0f - polyBLEP(masterPhase, dtMaster, invDtMaster);
+                    slaveOut = s * m * 1.5f;
+                }
+                else
+                {
+                    // Mode 0: Hard Tear
+                    if (syncTriggered)
+                    {
+                        float phaseBefore = slavePhase1 + dtSlave1 * (1.0f - tFrac);
+                        if (phaseBefore >= 1.0f) phaseBefore -= static_cast<int>(phaseBefore);
+                        const float valBefore = evalShape(phaseBefore, slaveShape, dtSlave1, invDtSlave1);
+                        slavePhase1 = tFrac * dtSlave1;
+                        if (slavePhase1 >= 1.0f) slavePhase1 -= static_cast<int>(slavePhase1);
+                        const float valAfter = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                        const float delta = valAfter - valBefore;
+                        slaveOut = valAfter - delta * (1.0f - tFrac);
+                    }
+                    else
+                    {
+                        slavePhase1 += dtSlave1;
+                        if (slavePhase1 >= 1.0f) slavePhase1 -= 1.0f;
+                        slaveOut = evalShape(slavePhase1, slaveShape, dtSlave1, invDtSlave1);
+                    }
+                }
+
+                // 5. Sub-Oscillator
+                const float dtSub = dtMaster * subDiv;
+                subPhase += dtSub;
+                if (subPhase >= 1.0f) subPhase -= 1.0f;
+                const float subTri = 4.0f * std::abs(subPhase - 0.5f) - 1.0f;
+
+                const float oscMix = (slaveOut * mainOscGain) + (subTri * subLevel);
+
+                // 6. Zero-Delay Feedback Filter
+                float filtered = oscMix;
+                if (filterType == FilterType::kLadder24)
+                {
+                    filtered = processLadder(oscMix, ladderCoeffs);
+                }
+                else if (filterType == FilterType::kWarmSVF12)
+                {
+                    filtered = processWarmSVF(oscMix, svfCoeffs);
+                }
+
+                // 7. Saturation Stage & Drive
+                const float saturated = applySaturation(filtered, driveAmount, driveGain, saturationType, tapeCoeff, transCoeff);
+
+                // 8. Amp Envelope & Master Gain
+                out[done + i] = saturated * ampEnvLevel * volumeMult;
+            }
+
+            // State bounding per chunk
+            if (filterType == FilterType::kLadder24)
+            {
+                for (int k = 0; k < 4; ++k)
+                {
+                    ladderS[k] = std::clamp(ladderS[k], -4.0f, 4.0f);
+                }
+            }
+            else if (filterType == FilterType::kWarmSVF12)
+            {
+                svfIc1eq = std::clamp(svfIc1eq, -3.0f, 3.0f);
+                svfIc2eq = std::clamp(svfIc2eq, -3.0f, 3.0f);
+            }
+
+            done += chunk;
         }
     }
 
@@ -1014,72 +1089,46 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
     };
 
     // Filter render helpers
-    float renderLadder(float in, float cutoffHz, float res, float invSr)
+    inline float processLadder(float in, const LadderCoeffs& c)
     {
-        const float omega = std::numbers::pi_v<float> * cutoffHz * invSr;
-        float g = fastTan(omega);
-        if (g > 2.0f) g = 2.0f;
-
-        const float G = g / (1.0f + g);
-        const float k = 3.82f * (0.35f * res + 0.65f * res * res);
-
-        const float G2 = G * G;
-        const float G3 = G2 * G;
-        const float G4 = G3 * G;
-
-        const float S_equiv = G3 * ladderS[0] + G2 * ladderS[1] + G * ladderS[2] + ladderS[3];
-        float u = (in - k * S_equiv) / (1.0f + k * G4);
+        const float S_equiv = c.G3 * ladderS[0] + c.G2 * ladderS[1] + c.G * ladderS[2] + ladderS[3];
+        float u = (in - c.k * S_equiv) * c.denomInv;
         u = std::clamp(u, -3.0f, 3.0f);
 
-        const float v0 = (u - ladderS[0]) * G;
+        const float v0 = (u - ladderS[0]) * c.G;
         const float y0 = v0 + ladderS[0];
         ladderS[0] = y0 + v0;
 
-        const float v1 = (y0 - ladderS[1]) * G;
+        const float v1 = (y0 - ladderS[1]) * c.G;
         const float y1 = v1 + ladderS[1];
         ladderS[1] = y1 + v1;
 
-        const float v2 = (y1 - ladderS[2]) * G;
+        const float v2 = (y1 - ladderS[2]) * c.G;
         const float y2 = v2 + ladderS[2];
         ladderS[2] = y2 + v2;
 
-        const float v3 = (y2 - ladderS[3]) * G;
+        const float v3 = (y2 - ladderS[3]) * c.G;
         const float y3 = v3 + ladderS[3];
         ladderS[3] = y3 + v3;
-
-        for (int i = 0; i < 4; ++i)
-        {
-            ladderS[i] = std::clamp(ladderS[i], -4.0f, 4.0f);
-        }
 
         return y3;
     }
 
-    float renderWarmSVF(float in, float cutoffHz, float res, float invSr)
+    inline float processWarmSVF(float in, const SVFCoeffs& c)
     {
-        const float omega = std::numbers::pi_v<float> * cutoffHz * invSr;
-        float g = fastTan(omega);
-        if (g > 2.0f) g = 2.0f;
-
-        const float damping = 2.0f * (1.0f - res * 0.97f);
-        const float h = 1.0f / (1.0f + g * (g + damping));
-
-        const float hp = (in - svfIc1eq * (g + damping) - svfIc2eq) * h;
-        const float v1 = g * hp;
+        const float hp = (in - svfIc1eq * c.gPlusDamping - svfIc2eq) * c.h;
+        const float v1 = c.g * hp;
         const float bp = v1 + svfIc1eq;
         svfIc1eq = bp + v1;
 
-        const float v2 = g * bp;
+        const float v2 = c.g * bp;
         const float lp = v2 + svfIc2eq;
         svfIc2eq = lp + v2;
-
-        svfIc1eq = std::clamp(svfIc1eq, -3.0f, 3.0f);
-        svfIc2eq = std::clamp(svfIc2eq, -3.0f, 3.0f);
 
         return lp;
     }
 
-    float applySaturation(float in, float drive, float gain, SaturationType type)
+    inline float applySaturation(float in, float drive, float gain, SaturationType type, float tapeCoeff, float transCoeff)
     {
         if (drive <= 0.001f) return in;
 
@@ -1099,13 +1148,13 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
             {
                 float sat = x - (x * x * x) * 0.16f;
                 sat = fastTanh(sat);
-                tapeHist += (sat - tapeHist) * (0.45f + 0.35f * (1.0f - drive));
+                tapeHist += (sat - tapeHist) * tapeCoeff;
                 return tapeHist;
             }
             case SaturationType::kTransformer:
             {
                 const float diff = x - transMag;
-                transMag += diff * (0.28f + 0.15f * drive);
+                transMag += diff * transCoeff;
                 const float hyst = 0.82f * x + 0.18f * transMag;
                 return fastTanh(hyst);
             }
