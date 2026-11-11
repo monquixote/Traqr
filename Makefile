@@ -25,7 +25,7 @@ MINI_POSTFIX     ?= $(EDITION_NAME)_$(MINI_VER_MAJOR).$(MINI_VER_MINOR).$(MINI_V
 
 .PHONY: all original plus mini ptfx clean version bump-patch bump-minor
 
-all: original plus mini
+all: mini plus
 
 original:
 	@echo "=================================================================="
