@@ -1,21 +1,57 @@
-# Polyend Tracker Community Edition (CE)
+# Traqr (Polyend Tracker Community Edition)
 
-Welcome to the **Polyend Tracker Community Edition** repository!
+Welcome to **Traqr** — an enhanced, community-driven edition of the firmware for the **Polyend Tracker**, **Tracker Mini**, and **Tracker+**.
 
-Built directly from the original Polyend firmware source code, Tracker CE opens up the Polyend Tracker platform to musicians, sound designers, and developers around the world. Whether you are here to flash the latest Community Edition firmware, want to build your own idea on the Tracker, design custom themes and fonts, write Sample Editor plugins, or build new synthesizer engines, we are excited to have you here.
+Built directly from the original Polyend Tracker firmware source code, **Traqr** adds custom polyphonic synthesizer engines, a dedicated real-time Synth Performance dashboard, heavily optimized DSP with control-rate decimation, and browser-based WebAssembly synth interfaces, while maintaining complete project compatibility and respecting existing muscle memory.
 
-### Download Firmware:
+---
 
-##### Stable Releases: 
-* See [Releases](https://github.com/polyend/tracker-ce/releases) for the latest official downloads for all devices.
-* See [`CHANGELOG.md`](CHANGELOG.md) for the full list of changes in the official tagged releases.
+### Download Firmware & Releases
 
-##### Latest Beta Builds: 
-Automatically built from the latest changes in `main` (for all 3 devices):
+* **Latest Releases & Assets**: [GitHub Releases](https://github.com/monquixote/Traqr/releases)
+* **Latest Binary (`.ptf`) Downloads**:
+  * [Tracker Mini Firmware (`TrackerMini_NL_*.ptf`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [Tracker+ Firmware (`TrackerPlus_NL_*.ptf`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [Original Tracker Firmware (`PolyendTracker_NL_*.ptf`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [TEAR Patches & Presets (`TEAR_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [JUNO Patches & Presets (`JUNO_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [Sample Editor Effects (`PolyendTracker_CE_Effects.zip`)](https://github.com/monquixote/Traqr/releases/latest)
+* **Interactive Web Synth Hub**: [Traqr Web DSP Hub](https://monquixote.github.io/Traqr/)
+  * [JUNO Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/juno/)
+  * [TEAR Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/tear/)
 
-* Download the latest [Beta Firmware builds (`.zip`)](https://nightly.link/polyend/tracker-ce/workflows/build.yml/main/polyend-tracker-ce-firmware.zip)
-* Download the latest [Sample Editor Effects (`.zip`)](https://nightly.link/polyend/tracker-ce/workflows/build.yml/main/polyend-tracker-ce-effects.zip)
-* See [`UPCOMING.md`](UPCOMING.md) to find out what's new in these Beta Builds.
+---
+
+## What's New in Traqr
+
+### 1. `JUNO` Synth Engine
+A faithful virtual-analog emulation of the iconic Roland Juno-60/106 DCO synthesizer voice:
+* **True DCO Architecture**: Simultaneous Sawtooth, Pulse Width Modulation (manual, LFO, and dedicated envelope modulation), Sub-oscillator (-1 / -2 octaves), and Noise generator.
+* **Analog HPF with Bass Boost**: Non-resonant high-pass filter with the characteristic +3.5dB low-shelf bass boost circuit at position 0.
+* **4-Pole OTA IR3109 Resonant Low-Pass Filter**: Zero-delay feedback ladder topology modeled after the classic Roland IR3109 filter with self-oscillation.
+* **Dual-BBD Stereo Chorus**: Authentic bucket-brigade device (BBD) stereo chorus emulation featuring Mode I, Mode II, and combined Mode I+II.
+* **Analog Voice Tolerances & Thermal Wander**: Subtle per-voice component tolerances and leaky random-walk thermal wander modeling vintage hardware drift.
+* **Factory Preset Library**: Includes classic Juno factory patches (Strings, Brass, Hoover, Reso Bass, Plucks, Chorus Poly, and more).
+
+### 2. `TEAR` Synth Engine
+An aggressive, cutting oscillator sync synthesizer:
+* **5 Unique Sync Modes**: Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, and Ring Shred.
+* **Morphable Slave Oscillator**: Continuous blending from Sawtooth through Pulse into Dual-Saw.
+* **Dedicated Modulators**: Dedicated Sync Decay Envelope and Sync LFO for expressive tearing sweeps.
+* **Zero-Delay Feedback Filters & 5 Saturation Models**: 24dB Ladder and 12dB Warm SVF filters paired with Modern Soft, Classic Hard, Tube/Valve, Tape, and Transformer saturation circuits.
+* **Factory Preset Library**: Acid screamer leads, aggressive reese basses, tear sync growls, crystalline plucks, and ambient drones.
+
+### 3. Dedicated Synth Performance Screen
+A live performance dashboard designed for hands-on control over your synth tracks:
+* **Macro Performance Controls**: Real-time visualization and tweaking of Macros 1–6 (with automatic unipolar and bipolar ranges and custom names from patch metadata).
+* **Live Send & Mixer Controls**: Dedicated sliders and readouts for Delay Send dB, Reverb Send dB, Track Volume, and Panning.
+* **Polyphony & RMS VU Meters**: Active voice counter and stereo RMS level meters per synth part.
+* **Full Pattern FX Live Tracking**: Parameter automation in pattern FX slots (`FX_TYPE_SEND_CC_A`–`F`, Delay, Reverb, Volume) immediately animates the performance bars, value text, and bottom button labels in real time.
+
+### 4. Advanced DSP Performance Optimizations
+* **Control-Rate Decimation (`kCtl = 16`, ~2.75 kHz)**: Reduces transcendental math calls (`fastPow2`, `fastTan`) by over **93%**, completely eliminating CPU overflows and audio dropouts during heavy polyphonic playback.
+* **Division-Free PolyBLEP**: Precomputed inverse delta phases eliminate hardware floating-point division from anti-aliasing calculations in the inner audio loop.
+* **Shared BLEP Residuals & Bitmasked Buffers**: Optimizes waveform generation and replaces modulo operations with single-cycle bitwise masking in delay lines.
 
 ---
 

@@ -1,8 +1,20 @@
-# Polyend Tracker Community Edition (CE) - Documentation & Wiki
+# Traqr (Polyend Tracker Community Edition) - Documentation & Wiki
 
-Welcome to the official documentation for **Polyend Tracker Community Edition (CE)** (`1.0.0`), covering the **Original Polyend Tracker** (`MK66`), **Polyend Tracker+** and **Polyend Tracker Mini** (`IMX`).
+Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), covering the **Original Polyend Tracker** (`MK66`), **Polyend Tracker+** and **Polyend Tracker Mini** (`IMX`).
 
+* **[Interactive Web DSP Hub](https://monquixote.github.io/Traqr/)** - Real-time WASM web interfaces for JUNO and TEAR synth engines.
 * **[Release Changelog (`CHANGELOG.md`)](../CHANGELOG.md)** - Full list of new features, improvements, and fixes in each release.
+* **[Latest Releases on GitHub](https://github.com/monquixote/Traqr/releases)** - Download `.ptf` firmware builds and preset archives.
+
+---
+
+## Synth Engines & Performance
+
+* **`JUNO` Vintage Analog Synthesizer**: Virtual analog DCO architecture, non-resonant HPF with +3.5dB bass boost, 4-pole OTA IR3109 zero-delay feedback resonant LPF, dual-BBD stereo chorus, and analog component drift modeling.
+  * [Live Web Interface](https://monquixote.github.io/Traqr/synths/juno/)
+* **`TEAR` Sync Synthesizer**: 5 sync modes (Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, Ring Shred), morphable slave shape, dedicated sync envelope/LFO, and 5 saturation circuits.
+  * [Live Web Interface](https://monquixote.github.io/Traqr/synths/tear/)
+* **Synth Performance Dashboard**: Dedicated live tracking screen for Macros 1–6, Delay/Reverb sends, Volume, Pan, polyphony counts, and real-time pattern FX automation tracking.
 
 ---
 
@@ -34,7 +46,8 @@ Welcome to the official documentation for **Polyend Tracker Community Edition (C
 
 ## Polyend Tracker Open-Source Ecosystem
 
-* **[`polyend/tracker-ce`](https://github.com/polyend/tracker-ce)** - Polyend Tracker Community Edition firmware, Open Synth SDK, and `.ptfx` Sample Editor Effects SDK.
+* **[`monquixote/Traqr`](https://github.com/monquixote/Traqr)** - Traqr (Polyend Tracker Community Edition) firmware, Synth Engines, and .ptfx SDK.
+* **[`polyend/tracker-ce`](https://github.com/polyend/tracker-ce)** - Upstream Polyend Tracker Community Edition repository.
 * **[`polyend/tracker-theme-editor`](https://github.com/polyend/tracker-theme-editor)** ([Live Web App](https://polyend.github.io/tracker-theme-editor/)) - Visual browser-based Theme Editor (`/Themes/*.json`) and Font Editor (TTF/OTF to `/Fonts/*.ptfont`).
 * **[`polyend/tracker-lib`](https://github.com/polyend/tracker-lib)** - Open-source library for reading, writing, and inspecting Polyend Tracker project (`.mt`), pattern (`.mtp`), and instrument (`.pti`) files.
 * **[Polyend Backstage Forum](https://backstage.polyend.com/)** - Community discussions, custom themes, fonts, and plugins.
