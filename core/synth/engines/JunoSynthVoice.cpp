@@ -70,18 +70,18 @@ constexpr int kChorusBuf = 2048;
 // Static buffer placed in external SDRAM (takes 0 bytes of precious SRAM_DTC heap)
 __NOINIT(EXTERNAL_RAM) static float s_junoChorusBuf[kChorusBuf];
 
-inline float polyBLEP(float t, float dt)
+// Division-free PolyBLEP using precomputed invDt (1.0f / dt)
+inline float polyBLEP(float t, float dt, float invDt)
 {
-    if (dt <= 0.0f) return 0.0f;
     if (t < dt)
     {
-        const float r = t / dt;
-        return r + r - r * r - 1.0f;
+        const float r = t * invDt;
+        return r * (2.0f - r) - 1.0f;
     }
     else if (t > 1.0f - dt)
     {
-        const float r = (t - 1.0f) / dt;
-        return r * r + r + r + 1.0f;
+        const float r = (t - 1.0f) * invDt;
+        return r * (r + 2.0f) + 1.0f;
     }
     return 0.0f;
 }
@@ -93,15 +93,26 @@ inline float fastTanh(float x)
     return xc * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
+// Fast rational approximation of tan(x) for x in [0, pi * 0.48]
+inline float fastTan(float x)
+{
+    const float x2 = x * x;
+    return x * (1.0f + x2 * (0.33333333f + x2 * (0.13333333f + x2 * 0.05396825f)));
+}
+
 inline float wrap01(float p)
 {
-    p -= std::floor(p);
+    if (p >= 1.0f) p -= 1.0f;
+    else if (p < 0.0f) p += 1.0f;
     return p;
 }
 
 inline float tri(float phase)
 {
-    return 4.0f * std::fabs(phase - std::floor(phase) - 0.5f) - 1.0f;
+    float p = phase;
+    if (p >= 1.0f) p -= 1.0f;
+    else if (p < 0.0f) p += 1.0f;
+    return 4.0f * std::fabs(p - 0.5f) - 1.0f;
 }
 
 inline float timeCoef(float seconds, float ratio, float sr)
@@ -236,7 +247,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
 
         // HPF: 0 = Bass Boost (+3.5dB low shelf @ 70Hz), then 20Hz..1.2kHz
         const float boostMix = std::clamp(1.0f - hpfCutoff / 0.08f, 0.0f, 1.0f);
-        const float shelfGainExtra = (std::pow(10.0f, 3.5f / 20.0f) - 1.0f) * boostMix;
+        const float shelfGainExtra = 0.496236f * boostMix; // std::pow(10.0f, 3.5f / 20.0f) - 1.0f
         const float shelfA = 1.0f - std::exp(-2.0f * kPi * 70.0f * invSr);
         const float hpHz = 20.0f * std::pow(60.0f, hpfCutoff);
         const float hpA = 1.0f - std::exp(-2.0f * kPi * hpHz * invSr);
@@ -248,9 +259,26 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         static constexpr float kTolEnvTime[8] = { 0.035f, -0.042f, 0.021f, -0.031f, 0.048f, -0.025f, 0.018f, -0.039f };
         static constexpr float kTolPw[8]      = { -0.012f, 0.015f, -0.008f, 0.019f, -0.014f, 0.011f, -0.006f, 0.016f };
 
+        // Precompute ADSR coefficients once per buffer (tf is constant for this voice/buffer)
+        const float tf = 1.0f + voiceDrift * kTolEnvTime[vIdx] * 0.08f;
+        const float aA = timeCoef(aenvAttackSec * tf, 1.466f, sr);
+        const float aD = timeCoef(aenvDecaySec * tf, 4.6f, sr);
+        const float aR = timeCoef(aenvReleaseSec * tf, 4.6f, sr);
+        const float fA = timeCoef(fenvAttackSec * tf, 1.466f, sr);
+        const float fD = timeCoef(fenvDecaySec * tf, 4.6f, sr);
+        const float fR = timeCoef(fenvReleaseSec * tf, 4.6f, sr);
+        const float velGain = 0.35f + 0.65f * currentVelocity;
+
         int done = 0;
         while (done < n)
         {
+            if (!active)
+            {
+                std::fill(outMono.begin() + done, outMono.end(), 0.0f);
+                std::fill(outRight.begin() + done, outRight.end(), 0.0f);
+                return;
+            }
+
             const int chunk = std::min(kCtl, n - done);
 
             // Control-rate updates
@@ -281,7 +309,9 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
             const float freq = std::clamp(440.0f * sdk::fastPow2((semis - 69.0f) * (1.0f / 12.0f)),
                                           8.0f, sr * 0.45f);
             const float dt = freq * invSr;
+            const float invDt = (dt > 0.0f) ? (1.0f / dt) : 0.0f;
             const float subDt = dt * subDiv;
+            const float invSubDt = (subDt > 0.0f) ? (1.0f / subDt) : 0.0f;
 
             // Pulse width
             float pwMod = 0.0f;
@@ -296,20 +326,11 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
             oct += filterKeytrack * (static_cast<float>(currentNote) - 60.0f) * (1.0f / 12.0f);
             oct += voiceDrift * (kTolCutoff[vIdx] * 0.08f + driftCutoff * 0.05f);
             cutHz = std::clamp(cutHz * sdk::fastPow2(oct), 20.0f, sr * 0.45f);
-            const float g = std::tan(kPi * cutHz * invSr);
+            const float g = fastTan(kPi * cutHz * invSr);
             const float G = g / (1.0f + g);
             const float oneMinusG = 1.0f - G;
             const float G4 = G * G * G * G;
-
-            // ADSR coefficients
-            const float tf = 1.0f + voiceDrift * kTolEnvTime[vIdx] * 0.08f;
-            const float aA = timeCoef(aenvAttackSec * tf, 1.466f, sr);
-            const float aD = timeCoef(aenvDecaySec * tf, 4.6f, sr);
-            const float aR = timeCoef(aenvReleaseSec * tf, 4.6f, sr);
-            const float fA = timeCoef(fenvAttackSec * tf, 1.466f, sr);
-            const float fD = timeCoef(fenvDecaySec * tf, 4.6f, sr);
-            const float fR = timeCoef(fenvReleaseSec * tf, 4.6f, sr);
-            const float velGain = 0.35f + 0.65f * currentVelocity;
+            const float denomInv = 1.0f / (1.0f + ladderK * G4);
 
             // Audio-rate loop
             for (int i = 0; i < chunk; ++i)
@@ -325,25 +346,37 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
                 if (subPhase >= 1.0f) subPhase -= 1.0f;
 
                 float osc = 0.0f;
+                float blepPhase = 0.0f;
+                bool blepPhaseComputed = false;
+
                 if (sawLevel > 0.0f)
                 {
-                    float saw = 2.0f * phase - 1.0f;
-                    saw -= polyBLEP(phase, dt);
+                    blepPhase = polyBLEP(phase, dt, invDt);
+                    blepPhaseComputed = true;
+                    float saw = 2.0f * phase - 1.0f - blepPhase;
                     osc += saw * sawLevel * 0.5f;
                 }
                 if (pulseLevel > 0.0f)
                 {
+                    if (!blepPhaseComputed)
+                    {
+                        blepPhase = polyBLEP(phase, dt, invDt);
+                    }
+                    float pShift = phase - pw + 1.0f;
+                    if (pShift >= 1.0f) pShift -= 1.0f;
                     float p = (phase < pw) ? 1.0f : -1.0f;
-                    p += polyBLEP(phase, dt);
-                    p -= polyBLEP(wrap01(phase - pw + 1.0f), dt);
+                    p += blepPhase;
+                    p -= polyBLEP(pShift, dt, invDt);
                     p -= (2.0f * pw - 1.0f);
                     osc += p * pulseLevel * 0.5f;
                 }
                 if (subLevel > 0.0f)
                 {
                     float sq = (subPhase < 0.5f) ? 1.0f : -1.0f;
-                    sq += polyBLEP(subPhase, subDt);
-                    sq -= polyBLEP(wrap01(subPhase + 0.5f), subDt);
+                    float subShift = subPhase + 0.5f;
+                    if (subShift >= 1.0f) subShift -= 1.0f;
+                    sq += polyBLEP(subPhase, subDt, invSubDt);
+                    sq -= polyBLEP(subShift, subDt, invSubDt);
                     osc += sq * subLevel * 0.5f;
                 }
                 if (noiseLevel > 0.0f)
@@ -361,7 +394,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
 
                 // 4-pole OTA IR3109 ladder
                 const float S = oneMinusG * (G * G * G * ladderS[0] + G * G * ladderS[1] + G * ladderS[2] + ladderS[3]);
-                float u = (x * inGain - ladderK * S) / (1.0f + ladderK * G4);
+                float u = (x * inGain - ladderK * S) * denomInv;
                 u = fastTanh(u);
                 float inSample = u;
                 for (int k = 0; k < 4; ++k)
@@ -451,8 +484,8 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
                     while (rp >= kChorusBuf) rp -= kChorusBuf;
                     const int i0 = static_cast<int>(rp);
                     const float fr = rp - i0;
-                    const int i1 = (i0 + 1) % kChorusBuf;
-                    return s_junoChorusBuf[i0] * (1.0f - fr) + s_junoChorusBuf[i1] * fr;
+                    const int i1 = (i0 + 1) & (kChorusBuf - 1);
+                    return s_junoChorusBuf[i0] + fr * (s_junoChorusBuf[i1] - s_junoChorusBuf[i0]);
                 };
 
                 const float wetL = readDelay(dL);
@@ -463,7 +496,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
                 chorusLpR += chLpA * (wetR - chorusLpR);
                 chorusLpR2 += chLpA * (chorusLpR - chorusLpR2);
 
-                chorusWrite = (chorusWrite + 1) % kChorusBuf;
+                chorusWrite = (chorusWrite + 1) & (kChorusBuf - 1);
 
                 const float l = mono * dryAmt + chorusLpL2 * wetAmt;
                 const float r = mono * dryAmt + chorusLpR2 * wetAmt;
