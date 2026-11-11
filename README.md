@@ -41,10 +41,11 @@ An aggressive, cutting oscillator sync synthesizer:
 * **Zero-Delay Feedback Filters & 5 Saturation Models**: 24dB Ladder and 12dB Warm SVF filters paired with Modern Soft, Classic Hard, Tube/Valve, Tape, and Transformer saturation circuits.
 * **Factory Preset Library**: Acid screamer leads, aggressive reese basses, tear sync growls, crystalline plucks, and ambient drones.
 
-### 3. Dedicated Synth Performance Screen
-A live performance dashboard designed for hands-on control over your synth tracks:
+### 3. Dedicated Synth Performance Screen (Optimised for Circuit Tracks)
+A live performance dashboard designed for hands-on control over your synth tracks, with an 8-parameter layout specifically optimised for the **Novation Circuit Tracks**:
+* **Optimised for Circuit Tracks Workflow**: Perfectly mirrors the 8-macro layout of the Circuit Tracks (Macros 1–6 + Delay Send + Reverb Send), giving you an intuitive, tactile live performance surface.
 * **Macro Performance Controls**: Real-time visualization and tweaking of Macros 1–6 (with automatic unipolar and bipolar ranges and custom names from patch metadata).
-* **Live Send & Mixer Controls**: Dedicated sliders and readouts for Delay Send dB, Reverb Send dB, Track Volume, and Panning.
+* **Live Send & Mixer Controls**: Dedicated sliders and readouts for Delay Send dB and Reverb Send dB, alongside Track Volume and Panning.
 * **Polyphony & RMS VU Meters**: Active voice counter and stereo RMS level meters per synth part.
 * **Full Pattern FX Live Tracking**: Parameter automation in pattern FX slots (`FX_TYPE_SEND_CC_A`–`F`, Delay, Reverb, Volume) immediately animates the performance bars, value text, and bottom button labels in real time.
 
