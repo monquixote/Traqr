@@ -54,6 +54,11 @@ A live performance dashboard designed for hands-on control over your synth track
 * **Division-Free PolyBLEP**: Precomputed inverse delta phases eliminate hardware floating-point division from anti-aliasing calculations in the inner audio loop.
 * **Shared BLEP Residuals & Bitmasked Buffers**: Optimizes waveform generation and replaces modulo operations with single-cycle bitwise masking in delay lines.
 
+### 5. Enhanced Wavetable Engine (Smooth Morphing & Seam Bug Fix)
+* **Smooth Continuous Z-Axis Frame Interpolation**: Continuous fixed-point crossfading between wavetable frames during modulation (from Envelopes, LFOs, and Step FX). Eliminates harsh frame stepping and zipper noise, transforming wavetable sweeps into liquid, analog-smooth morphs.
+* **Single-Cycle Seam Bug Fix**: Corrected a cyclic wrapping bug where the final sample of a single-cycle wave interpolated into adjacent memory rather than looping back to sample 0. Eliminates the harsh boundary discontinuity spike at the fundamental pitch period.
+* **100% Backwards & Forwards Compatible**: Retains the exact 372-byte `strInstrument` binary memory layout; fully compatible with all official Polyend project files.
+
 ---
 
 ## Notice: Official Support, Warranty & Hardware Disclaimer
