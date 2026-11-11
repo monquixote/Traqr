@@ -555,9 +555,9 @@ inline void playerEngine::handleUpdateRefreshWtPos()
             currentEnvelopeModification[envWtPos] = 0;
         }
 
-        int32_t localWtPosisionMod =
+        float localWtPosisionModFloat =
           currentEnvelopeModification[envWtPos] *
-          mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber;
+          (float)mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber;
         uint32_t localWtPos = 0;
 
         if (trackControlParameter[(int)controlType::performanceMode]
@@ -577,24 +577,23 @@ inline void playerEngine::handleUpdateRefreshWtPos()
             localWtPos = mtProject.instrument[currentInstrument_idx].wavetableCurrentWindow;
         }
 
-        if ((int)(localWtPos + localWtPosisionMod) < 0)
+        float localWtPosFloat = (float)localWtPos + localWtPosisionModFloat;
+        const float maxWin = (float)(mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber > 0
+                                     ? mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber - 1
+                                     : 0);
+        if (localWtPosFloat < 0.0f)
         {
-            localWtPos = 0;
+            localWtPosFloat = 0.0f;
         }
-        else if ((int)(localWtPos + localWtPosisionMod) >
-                 (int)(mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber -
-                       1))
+        else if (localWtPosFloat > maxWin)
         {
-            localWtPos =
-              mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber - 1;
+            localWtPosFloat = maxWin;
         }
-        else
-            localWtPos += localWtPosisionMod;
 
         for (int channel = 0; channel < (int)playMemPtr.size(); channel++)
         {
-            playMemPtr[channel]->setWavetableWindow(localWtPos);
-            playMemPtr[channel]->setForcedWavetableWindow(localWtPos);
+            playMemPtr[channel]->setWavetableWindowFloat(localWtPosFloat);
+            playMemPtr[channel]->setForcedWavetableWindowFloat(localWtPosFloat);
         }
     }
 }

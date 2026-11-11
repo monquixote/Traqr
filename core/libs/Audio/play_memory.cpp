@@ -310,9 +310,17 @@ uint8_t AudioPlayMemory::playForPrev(int16_t* addr, uint32_t len, uint8_t type)
     {
         wavetableWindowSize = SERUM_WAVETABLE_WINDOW_LEN;
         if (wavetableWindowForceFlag)
+        {
             currentWindow = forcedWavetableWindow;
+            currentWindowFloat = forcedWavetableWindowFloat;
+            targetWindowFloat = forcedWavetableWindowFloat;
+        }
         else
+        {
             currentWindow = 0;
+            currentWindowFloat = 0.0f;
+            targetWindowFloat = 0.0f;
+        }
         constrainsInSamples.endPoint = wavetableWindowSize * 256; // nie ma znaczenia
         constrainsInSamples.loopPoint1 = 0; // currentWindow*wavetableWindowSize;
         constrainsInSamples.loopPoint2 =
@@ -429,9 +437,17 @@ uint8_t AudioPlayMemory::playForPrev(int16_t* addr, uint32_t len, uint8_t n, uin
     {
         wavetableWindowSize = SERUM_WAVETABLE_WINDOW_LEN;
         if (wavetableWindowForceFlag)
+        {
             currentWindow = forcedWavetableWindow;
+            currentWindowFloat = forcedWavetableWindowFloat;
+            targetWindowFloat = forcedWavetableWindowFloat;
+        }
         else
+        {
             currentWindow = 0;
+            currentWindowFloat = 0.0f;
+            targetWindowFloat = 0.0f;
+        }
         constrainsInSamples.endPoint = wavetableWindowSize * 256; // nie ma znaczenia
         constrainsInSamples.loopPoint1 = 0; // currentWindow*wavetableWindowSize;
         constrainsInSamples.loopPoint2 =
@@ -476,17 +492,27 @@ void AudioPlayMemory::stop(void)
     //	__enable_irq();
 }
 
-void AudioPlayMemory::setWavetableWindow(int16_t value)
+void AudioPlayMemory::setWavetableWindowFloat(float value)
 {
     if (mtProject.instrument[currentInstrIdx].playMode != playModeWavetable)
         return;
 
-    if ((uint32_t)value >= mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber)
-        currentWindow = mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber - 1;
-    else if (value < 0)
-        currentWindow = 0;
+    const float maxWin = (float)(mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber > 0
+                                 ? mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber - 1
+                                 : 0);
+    if (value >= maxWin)
+        targetWindowFloat = maxWin;
+    else if (value < 0.0f)
+        targetWindowFloat = 0.0f;
     else
-        currentWindow = value;
+        targetWindowFloat = value;
+
+    currentWindow = (uint32_t)targetWindowFloat;
+}
+
+void AudioPlayMemory::setWavetableWindow(int16_t value)
+{
+    setWavetableWindowFloat((float)value);
 }
 
 void AudioPlayMemory::setLP1(
@@ -987,13 +1013,24 @@ void AudioPlayMemory::clearWavetableWindowForceFlag()
 {
     wavetableWindowForceFlag = 0;
 }
+void AudioPlayMemory::setForcedWavetableWindowFloat(float val)
+{
+    const float maxWin = (float)(mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber > 0
+                                 ? mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber - 1
+                                 : 0);
+    if (val >= maxWin)
+        forcedWavetableWindowFloat = maxWin;
+    else if (val < 0.0f)
+        forcedWavetableWindowFloat = 0.0f;
+    else
+        forcedWavetableWindowFloat = val;
+
+    forcedWavetableWindow = (uint32_t)forcedWavetableWindowFloat;
+}
+
 void AudioPlayMemory::setForcedWavetableWindow(uint32_t val)
 {
-    if (val >= mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber)
-        forcedWavetableWindow =
-          mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber - 1;
-    else
-        forcedWavetableWindow = val;
+    setForcedWavetableWindowFloat((float)val);
 }
 
 void AudioPlayMemory::setGranularPosForceFlag()
@@ -1091,6 +1128,9 @@ void AudioPlayMemory::clean(void)
         wavetableWindowSize = 0;
         currentWindow = 0;
         waveTablePosition = 0;
+        currentWindowFloat = 0.0f;
+        targetWindowFloat = 0.0f;
+        forcedWavetableWindowFloat = 0.0f;
         //	    wavetableSync=0;
         //	    wavetablePWM=0;
         //	    wavetableFlip=0;

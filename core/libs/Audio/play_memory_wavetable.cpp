@@ -41,9 +41,11 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     lastNote = note;
 
     wavetableWindowSize = mtProject.instrument[instrIdx].sample.wavetable_window_size;
-    currentWindow = wavetableWindowForceFlag
-                      ? forcedWavetableWindow
-                      : mtProject.instrument[instrIdx].wavetableCurrentWindow;
+    targetWindowFloat = wavetableWindowForceFlag
+                          ? forcedWavetableWindowFloat
+                          : (float)mtProject.instrument[instrIdx].wavetableCurrentWindow;
+    currentWindowFloat = targetWindowFloat;
+    currentWindow = (uint32_t)currentWindowFloat;
 
     constrainsInSamples.endPoint =
       wavetableWindowSize * mtProject.instrument[instrIdx].sample.wavetableWindowNumber;
@@ -65,7 +67,6 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
 AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
 {
     audio_block_t* block = nullptr;
-    int16_t* in = nullptr;
     int16_t* out = nullptr;
     int32_t castPitchControl;
     float pitchFraction;
@@ -83,29 +84,68 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
     {
         out = block->data;
 
+        const float targetWin =
+          wavetableWindowForceFlag ? forcedWavetableWindowFloat : targetWindowFloat;
+        const uint32_t totalWindows =
+          mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber;
+        const float maxWin = (float)(totalWindows > 0 ? totalWindows - 1 : 0);
+
+        // Smooth transition towards target window across audio blocks to eliminate stepping/zipper noise
+        currentWindowFloat += (targetWin - currentWindowFloat) * 0.25f;
+        if (currentWindowFloat > maxWin)
+            currentWindowFloat = maxWin;
+        else if (currentWindowFloat < 0.0f)
+            currentWindowFloat = 0.0f;
+
+        currentWindow = (uint32_t)currentWindowFloat;
+        float zFrac = currentWindowFloat - (float)currentWindow;
+        if (zFrac < 0.0005f)
+        {
+            zFrac = 0.0f;
+        }
+        else if (zFrac > 0.9995f)
+        {
+            zFrac = 0.0f;
+            if (currentWindow < (uint32_t)maxWin)
+                currentWindow++;
+        }
+
         waveTablePosition = wavetableWindowSize * currentWindow;
 
-        uint32_t maxlength = length - length % wavetableWindowSize - wavetableWindowSize;
+        uint32_t maxlength = (length >= wavetableWindowSize)
+                               ? (length - (length % wavetableWindowSize) - wavetableWindowSize)
+                               : 0;
 
         if (waveTablePosition > maxlength)
         {
             waveTablePosition = maxlength;
         }
 
-        in = (int16_t*)next + waveTablePosition;
+        int16_t* inA = (int16_t*)next + waveTablePosition;
+        int16_t* inB = nullptr;
+
+        if (zFrac > 0.0f && totalWindows > 1 && currentWindow < (uint32_t)maxWin)
+        {
+            uint32_t nextTablePos = wavetableWindowSize * (currentWindow + 1);
+            if (nextTablePos > maxlength)
+                nextTablePos = maxlength;
+            if (nextTablePos != waveTablePosition)
+                inB = (int16_t*)next + nextTablePos;
+            else
+                zFrac = 0.0f;
+        }
+        else
+        {
+            zFrac = 0.0f;
+        }
+
+        const int32_t zFrac14 = (int32_t)(zFrac * 16384.0f); // 14-bit fixed point lerp
+
         castPitchControl = (int32_t)pitchControl;
         pitchFraction = pitchControl - (int32_t)pitchControl;
 
         int32_t currentFractionPitchCounter = fPitchCounter * MAX_16BIT;
         int32_t currentFractionPitchControl = pitchFraction * MAX_16BIT;
-
-        if (enableInterpolation)
-            interpolationCondition =
-              (((iPitchCounter + waveTablePosition + 128 * pitchControl) < length)) ? 0 : 1;
-        else
-            interpolationCondition = 1;
-
-        int16_t* in_interpolation = in + 1;
 
         for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
         {
@@ -135,16 +175,32 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
             }
 
             //***************************************************************************************
-            // poczatek przetwarzania pitchCountera
-            currentSampelValue = *(in + iPitchCounter);
+            // Cyclic sample indices (seam-safe wrap: wraps to sample 0 of the current single-cycle)
+            uint32_t nextSampleIdx = iPitchCounter + 1;
+            if (nextSampleIdx >= wavetableWindowSize)
+            {
+                nextSampleIdx = 0;
+            }
 
-            if (interpolationCondition)
-                interpolationDif = 0;
-            else
-                interpolationDif = (*(in_interpolation + iPitchCounter) - currentSampelValue);
+            int32_t currentSampleValue = *(inA + iPitchCounter);
+            int32_t interpolationDifA = *(inA + nextSampleIdx) - currentSampleValue;
 
-            *out++ = currentSampelValue +
-                     (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
+            int32_t sampA = currentSampleValue +
+                            (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDifA) >> 14);
+
+            int32_t outSample = sampA;
+
+            if (zFrac14 > 0 && inB != nullptr)
+            {
+                int32_t sampleBValue = *(inB + iPitchCounter);
+                int32_t interpolationDifB = *(inB + nextSampleIdx) - sampleBValue;
+                int32_t sampB = sampleBValue +
+                                (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDifB) >> 14);
+
+                outSample = sampA + (((sampB - sampA) * zFrac14) >> 14);
+            }
+
+            *out++ = (int16_t)outSample;
 
             iPitchCounter += castPitchControl;
             currentFractionPitchCounter += currentFractionPitchControl;
