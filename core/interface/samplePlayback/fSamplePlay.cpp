@@ -71,6 +71,8 @@ static void modSliceAdjust(int16_t value);
 
 static void modWavetablePostion(int32_t value);
 static void modWavetableWindowSize(int16_t value);
+static void modWavetableSubWave(int16_t value);
+static void modWavetableSubLevel(int16_t value);
 static void modStartPoint(int16_t value);
 static void modEndPoint(int16_t value);
 static void modLoopPoint1(int16_t value);
@@ -954,7 +956,14 @@ static void functButton3(uint8_t state)
     }
     else if (SP->editorInstrument->playMode == playModeWavetable)
     {
-        return;
+        if (state == buttonPress || state == UINT8_MAX)
+        {
+            if (state == buttonPress && SP->selectedPlace == 3)
+            {
+                modWavetableSubWave(1);
+            }
+            SP->selectedPlace = 3;
+        }
     }
     else if (SP->editorInstrument->playMode == playModeSingleShot)
     {
@@ -1053,7 +1062,10 @@ static void functButton4(uint8_t state)
     }
     else if (SP->editorInstrument->playMode == playModeWavetable)
     {
-        return;
+        if (state == buttonPress || state == UINT8_MAX)
+        {
+            SP->selectedPlace = 4;
+        }
     }
     else
     {
@@ -1239,7 +1251,9 @@ static void functEncoder(int16_t value)
                     SP->modSlicePlayThru(value);
                     return;
                 }
-                if (SP->editorInstrument->playMode != playModeGranular)
+                if (SP->editorInstrument->playMode == playModeWavetable)
+                    modWavetableSubWave((value > 0) ? 1 : -1);
+                else if (SP->editorInstrument->playMode != playModeGranular)
                     modLoopPoint2(value);
                 else
                     modGranularShape((value > 0) ? 1 : -1);
@@ -1251,6 +1265,10 @@ static void functEncoder(int16_t value)
                     (SP->editorInstrument->playMode == playModeBeatSlice))
                 {
                     changeZoom(value);
+                }
+                else if (SP->editorInstrument->playMode == playModeWavetable)
+                {
+                    modWavetableSubLevel(value);
                 }
                 else if (SP->editorInstrument->playMode == playModeGranular)
                 {
@@ -1366,7 +1384,7 @@ static void functLeft()
             }
             else if (SP->editorInstrument->playMode == playModeWavetable)
             {
-                SP->selectedPlace = 2;
+                SP->selectedPlace = 4;
             }
             else
             {
@@ -1390,7 +1408,7 @@ static void functLeft()
             }
             else if (SP->loadedInstrumentType == mtSampleTypeWavetable)
             {
-                SP->selectedPlace = 2;
+                SP->selectedPlace = 4;
             }
             else if (SP->editorInstrument->playMode == playModeGranular)
             {
@@ -1468,7 +1486,7 @@ static void functRight()
             }
             else if (SP->editorInstrument->playMode == playModeWavetable)
             {
-                SP->selectedPlace = 6;
+                SP->selectedPlace = 3;
             }
             else
             {
@@ -1497,6 +1515,10 @@ static void functRight()
         {
             if ((SP->editorInstrument->playMode == playModeSlice) ||
                 (SP->editorInstrument->playMode == playModeBeatSlice))
+            {
+                SP->selectedPlace = 6;
+            }
+            else if (SP->editorInstrument->playMode == playModeWavetable)
             {
                 SP->selectedPlace = 6;
             }
@@ -1591,6 +1613,8 @@ static void functUp()
             {
                 if (SP->slice2ndScreenActive())
                     SP->modSlicePlayThru(1);
+                else if (SP->editorInstrument->playMode == playModeWavetable)
+                    modWavetableSubWave(1);
                 else if (SP->editorInstrument->playMode == playModeGranular)
                     modGranularShape(1);
                 else
@@ -1606,6 +1630,10 @@ static void functUp()
                     {
                         changeZoom(1);
                     }
+                }
+                else if (SP->editorInstrument->playMode == playModeWavetable)
+                {
+                    modWavetableSubLevel(1);
                 }
                 else if (SP->editorInstrument->playMode == playModeGranular)
                 {
@@ -1695,6 +1723,8 @@ static void functDown()
             {
                 if (SP->slice2ndScreenActive())
                     SP->modSlicePlayThru(-1);
+                else if (SP->editorInstrument->playMode == playModeWavetable)
+                    modWavetableSubWave(-1);
                 else if (SP->editorInstrument->playMode == playModeGranular)
                     modGranularShape(-1);
                 else
@@ -1710,6 +1740,10 @@ static void functDown()
                     {
                         changeZoom(-1);
                     }
+                }
+                else if (SP->editorInstrument->playMode == playModeWavetable)
+                {
+                    modWavetableSubLevel(-1);
                 }
                 else if (SP->editorInstrument->playMode == playModeGranular)
                 {
@@ -2244,6 +2278,38 @@ static void modWavetableWindowSize(int16_t value)
     newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
 }
 
+static void modWavetableSubWave(int16_t value)
+{
+    int16_t next = (int16_t)SP->editorInstrument->wtSubWave + ((value > 0) ? 1 : -1);
+    if (next > 3)
+        next = 0;
+    else if (next < 0)
+        next = 3;
+
+    SP->editorInstrument->wtSubWave = (uint8_t)next;
+    if (SP->editorInstrument->wtSubWave != 0 && SP->editorInstrument->wtSubLevel == 0)
+    {
+        SP->editorInstrument->wtSubLevel = 50;
+        SP->showWavetableSubLevel();
+    }
+
+    SP->showWavetableSubWave();
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+}
+
+static void modWavetableSubLevel(int16_t value)
+{
+    int16_t next = (int16_t)SP->editorInstrument->wtSubLevel + value;
+    if (next > 100)
+        next = 100;
+    else if (next < 0)
+        next = 0;
+
+    SP->editorInstrument->wtSubLevel = (uint8_t)next;
+    SP->showWavetableSubLevel();
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+}
+
 static void modSliceSelect(int16_t value, bool set)
 {
     if (set)
@@ -2674,14 +2740,26 @@ void cSamplePlayback::setDefault(uint8_t pos)
             }
             break;
         case 3:
-            if (editorInstrument->playMode != playModeGranular)
+            if (loadedInstrumentType == mtSampleTypeWavetable)
+            {
+                editorInstrument->wtSubWave = defaultInstrumentParams.wtSubWave;
+                showWavetableSubWave();
+                newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+            }
+            else if (editorInstrument->playMode != playModeGranular)
                 setDefaultLoopPoint2();
             else
                 setDefaultGranularShape();
             break;
         case 4:
         {
-            if ((SP->editorInstrument->playMode == playModeSlice) ||
+            if (loadedInstrumentType == mtSampleTypeWavetable)
+            {
+                editorInstrument->wtSubLevel = defaultInstrumentParams.wtSubLevel;
+                showWavetableSubLevel();
+                newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+            }
+            else if ((SP->editorInstrument->playMode == playModeSlice) ||
                 (SP->editorInstrument->playMode == playModeBeatSlice))
             {
                 setDefaultZoom();

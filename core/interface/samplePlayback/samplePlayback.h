@@ -239,8 +239,12 @@ class cSamplePlayback : public ModuleBase
     uint8_t loadedInstrumentType = 0;
     char wavetablePositionText[7];
     char wavetableWindowSizeText[7];
+    char wtSubWaveText[8];
+    char wtSubLevelText[7];
     void showWavetablePosition();
     void showWavetableWindowSize();
+    void showWavetableSubWave();
+    void showWavetableSubLevel();
     uint16_t convertWavetableWindowsCounterToSize(uint8_t cnt);
     uint8_t convertWavetableWindowsSizeToCounter(uint16_t size);
     uint8_t wavetableWindowsCounter = 11;

@@ -303,8 +303,8 @@ void cSamplePlayback::showDefaultScreen()
         display.setControlText(label[0], "Preview");
         display.setControlText(label[1], "Position");
         display.setControlText(label[2], "Window");
-        display.setControlText(label[3], "");
-        display.setControlText(label[4], "");
+        display.setControlText(label[3], "Sub Wave");
+        display.setControlText(label[4], "Sub Level");
         display.setControlText(label[5], "");
 
         display.setControlValue(label[0], 0);
@@ -324,6 +324,8 @@ void cSamplePlayback::showDefaultScreen()
 
         showWavetablePosition();
         showWavetableWindowSize();
+        showWavetableSubWave();
+        showWavetableSubLevel();
         refreshSpectrum = 1;
 
         processWavetableCursor(editorInstrument->wavetableCurrentWindow);
@@ -427,6 +429,33 @@ void cSamplePlayback::showWavetableWindowSize()
     display.setControlText2(label[2], wavetableWindowSizeText);
     display.setControlShow(label[2]);
     display.refreshControl(label[2]);
+}
+
+void cSamplePlayback::showWavetableSubWave()
+{
+    static const char* const subWaveNames[4] = { "Off", "Sine", "Tri", "Square" };
+    uint8_t wave = editorInstrument->wtSubWave;
+    if (wave > 3)
+        wave = 0;
+
+    sprintf(wtSubWaveText, "%s", subWaveNames[wave]);
+
+    display.setControlText2(label[3], wtSubWaveText);
+    display.setControlShow(label[3]);
+    display.refreshControl(label[3]);
+}
+
+void cSamplePlayback::showWavetableSubLevel()
+{
+    uint8_t lvl = editorInstrument->wtSubLevel;
+    if (lvl > 100)
+        lvl = 100;
+
+    sprintf(wtSubLevelText, "%d%%", lvl);
+
+    display.setControlText2(label[4], wtSubLevelText);
+    display.setControlShow(label[4]);
+    display.refreshControl(label[4]);
 }
 
 void cSamplePlayback::showZoomValue()

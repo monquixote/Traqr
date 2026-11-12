@@ -623,7 +623,9 @@ struct strInstrument
     uint16_t loopPoint2;
     uint16_t endPoint;
 
-    uint32_t wavetableCurrentWindow;
+    uint16_t wavetableCurrentWindow;
+    uint8_t wtSubWave;  // 0 = Off, 1 = Sine, 2 = Tri, 3 = Square
+    uint8_t wtSubLevel; // 0..100 (%)
     //    uint16_t wavetableSync;
     //    uint16_t wavetablePWM;
     //    uint16_t wavetableFlip;
@@ -742,6 +744,8 @@ const strInstrument defaultInstrumentParams = {
     .loopPoint2 = MAX_16BIT - 1,
     .endPoint = MAX_16BIT,
     .wavetableCurrentWindow = 0,
+    .wtSubWave = 0,
+    .wtSubLevel = 0,
     .envelope = { { 1.0, 0, 10, 0, 0, 1.0, 1000, 0, 1 },
                   { 1.0, 0, 3000, 0, 0, 1.0, 1000, 0, 0 },
                   { 1.0, 0, 3000, 0, 0, 1.0, 1000, 0, 0 },

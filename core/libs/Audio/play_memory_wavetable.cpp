@@ -59,6 +59,7 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     length = currentSampleLength;
     iPitchCounter = 0;
     fPitchCounter = 0.0f;
+    subPhase32 = 0;
 
     playing = 1;
     AudioInterrupts();
@@ -100,52 +101,150 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
     int32_t currentFractionPitchCounter = fPitchCounter * MAX_16BIT;
     int32_t currentFractionPitchControl = pitchFraction * MAX_16BIT;
 
-    for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+    const uint8_t subWave = mtProject.instrument[currentInstrIdx].wtSubWave;
+    uint8_t subLevel = mtProject.instrument[currentInstrIdx].wtSubLevel;
+    if (subLevel > 100)
+        subLevel = 100;
+
+    if (subWave == 0 || subLevel == 0)
     {
-        if (constrainsInSamples.pitchSmoothing)
+        for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
         {
-            if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
+            if (constrainsInSamples.pitchSmoothing)
             {
-                pitchControl += pitchSmoothingControl;
-                if (pitchControl > wt_notes[MAX_NOTE - 1])
+                if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
                 {
-                    pitchControl = wt_notes[MAX_NOTE - 1];
-                    pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                    pitchControl += pitchSmoothingControl;
+                    if (pitchControl > wt_notes[MAX_NOTE - 1])
+                    {
+                        pitchControl = wt_notes[MAX_NOTE - 1];
+                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                    }
+                    else if (pitchControl < wt_notes[MIN_NOTE])
+                    {
+                        pitchControl = wt_notes[MIN_NOTE];
+                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                    }
+                    castPitchControl = (int32_t)pitchControl;
+                    pitchFraction = pitchControl - (int32_t)pitchControl;
+                    currentFractionPitchControl = pitchFraction * MAX_16BIT;
+                    pitchSmoothingControlCounter++;
                 }
-                else if (pitchControl < wt_notes[MIN_NOTE])
-                {
-                    pitchControl = wt_notes[MIN_NOTE];
-                    pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
-                }
-                castPitchControl = (int32_t)pitchControl;
-                pitchFraction = pitchControl - (int32_t)pitchControl;
-                currentFractionPitchControl = pitchFraction * MAX_16BIT;
-                pitchSmoothingControlCounter++;
+            }
+
+            const uint32_t idx1 = (uint32_t)iPitchCounter;
+            uint32_t idx2 = idx1 + 1;
+            if (idx2 >= wavetableWindowSize)
+                idx2 = 0;
+
+            const int32_t currentSampleValue = in[idx1];
+            const int32_t interpolationDif = in[idx2] - currentSampleValue;
+
+            *out++ = (int16_t)(currentSampleValue +
+                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14));
+
+            iPitchCounter += castPitchControl;
+            currentFractionPitchCounter += currentFractionPitchControl;
+            if (currentFractionPitchCounter >= MAX_16BIT)
+            {
+                currentFractionPitchCounter -= MAX_16BIT;
+                iPitchCounter++;
+            }
+
+            if (iPitchCounter >= wavetableWindowSize)
+            {
+                iPitchCounter -= wavetableWindowSize;
             }
         }
+    }
+    else
+    {
+        const float subPhaseScale = 2147483648.0f / (float)wavetableWindowSize;
+        uint32_t subPhaseInc = (uint32_t)(pitchControl * subPhaseScale);
+        const int32_t subGain14 = ((int32_t)subLevel * 16384) / 100;
 
-        const uint32_t idx1 = (uint32_t)iPitchCounter;
-        uint32_t idx2 = idx1 + 1;
-        if (idx2 >= wavetableWindowSize)
-            idx2 = 0;
-
-        const int32_t currentSampleValue = in[idx1];
-        const int32_t interpolationDif = in[idx2] - currentSampleValue;
-
-        *out++ = (int16_t)(currentSampleValue +
-                           (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14));
-
-        iPitchCounter += castPitchControl;
-        currentFractionPitchCounter += currentFractionPitchControl;
-        if (currentFractionPitchCounter >= MAX_16BIT)
+        for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
         {
-            currentFractionPitchCounter -= MAX_16BIT;
-            iPitchCounter++;
-        }
+            if (constrainsInSamples.pitchSmoothing)
+            {
+                if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
+                {
+                    pitchControl += pitchSmoothingControl;
+                    if (pitchControl > wt_notes[MAX_NOTE - 1])
+                    {
+                        pitchControl = wt_notes[MAX_NOTE - 1];
+                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                    }
+                    else if (pitchControl < wt_notes[MIN_NOTE])
+                    {
+                        pitchControl = wt_notes[MIN_NOTE];
+                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                    }
+                    castPitchControl = (int32_t)pitchControl;
+                    pitchFraction = pitchControl - (int32_t)pitchControl;
+                    currentFractionPitchControl = pitchFraction * MAX_16BIT;
+                    subPhaseInc = (uint32_t)(pitchControl * subPhaseScale);
+                    pitchSmoothingControlCounter++;
+                }
+            }
 
-        if (iPitchCounter >= wavetableWindowSize)
-        {
-            iPitchCounter -= wavetableWindowSize;
+            const uint32_t idx1 = (uint32_t)iPitchCounter;
+            uint32_t idx2 = idx1 + 1;
+            if (idx2 >= wavetableWindowSize)
+                idx2 = 0;
+
+            const int32_t currentSampleValue = in[idx1];
+            const int32_t interpolationDif = in[idx2] - currentSampleValue;
+
+            const int32_t wtSample = currentSampleValue +
+                                     (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
+
+            int32_t subSample = 0;
+            if (subWave == 1)
+            {
+                // Fast parabolic sine approximation (0.1% THD, zero SDRAM reads)
+                const int32_t x = ((int32_t)subPhase32) >> 16;
+                const int32_t absX = (x < 0) ? -x : x;
+                const int32_t y = (x * (32768 - absX)) >> 13;
+                const int32_t absY = (y < 0) ? -y : y;
+                subSample = (y * (25395 + ((absY * 7373) >> 15))) >> 15;
+            }
+            else if (subWave == 2)
+            {
+                // Triangle wave
+                uint32_t t = subPhase32 >> 16;
+                if (t >= 32768U)
+                    t = 65535U - t;
+                subSample = (int32_t)(t << 1) - 32767;
+            }
+            else
+            {
+                // Square wave
+                subSample = (subPhase32 & 0x80000000U) ? -32767 : 32767;
+            }
+
+            int32_t mixed = wtSample + ((subSample * subGain14) >> 14);
+            if (mixed > 32767)
+                mixed = 32767;
+            else if (mixed < -32768)
+                mixed = -32768;
+
+            *out++ = (int16_t)mixed;
+
+            subPhase32 += subPhaseInc;
+
+            iPitchCounter += castPitchControl;
+            currentFractionPitchCounter += currentFractionPitchControl;
+            if (currentFractionPitchCounter >= MAX_16BIT)
+            {
+                currentFractionPitchCounter -= MAX_16BIT;
+                iPitchCounter++;
+            }
+
+            if (iPitchCounter >= wavetableWindowSize)
+            {
+                iPitchCounter -= wavetableWindowSize;
+            }
         }
     }
 
