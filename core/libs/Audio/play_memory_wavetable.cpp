@@ -2,30 +2,6 @@
 #include "play_memory.h"
 #include "utility/dspinst.h"
 
-namespace
-{
-inline int32_t cubicHermiteFixed(const int16_t* table,
-                                 uint32_t idx0,
-                                 uint32_t idx1,
-                                 uint32_t idx2,
-                                 uint32_t idx3,
-                                 int32_t t12)
-{
-    const int32_t ym1 = table[idx0];
-    const int32_t y0 = table[idx1];
-    const int32_t y1 = table[idx2];
-    const int32_t y2 = table[idx3];
-
-    const int32_t c1 = (y1 - ym1) >> 1;
-    const int32_t c2 = ym1 - ((5 * y0) >> 1) + (2 * y1) - (y2 >> 1);
-    const int32_t c3 = ((y2 - ym1) >> 1) + ((3 * (y0 - y1)) >> 1);
-
-    int32_t res = ((c3 * t12) >> 12) + c2;
-    res = ((res * t12) >> 12) + c1;
-    return ((res * t12) >> 12) + y0;
-}
-} // namespace
-
 AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t note)
 {
     //	__disable_irq();
@@ -251,15 +227,11 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
             }
 
             //***************************************************************************************
-            // Cyclic 4-point sample indices (seam-safe wrap within the current single-cycle)
+            // Cyclic sample indices (seam-safe wrap: wraps to sample 0 of the current single-cycle)
             const uint32_t idx1 = (uint32_t)iPitchCounter;
-            const uint32_t idx0 = (idx1 == 0) ? (wavetableWindowSize - 1) : (idx1 - 1);
             uint32_t idx2 = idx1 + 1;
             if (idx2 >= wavetableWindowSize)
                 idx2 = 0;
-            uint32_t idx3 = idx2 + 1;
-            if (idx3 >= wavetableWindowSize)
-                idx3 = 0;
 
             if (zIsRamping)
             {
@@ -296,19 +268,16 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                     zFrac14 = 0;
             }
 
-            const int32_t t12 = currentFractionPitchCounter >> 4; // 0..4095
-            int32_t outSample = cubicHermiteFixed(inA, idx0, idx1, idx2, idx3, t12);
+            const int32_t xFrac14 = currentFractionPitchCounter >> 2;
+            const int32_t sampleA = inA[idx1];
+            int32_t outSample = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
 
             if (zFrac14 > 0 && inB != nullptr)
             {
-                const int32_t sampB = cubicHermiteFixed(inB, idx0, idx1, idx2, idx3, t12);
+                const int32_t sampleB = inB[idx1];
+                const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
                 outSample += ((sampB - outSample) * zFrac14) >> 14;
             }
-
-            if (outSample > 32767)
-                outSample = 32767;
-            else if (outSample < -32768)
-                outSample = -32768;
 
             if (onsetFadeSamples > 0)
             {
