@@ -2569,22 +2569,23 @@ void playerEngine::clearFxPositionWavetable()
     else
     {
         uint32_t localWtPos = mtProject.instrument[currentInstrument_idx].wavetableCurrentWindow;
-        float localWtModFloat =
+        int32_t localWtMod =
           currentEnvelopeModification[envWtPos] *
-          (float)mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber;
-        float localWtPosFloat = (float)localWtPos + localWtModFloat;
-        const float maxWin = (float)(mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber > 0
-                                     ? mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber - 1
-                                     : 0);
-        if (localWtPosFloat > maxWin)
-            localWtPosFloat = maxWin;
-        else if (localWtPosFloat < 0.0f)
-            localWtPosFloat = 0.0f;
+          mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber;
+
+        if (localWtPos + localWtMod >
+            mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber - 1)
+            localWtPos =
+              mtProject.instrument[currentInstrument_idx].sample.wavetableWindowNumber - 1;
+        else if (localWtPos + localWtMod < 0)
+            localWtPos = 0;
+        else
+            localWtPos += localWtMod;
 
         for (int channel = 0; channel < (int)playMemPtr.size(); channel++)
         {
             playMemPtr[channel]->clearWavetableWindowForceFlag();
-            playMemPtr[channel]->setWavetableWindowFloat(localWtPosFloat);
+            playMemPtr[channel]->setWavetableWindow(localWtPos);
         }
     }
 }

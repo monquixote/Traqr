@@ -4,7 +4,6 @@
 
 AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t note)
 {
-    //	__disable_irq();
     AudioNoInterrupts();
 
     if (instrIdx > kSampleInstrumentsCount - 1)
@@ -41,12 +40,11 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     lastNote = note;
 
     wavetableWindowSize = mtProject.instrument[instrIdx].sample.wavetable_window_size;
-    targetWindowFloat = wavetableWindowForceFlag
-                          ? forcedWavetableWindowFloat
-                          : (float)mtProject.instrument[instrIdx].wavetableCurrentWindow;
-    currentWindowFloat = targetWindowFloat;
-    prevWindowFloat = currentWindowFloat;
-    currentWindow = (uint32_t)currentWindowFloat;
+    if (wavetableWindowForceFlag)
+        currentWindow = forcedWavetableWindow;
+    else
+        currentWindow = mtProject.instrument[instrIdx].wavetableCurrentWindow;
+
     onsetFadeSamples = 32;
 
     constrainsInSamples.endPoint =
@@ -63,300 +61,109 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     fPitchCounter = 0.0f;
 
     playing = 1;
-    //	__enable_irq();
     AudioInterrupts();
 }
 
 AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
 {
-    audio_block_t* block = nullptr;
-    int16_t* out = nullptr;
-    int32_t castPitchControl;
-    float pitchFraction;
-
-    block = allocate();
+    audio_block_t* block = allocate();
     if (!block)
         return nullptr;
 
-    if (!playing)
+    if (playing != 1 || wavetableWindowSize == 0)
     {
         release(block);
         return nullptr;
     }
-    else if (playing == 1)
+
+    int16_t* out = block->data;
+
+    if (wavetableWindowForceFlag)
+        waveTablePosition = wavetableWindowSize * forcedWavetableWindow;
+    else
+        waveTablePosition = wavetableWindowSize * currentWindow;
+
+    const uint32_t maxlength =
+      (length >= wavetableWindowSize)
+        ? (length - (length % wavetableWindowSize) - wavetableWindowSize)
+        : 0;
+
+    if (waveTablePosition > maxlength)
     {
-        if (wavetableWindowSize < 4)
-        {
-            release(block);
-            return nullptr;
-        }
-
-        out = block->data;
-
-        const float targetWin =
-          wavetableWindowForceFlag ? forcedWavetableWindowFloat : targetWindowFloat;
-        const uint32_t totalWindows =
-          mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber;
-        const uint32_t maxWinIdx = (totalWindows > 0) ? (totalWindows - 1) : 0;
-        const float maxWin = (float)maxWinIdx;
-
-        currentWindowFloat = targetWin;
-        if (currentWindowFloat > maxWin)
-            currentWindowFloat = maxWin;
-        else if (currentWindowFloat < 0.0f)
-            currentWindowFloat = 0.0f;
-
-        if (onsetFadeSamples == 32)
-        {
-            prevWindowFloat = currentWindowFloat;
-        }
-
-        const uint32_t maxlength = (length >= wavetableWindowSize)
-                                     ? (length - (length % wavetableWindowSize) - wavetableWindowSize)
-                                     : 0;
-
-        const int32_t maxW14 = (int32_t)maxWinIdx << 14;
-        int32_t w14 = (int32_t)(prevWindowFloat * 16384.0f);
-        if (w14 < 0)
-            w14 = 0;
-        else if (w14 > maxW14)
-            w14 = maxW14;
-
-        int32_t targetW14 = (int32_t)(currentWindowFloat * 16384.0f);
-        if (targetW14 < 0)
-            targetW14 = 0;
-        else if (targetW14 > maxW14)
-            targetW14 = maxW14;
-
-        const int32_t wStep14 = (totalWindows > 1) ? ((targetW14 - w14) >> 7) : 0;
-        const bool zIsRamping = (wStep14 != 0);
-
-        currentWindow = (uint32_t)currentWindowFloat;
-        float steadyZFrac = currentWindowFloat - (float)currentWindow;
-        if (steadyZFrac < 0.0005f)
-        {
-            steadyZFrac = 0.0f;
-        }
-        else if (steadyZFrac > 0.9995f)
-        {
-            steadyZFrac = 0.0f;
-            if (currentWindow < maxWinIdx)
-                currentWindow++;
-        }
-
-        uint32_t steadyPosA = wavetableWindowSize * currentWindow;
-        if (steadyPosA > maxlength)
-            steadyPosA = maxlength;
-
-        int16_t* inA = (int16_t*)next + steadyPosA;
-        int16_t* inB = nullptr;
-        int32_t zFrac14 = (int32_t)(steadyZFrac * 16384.0f);
-
-        if (zFrac14 > 0 && totalWindows > 1 && currentWindow < maxWinIdx)
-        {
-            uint32_t nextTablePos = wavetableWindowSize * (currentWindow + 1);
-            if (nextTablePos > maxlength)
-                nextTablePos = maxlength;
-            if (nextTablePos != steadyPosA)
-                inB = (int16_t*)next + nextTablePos;
-            else
-                zFrac14 = 0;
-        }
-        else
-        {
-            zFrac14 = 0;
-        }
-
-        waveTablePosition = steadyPosA;
-
-        uint32_t cachedWinA = currentWindow;
-        if (zIsRamping)
-        {
-            cachedWinA = (uint32_t)(w14 >> 14);
-            zFrac14 = w14 & 0x3FFF;
-            uint32_t posA = wavetableWindowSize * cachedWinA;
-            if (posA > maxlength)
-                posA = maxlength;
-            inA = (int16_t*)next + posA;
-            if (cachedWinA < maxWinIdx)
-            {
-                uint32_t posB = wavetableWindowSize * (cachedWinA + 1);
-                if (posB > maxlength)
-                    posB = maxlength;
-                inB = (posB != posA) ? ((int16_t*)next + posB) : nullptr;
-            }
-            else
-            {
-                inB = nullptr;
-            }
-            if (inB == nullptr)
-                zFrac14 = 0;
-        }
-
-        castPitchControl = (int32_t)pitchControl;
-        pitchFraction = pitchControl - (int32_t)pitchControl;
-
-        int32_t currentFractionPitchCounter = fPitchCounter * MAX_16BIT;
-        int32_t currentFractionPitchControl = pitchFraction * MAX_16BIT;
-
-        const bool sameWindowRamp = zIsRamping && ((uint32_t)(w14 >> 14) == (uint32_t)(targetW14 >> 14));
-        const bool fastDualPath = (!zIsRamping && zFrac14 > 0 && inB != nullptr) || (sameWindowRamp && inB != nullptr);
-        const int32_t zStep14 = sameWindowRamp ? wStep14 : 0;
-
-        auto advancePhaseAndGlide = [&]() __attribute__((always_inline))
-        {
-            if (constrainsInSamples.pitchSmoothing)
-            {
-                if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
-                {
-                    pitchControl += pitchSmoothingControl;
-                    if (pitchControl > wt_notes[MAX_NOTE - 1])
-                    {
-                        pitchControl = wt_notes[MAX_NOTE - 1];
-                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
-                    }
-                    else if (pitchControl < wt_notes[MIN_NOTE])
-                    {
-                        pitchControl = wt_notes[MIN_NOTE];
-                        pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
-                    }
-                    castPitchControl = (int32_t)pitchControl;
-                    pitchFraction = pitchControl - (int32_t)pitchControl;
-                    currentFractionPitchControl = pitchFraction * MAX_16BIT;
-                    pitchSmoothingControlCounter++;
-                }
-            }
-
-            iPitchCounter += castPitchControl;
-            currentFractionPitchCounter += currentFractionPitchControl;
-            if (currentFractionPitchCounter >= MAX_16BIT)
-            {
-                currentFractionPitchCounter -= MAX_16BIT;
-                iPitchCounter++;
-            }
-
-            if (iPitchCounter >= wavetableWindowSize)
-            {
-                iPitchCounter -= wavetableWindowSize;
-            }
-        };
-
-        if (!zIsRamping && (zFrac14 == 0 || inB == nullptr))
-        {
-            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-            {
-                const uint32_t idx1 = (uint32_t)iPitchCounter;
-                uint32_t idx2 = idx1 + 1;
-                if (idx2 >= wavetableWindowSize)
-                    idx2 = 0;
-
-                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
-                const int32_t sampleA = inA[idx1];
-                *out++ = (int16_t)(sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14));
-
-                advancePhaseAndGlide();
-            }
-        }
-        else if (fastDualPath)
-        {
-            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-            {
-                const uint32_t idx1 = (uint32_t)iPitchCounter;
-                uint32_t idx2 = idx1 + 1;
-                if (idx2 >= wavetableWindowSize)
-                    idx2 = 0;
-
-                zFrac14 += zStep14;
-                if (zFrac14 < 0)
-                    zFrac14 = 0;
-                else if (zFrac14 > 16383)
-                    zFrac14 = 16383;
-
-                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
-                const int32_t sampleA = inA[idx1];
-                const int32_t sampA = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
-                const int32_t sampleB = inB[idx1];
-                const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
-                *out++ = (int16_t)(sampA + (((sampB - sampA) * zFrac14) >> 14));
-
-                advancePhaseAndGlide();
-            }
-        }
-        else
-        {
-            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
-            {
-                const uint32_t idx1 = (uint32_t)iPitchCounter;
-                uint32_t idx2 = idx1 + 1;
-                if (idx2 >= wavetableWindowSize)
-                    idx2 = 0;
-
-                w14 += wStep14;
-                if (w14 < 0)
-                    w14 = 0;
-                else if (w14 > maxW14)
-                    w14 = maxW14;
-
-                const uint32_t winA = (uint32_t)(w14 >> 14);
-                zFrac14 = w14 & 0x3FFF;
-
-                if (winA != cachedWinA)
-                {
-                    cachedWinA = winA;
-                    uint32_t posA = wavetableWindowSize * winA;
-                    if (posA > maxlength)
-                        posA = maxlength;
-                    inA = (int16_t*)next + posA;
-                    if (winA < maxWinIdx)
-                    {
-                        uint32_t posB = wavetableWindowSize * (winA + 1);
-                        if (posB > maxlength)
-                            posB = maxlength;
-                        inB = (posB != posA) ? ((int16_t*)next + posB) : nullptr;
-                    }
-                    else
-                    {
-                        inB = nullptr;
-                    }
-                }
-
-                if (inB == nullptr)
-                    zFrac14 = 0;
-
-                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
-                const int32_t sampleA = inA[idx1];
-                int32_t outSample = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
-
-                if (zFrac14 > 0 && inB != nullptr)
-                {
-                    const int32_t sampleB = inB[idx1];
-                    const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
-                    outSample += ((sampB - outSample) * zFrac14) >> 14;
-                }
-
-                *out++ = (int16_t)outSample;
-
-                advancePhaseAndGlide();
-            }
-        }
-
-        if (onsetFadeSamples > 0)
-        {
-            int16_t* fadePtr = block->data;
-            const uint8_t fadeCount =
-              (onsetFadeSamples < AUDIO_BLOCK_SAMPLES) ? onsetFadeSamples : AUDIO_BLOCK_SAMPLES;
-            for (uint8_t k = 0; k < fadeCount; k++)
-            {
-                const int32_t fadeMult = 32 - onsetFadeSamples; // 0 to 31
-                fadePtr[k] = (int16_t)(((int32_t)fadePtr[k] * fadeMult) >> 5);
-                onsetFadeSamples--;
-            }
-        }
-
-        prevWindowFloat = currentWindowFloat;
-        next = currentStartAddress + pointsInSamples.start;
-        fPitchCounter = (float)currentFractionPitchCounter / MAX_16BIT;
-
-        return block;
+        waveTablePosition = maxlength;
     }
+
+    const int16_t* in = (const int16_t*)next + waveTablePosition;
+    int32_t castPitchControl = (int32_t)pitchControl;
+    float pitchFraction = pitchControl - (int32_t)pitchControl;
+
+    int32_t currentFractionPitchCounter = fPitchCounter * MAX_16BIT;
+    int32_t currentFractionPitchControl = pitchFraction * MAX_16BIT;
+
+    for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+    {
+        if (constrainsInSamples.pitchSmoothing)
+        {
+            if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
+            {
+                pitchControl += pitchSmoothingControl;
+                if (pitchControl > wt_notes[MAX_NOTE - 1])
+                {
+                    pitchControl = wt_notes[MAX_NOTE - 1];
+                    pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                }
+                else if (pitchControl < wt_notes[MIN_NOTE])
+                {
+                    pitchControl = wt_notes[MIN_NOTE];
+                    pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
+                }
+                castPitchControl = (int32_t)pitchControl;
+                pitchFraction = pitchControl - (int32_t)pitchControl;
+                currentFractionPitchControl = pitchFraction * MAX_16BIT;
+                pitchSmoothingControlCounter++;
+            }
+        }
+
+        const uint32_t idx1 = (uint32_t)iPitchCounter;
+        uint32_t idx2 = idx1 + 1;
+        if (idx2 >= wavetableWindowSize)
+            idx2 = 0;
+
+        const int32_t currentSampleValue = in[idx1];
+        const int32_t interpolationDif = in[idx2] - currentSampleValue;
+
+        *out++ = (int16_t)(currentSampleValue +
+                           (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14));
+
+        iPitchCounter += castPitchControl;
+        currentFractionPitchCounter += currentFractionPitchControl;
+        if (currentFractionPitchCounter >= MAX_16BIT)
+        {
+            currentFractionPitchCounter -= MAX_16BIT;
+            iPitchCounter++;
+        }
+
+        if (iPitchCounter >= wavetableWindowSize)
+        {
+            iPitchCounter -= wavetableWindowSize;
+        }
+    }
+
+    if (onsetFadeSamples > 0)
+    {
+        int16_t* fadePtr = block->data;
+        const uint8_t fadeCount =
+          (onsetFadeSamples < AUDIO_BLOCK_SAMPLES) ? onsetFadeSamples : AUDIO_BLOCK_SAMPLES;
+        for (uint8_t k = 0; k < fadeCount; k++)
+        {
+            const int32_t fadeMult = 32 - onsetFadeSamples; // 0 to 31
+            fadePtr[k] = (int16_t)(((int32_t)fadePtr[k] * fadeMult) >> 5);
+            onsetFadeSamples--;
+        }
+    }
+
+    next = currentStartAddress + pointsInSamples.start;
+    fPitchCounter = (float)currentFractionPitchCounter / MAX_16BIT;
+
+    return block;
 }
