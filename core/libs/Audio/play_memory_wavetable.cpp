@@ -199,9 +199,12 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
         int32_t currentFractionPitchCounter = fPitchCounter * MAX_16BIT;
         int32_t currentFractionPitchControl = pitchFraction * MAX_16BIT;
 
-        for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+        const bool sameWindowRamp = zIsRamping && ((uint32_t)(w14 >> 14) == (uint32_t)(targetW14 >> 14));
+        const bool fastDualPath = (!zIsRamping && zFrac14 > 0 && inB != nullptr) || (sameWindowRamp && inB != nullptr);
+        const int32_t zStep14 = sameWindowRamp ? wStep14 : 0;
+
+        auto advancePhaseAndGlide = [&]() __attribute__((always_inline))
         {
-            //*********************************** GLIDE HANDLE
             if (constrainsInSamples.pitchSmoothing)
             {
                 if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
@@ -219,22 +222,75 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                     }
                     castPitchControl = (int32_t)pitchControl;
                     pitchFraction = pitchControl - (int32_t)pitchControl;
-
                     currentFractionPitchControl = pitchFraction * MAX_16BIT;
-
                     pitchSmoothingControlCounter++;
                 }
             }
 
-            //***************************************************************************************
-            // Cyclic sample indices (seam-safe wrap: wraps to sample 0 of the current single-cycle)
-            const uint32_t idx1 = (uint32_t)iPitchCounter;
-            uint32_t idx2 = idx1 + 1;
-            if (idx2 >= wavetableWindowSize)
-                idx2 = 0;
-
-            if (zIsRamping)
+            iPitchCounter += castPitchControl;
+            currentFractionPitchCounter += currentFractionPitchControl;
+            if (currentFractionPitchCounter >= MAX_16BIT)
             {
+                currentFractionPitchCounter -= MAX_16BIT;
+                iPitchCounter++;
+            }
+
+            if (iPitchCounter >= wavetableWindowSize)
+            {
+                iPitchCounter -= wavetableWindowSize;
+            }
+        };
+
+        if (!zIsRamping && (zFrac14 == 0 || inB == nullptr))
+        {
+            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+            {
+                const uint32_t idx1 = (uint32_t)iPitchCounter;
+                uint32_t idx2 = idx1 + 1;
+                if (idx2 >= wavetableWindowSize)
+                    idx2 = 0;
+
+                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
+                const int32_t sampleA = inA[idx1];
+                *out++ = (int16_t)(sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14));
+
+                advancePhaseAndGlide();
+            }
+        }
+        else if (fastDualPath)
+        {
+            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+            {
+                const uint32_t idx1 = (uint32_t)iPitchCounter;
+                uint32_t idx2 = idx1 + 1;
+                if (idx2 >= wavetableWindowSize)
+                    idx2 = 0;
+
+                zFrac14 += zStep14;
+                if (zFrac14 < 0)
+                    zFrac14 = 0;
+                else if (zFrac14 > 16383)
+                    zFrac14 = 16383;
+
+                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
+                const int32_t sampleA = inA[idx1];
+                const int32_t sampA = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
+                const int32_t sampleB = inB[idx1];
+                const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
+                *out++ = (int16_t)(sampA + (((sampB - sampA) * zFrac14) >> 14));
+
+                advancePhaseAndGlide();
+            }
+        }
+        else
+        {
+            for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+            {
+                const uint32_t idx1 = (uint32_t)iPitchCounter;
+                uint32_t idx2 = idx1 + 1;
+                if (idx2 >= wavetableWindowSize)
+                    idx2 = 0;
+
                 w14 += wStep14;
                 if (w14 < 0)
                     w14 = 0;
@@ -266,41 +322,37 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
 
                 if (inB == nullptr)
                     zFrac14 = 0;
-            }
 
-            const int32_t xFrac14 = currentFractionPitchCounter >> 2;
-            const int32_t sampleA = inA[idx1];
-            int32_t outSample = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
+                const int32_t xFrac14 = currentFractionPitchCounter >> 2;
+                const int32_t sampleA = inA[idx1];
+                int32_t outSample = sampleA + (((inA[idx2] - sampleA) * xFrac14) >> 14);
 
-            if (zFrac14 > 0 && inB != nullptr)
-            {
-                const int32_t sampleB = inB[idx1];
-                const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
-                outSample += ((sampB - outSample) * zFrac14) >> 14;
-            }
+                if (zFrac14 > 0 && inB != nullptr)
+                {
+                    const int32_t sampleB = inB[idx1];
+                    const int32_t sampB = sampleB + (((inB[idx2] - sampleB) * xFrac14) >> 14);
+                    outSample += ((sampB - outSample) * zFrac14) >> 14;
+                }
 
-            if (onsetFadeSamples > 0)
-            {
-                int32_t fadeMult = 32 - onsetFadeSamples; // 0 to 31
-                outSample = (outSample * fadeMult) >> 5;
-                onsetFadeSamples--;
-            }
+                *out++ = (int16_t)outSample;
 
-            *out++ = (int16_t)outSample;
-
-            iPitchCounter += castPitchControl;
-            currentFractionPitchCounter += currentFractionPitchControl;
-            if (currentFractionPitchCounter >= MAX_16BIT)
-            {
-                currentFractionPitchCounter -= MAX_16BIT;
-                iPitchCounter++;
-            }
-
-            if (iPitchCounter >= wavetableWindowSize)
-            {
-                iPitchCounter -= wavetableWindowSize;
+                advancePhaseAndGlide();
             }
         }
+
+        if (onsetFadeSamples > 0)
+        {
+            int16_t* fadePtr = block->data;
+            const uint8_t fadeCount =
+              (onsetFadeSamples < AUDIO_BLOCK_SAMPLES) ? onsetFadeSamples : AUDIO_BLOCK_SAMPLES;
+            for (uint8_t k = 0; k < fadeCount; k++)
+            {
+                const int32_t fadeMult = 32 - onsetFadeSamples; // 0 to 31
+                fadePtr[k] = (int16_t)(((int32_t)fadePtr[k] * fadeMult) >> 5);
+                onsetFadeSamples--;
+            }
+        }
+
         prevWindowFloat = currentWindowFloat;
         next = currentStartAddress + pointsInSamples.start;
         fPitchCounter = (float)currentFractionPitchCounter / MAX_16BIT;
