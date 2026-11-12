@@ -1130,6 +1130,7 @@ void AudioPlayMemory::clean(void)
         currentWindow = 0;
         waveTablePosition = 0;
         currentWindowFloat = 0.0f;
+        prevWindowFloat = 0.0f;
         targetWindowFloat = 0.0f;
         forcedWavetableWindowFloat = 0.0f;
         onsetFadeSamples = 0;

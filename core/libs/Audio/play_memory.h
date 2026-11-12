@@ -437,6 +437,7 @@ class AudioPlayMemory : public AudioStream
     uint32_t currentWindow;
     uint32_t waveTablePosition;
     float currentWindowFloat = 0.0f;
+    float prevWindowFloat = 0.0f;
     float targetWindowFloat = 0.0f;
     float forcedWavetableWindowFloat = 0.0f;
     uint8_t onsetFadeSamples = 0;
