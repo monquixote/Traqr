@@ -46,6 +46,7 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
                           : (float)mtProject.instrument[instrIdx].wavetableCurrentWindow;
     currentWindowFloat = targetWindowFloat;
     currentWindow = (uint32_t)currentWindowFloat;
+    onsetFadeSamples = 32;
 
     constrainsInSamples.endPoint =
       wavetableWindowSize * mtProject.instrument[instrIdx].sample.wavetableWindowNumber;
@@ -90,8 +91,7 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
           mtProject.instrument[currentInstrIdx].sample.wavetableWindowNumber;
         const float maxWin = (float)(totalWindows > 0 ? totalWindows - 1 : 0);
 
-        // Smooth transition towards target window across audio blocks to eliminate stepping/zipper noise
-        currentWindowFloat += (targetWin - currentWindowFloat) * 0.25f;
+        currentWindowFloat = targetWin;
         if (currentWindowFloat > maxWin)
             currentWindowFloat = maxWin;
         else if (currentWindowFloat < 0.0f)
@@ -198,6 +198,13 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
                                 (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDifB) >> 14);
 
                 outSample = sampA + (((sampB - sampA) * zFrac14) >> 14);
+            }
+
+            if (onsetFadeSamples > 0)
+            {
+                int32_t fadeMult = 32 - onsetFadeSamples; // 0 to 31
+                outSample = (outSample * fadeMult) >> 5;
+                onsetFadeSamples--;
             }
 
             *out++ = (int16_t)outSample;

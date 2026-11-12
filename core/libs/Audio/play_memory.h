@@ -439,6 +439,7 @@ class AudioPlayMemory : public AudioStream
     float currentWindowFloat = 0.0f;
     float targetWindowFloat = 0.0f;
     float forcedWavetableWindowFloat = 0.0f;
+    uint8_t onsetFadeSamples = 0;
 
     //********
     //********** Granular

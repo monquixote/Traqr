@@ -507,6 +507,7 @@ void AudioPlayMemory::setWavetableWindowFloat(float value)
     else
         targetWindowFloat = value;
 
+    currentWindowFloat = targetWindowFloat;
     currentWindow = (uint32_t)targetWindowFloat;
 }
 
@@ -1131,6 +1132,7 @@ void AudioPlayMemory::clean(void)
         currentWindowFloat = 0.0f;
         targetWindowFloat = 0.0f;
         forcedWavetableWindowFloat = 0.0f;
+        onsetFadeSamples = 0;
         //	    wavetableSync=0;
         //	    wavetablePWM=0;
         //	    wavetableFlip=0;
