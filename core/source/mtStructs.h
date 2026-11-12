@@ -745,7 +745,7 @@ const strInstrument defaultInstrumentParams = {
     .endPoint = MAX_16BIT,
     .wavetableCurrentWindow = 0,
     .wtSubWave = 0,
-    .wtSubLevel = 0,
+    .wtSubLevel = 20,
     .envelope = { { 1.0, 0, 10, 0, 0, 1.0, 1000, 0, 1 },
                   { 1.0, 0, 3000, 0, 0, 1.0, 1000, 0, 0 },
                   { 1.0, 0, 3000, 0, 0, 1.0, 1000, 0, 0 },

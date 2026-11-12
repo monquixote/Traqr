@@ -2289,7 +2289,7 @@ static void modWavetableSubWave(int16_t value)
     SP->editorInstrument->wtSubWave = (uint8_t)next;
     if (SP->editorInstrument->wtSubWave != 0 && SP->editorInstrument->wtSubLevel == 0)
     {
-        SP->editorInstrument->wtSubLevel = 50;
+        SP->editorInstrument->wtSubLevel = 20;
         SP->showWavetableSubLevel();
     }
 
