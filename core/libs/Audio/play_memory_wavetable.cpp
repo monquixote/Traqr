@@ -4,23 +4,25 @@
 
 namespace
 {
-inline float cubicHermiteSample(const int16_t* table,
-                                uint32_t idx0,
-                                uint32_t idx1,
-                                uint32_t idx2,
-                                uint32_t idx3,
-                                float t)
+inline int32_t cubicHermiteFixed(const int16_t* table,
+                                 uint32_t idx0,
+                                 uint32_t idx1,
+                                 uint32_t idx2,
+                                 uint32_t idx3,
+                                 int32_t t12)
 {
-    const float ym1 = (float)table[idx0];
-    const float y0 = (float)table[idx1];
-    const float y1 = (float)table[idx2];
-    const float y2 = (float)table[idx3];
+    const int32_t ym1 = table[idx0];
+    const int32_t y0 = table[idx1];
+    const int32_t y1 = table[idx2];
+    const int32_t y2 = table[idx3];
 
-    const float c1 = 0.5f * (y1 - ym1);
-    const float c2 = ym1 - 2.5f * y0 + 2.0f * y1 - 0.5f * y2;
-    const float c3 = 0.5f * (y2 - ym1) + 1.5f * (y0 - y1);
+    const int32_t c1 = (y1 - ym1) >> 1;
+    const int32_t c2 = ym1 - ((5 * y0) >> 1) + (2 * y1) - (y2 >> 1);
+    const int32_t c3 = ((y2 - ym1) >> 1) + ((3 * (y0 - y1)) >> 1);
 
-    return ((c3 * t + c2) * t + c1) * t + y0;
+    int32_t res = ((c3 * t12) >> 12) + c2;
+    res = ((res * t12) >> 12) + c1;
+    return ((res * t12) >> 12) + y0;
 }
 } // namespace
 
@@ -137,9 +139,21 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                                      ? (length - (length % wavetableWindowSize) - wavetableWindowSize)
                                      : 0;
 
-        float w = prevWindowFloat;
-        const float wStep = (currentWindowFloat - prevWindowFloat) * (1.0f / AUDIO_BLOCK_SAMPLES);
-        const bool zIsRamping = (wStep != 0.0f) && (totalWindows > 1);
+        const int32_t maxW14 = (int32_t)maxWinIdx << 14;
+        int32_t w14 = (int32_t)(prevWindowFloat * 16384.0f);
+        if (w14 < 0)
+            w14 = 0;
+        else if (w14 > maxW14)
+            w14 = maxW14;
+
+        int32_t targetW14 = (int32_t)(currentWindowFloat * 16384.0f);
+        if (targetW14 < 0)
+            targetW14 = 0;
+        else if (targetW14 > maxW14)
+            targetW14 = maxW14;
+
+        const int32_t wStep14 = (totalWindows > 1) ? ((targetW14 - w14) >> 7) : 0;
+        const bool zIsRamping = (wStep14 != 0);
 
         currentWindow = (uint32_t)currentWindowFloat;
         float steadyZFrac = currentWindowFloat - (float)currentWindow;
@@ -158,38 +172,32 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
         if (steadyPosA > maxlength)
             steadyPosA = maxlength;
 
-        int16_t* steadyInA = (int16_t*)next + steadyPosA;
-        int16_t* steadyInB = nullptr;
+        int16_t* inA = (int16_t*)next + steadyPosA;
+        int16_t* inB = nullptr;
+        int32_t zFrac14 = (int32_t)(steadyZFrac * 16384.0f);
 
-        if (steadyZFrac > 0.0f && totalWindows > 1 && currentWindow < maxWinIdx)
+        if (zFrac14 > 0 && totalWindows > 1 && currentWindow < maxWinIdx)
         {
             uint32_t nextTablePos = wavetableWindowSize * (currentWindow + 1);
             if (nextTablePos > maxlength)
                 nextTablePos = maxlength;
             if (nextTablePos != steadyPosA)
-                steadyInB = (int16_t*)next + nextTablePos;
+                inB = (int16_t*)next + nextTablePos;
             else
-                steadyZFrac = 0.0f;
+                zFrac14 = 0;
         }
         else
         {
-            steadyZFrac = 0.0f;
+            zFrac14 = 0;
         }
 
         waveTablePosition = steadyPosA;
 
-        int16_t* inA = steadyInA;
-        int16_t* inB = steadyInB;
-        float zFrac = steadyZFrac;
         uint32_t cachedWinA = currentWindow;
         if (zIsRamping)
         {
-            float wInit = w;
-            if (wInit > maxWin)
-                wInit = maxWin;
-            else if (wInit < 0.0f)
-                wInit = 0.0f;
-            cachedWinA = (uint32_t)wInit;
+            cachedWinA = (uint32_t)(w14 >> 14);
+            zFrac14 = w14 & 0x3FFF;
             uint32_t posA = wavetableWindowSize * cachedWinA;
             if (posA > maxlength)
                 posA = maxlength;
@@ -205,6 +213,8 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
             {
                 inB = nullptr;
             }
+            if (inB == nullptr)
+                zFrac14 = 0;
         }
 
         castPitchControl = (int32_t)pitchControl;
@@ -253,15 +263,14 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
 
             if (zIsRamping)
             {
-                w += wStep;
-                float wClamped = w;
-                if (wClamped > maxWin)
-                    wClamped = maxWin;
-                else if (wClamped < 0.0f)
-                    wClamped = 0.0f;
+                w14 += wStep14;
+                if (w14 < 0)
+                    w14 = 0;
+                else if (w14 > maxW14)
+                    w14 = maxW14;
 
-                const uint32_t winA = (uint32_t)wClamped;
-                zFrac = wClamped - (float)winA;
+                const uint32_t winA = (uint32_t)(w14 >> 14);
+                zFrac14 = w14 & 0x3FFF;
 
                 if (winA != cachedWinA)
                 {
@@ -284,19 +293,18 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                 }
 
                 if (inB == nullptr)
-                    zFrac = 0.0f;
+                    zFrac14 = 0;
             }
 
-            const float t = (float)currentFractionPitchCounter * (1.0f / 65536.0f);
-            float outFloat = cubicHermiteSample(inA, idx0, idx1, idx2, idx3, t);
+            const int32_t t12 = currentFractionPitchCounter >> 4; // 0..4095
+            int32_t outSample = cubicHermiteFixed(inA, idx0, idx1, idx2, idx3, t12);
 
-            if (zFrac > 0.0f && inB != nullptr)
+            if (zFrac14 > 0 && inB != nullptr)
             {
-                const float sampB = cubicHermiteSample(inB, idx0, idx1, idx2, idx3, t);
-                outFloat += (sampB - outFloat) * zFrac;
+                const int32_t sampB = cubicHermiteFixed(inB, idx0, idx1, idx2, idx3, t12);
+                outSample += ((sampB - outSample) * zFrac14) >> 14;
             }
 
-            int32_t outSample = (int32_t)outFloat;
             if (outSample > 32767)
                 outSample = 32767;
             else if (outSample < -32768)
