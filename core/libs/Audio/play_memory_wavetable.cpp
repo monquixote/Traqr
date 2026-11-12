@@ -89,7 +89,7 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     AudioInterrupts();
 }
 
-AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
+AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
 {
     audio_block_t* block = nullptr;
     int16_t* out = nullptr;
@@ -178,6 +178,35 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
 
         waveTablePosition = steadyPosA;
 
+        int16_t* inA = steadyInA;
+        int16_t* inB = steadyInB;
+        float zFrac = steadyZFrac;
+        uint32_t cachedWinA = currentWindow;
+        if (zIsRamping)
+        {
+            float wInit = w;
+            if (wInit > maxWin)
+                wInit = maxWin;
+            else if (wInit < 0.0f)
+                wInit = 0.0f;
+            cachedWinA = (uint32_t)wInit;
+            uint32_t posA = wavetableWindowSize * cachedWinA;
+            if (posA > maxlength)
+                posA = maxlength;
+            inA = (int16_t*)next + posA;
+            if (cachedWinA < maxWinIdx)
+            {
+                uint32_t posB = wavetableWindowSize * (cachedWinA + 1);
+                if (posB > maxlength)
+                    posB = maxlength;
+                inB = (posB != posA) ? ((int16_t*)next + posB) : nullptr;
+            }
+            else
+            {
+                inB = nullptr;
+            }
+        }
+
         castPitchControl = (int32_t)pitchControl;
         pitchFraction = pitchControl - (int32_t)pitchControl;
 
@@ -222,10 +251,6 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
             if (idx3 >= wavetableWindowSize)
                 idx3 = 0;
 
-            int16_t* inA = steadyInA;
-            int16_t* inB = steadyInB;
-            float zFrac = steadyZFrac;
-
             if (zIsRamping)
             {
                 w += wStep;
@@ -238,26 +263,28 @@ AUDIO_CORE_FLASH audio_block_t* AudioPlayMemory::updateWavetable()
                 const uint32_t winA = (uint32_t)wClamped;
                 zFrac = wClamped - (float)winA;
 
-                uint32_t posA = wavetableWindowSize * winA;
-                if (posA > maxlength)
-                    posA = maxlength;
-                inA = (int16_t*)next + posA;
-                inB = nullptr;
-
-                if (zFrac > 0.0f && winA < maxWinIdx)
+                if (winA != cachedWinA)
                 {
-                    uint32_t posB = wavetableWindowSize * (winA + 1);
-                    if (posB > maxlength)
-                        posB = maxlength;
-                    if (posB != posA)
-                        inB = (int16_t*)next + posB;
+                    cachedWinA = winA;
+                    uint32_t posA = wavetableWindowSize * winA;
+                    if (posA > maxlength)
+                        posA = maxlength;
+                    inA = (int16_t*)next + posA;
+                    if (winA < maxWinIdx)
+                    {
+                        uint32_t posB = wavetableWindowSize * (winA + 1);
+                        if (posB > maxlength)
+                            posB = maxlength;
+                        inB = (posB != posA) ? ((int16_t*)next + posB) : nullptr;
+                    }
                     else
-                        zFrac = 0.0f;
+                    {
+                        inB = nullptr;
+                    }
                 }
-                else
-                {
+
+                if (inB == nullptr)
                     zFrac = 0.0f;
-                }
             }
 
             const float t = (float)currentFractionPitchCounter * (1.0f / 65536.0f);
