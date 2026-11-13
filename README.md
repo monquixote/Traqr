@@ -16,6 +16,7 @@ Built directly from the original Polyend Tracker firmware source code, **Traqr**
   * [TEAR Patches & Presets (`TEAR_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
   * [JUNO Patches & Presets (`JUNO_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
   * [Sample Editor Effects (`PolyendTracker_CE_Effects.zip`)](https://github.com/monquixote/Traqr/releases/latest)
+* **Traqr User Guide (How to Use All Features)**: [Step-by-Step Feature Manual](https://monquixote.github.io/Traqr/guide.html)
 * **Interactive Web Synth Hub**: [Traqr Web DSP Hub](https://monquixote.github.io/Traqr/)
   * [JUNO Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/juno/)
   * [TEAR Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/tear/)

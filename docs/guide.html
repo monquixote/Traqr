@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traqr User Guide &bull; Custom Firmware Features &amp; Workflows</title>
+    <style>
+        :root {
+            --bg-deep: #0c0e12;
+            --bg-card: #15181e;
+            --bg-panel: #1e222b;
+            --bg-code: #0f1218;
+            --border: #2d3340;
+            --text-main: #f0f3f6;
+            --text-dim: #9aa1ad;
+            --accent-juno: #ffb84a;
+            --accent-juno-strip: #e5533d;
+            --accent-tear: #00e5ff;
+            --accent-chorus: #8b7bff;
+            --accent-orange: #ff7b00;
+            --focus-ring: #00e5ff;
+            --header-h: 4.25rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-main);
+            min-block-size: 100dvh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        /* Responsive Site Navbar */
+        .site-header {
+            position: sticky;
+            inset-block-start: 0;
+            z-index: 40;
+            background: rgba(12, 14, 18, 0.92);
+            backdrop-filter: blur(10px);
+            border-block-end: 1px solid var(--border);
+        }
+
+        .site-header.is-measuring * {
+            transition: none !important;
+        }
+
+        .header-inner {
+            max-inline-size: 1220px;
+            margin-inline: auto;
+            padding-block: 0.75rem;
+            padding-inline: 1.25rem;
+            display: flex;
+            align-items: safe center;
+            justify-content: space-between;
+            gap: 1rem;
+            overflow: clip;
+        }
+
+        .header-inner > * {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .site-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 900;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
+        }
+
+        .site-logo-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding-block: 0.15rem;
+            padding-inline: 0.5rem;
+            border-radius: 999px;
+            background: rgba(0, 229, 255, 0.12);
+            color: var(--accent-tear);
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .site-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-button {
+            anchor-name: --menu-button;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding-block: 0.45rem;
+            padding-inline: 0.85rem;
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .menu-button:hover {
+            background: #272d39;
+            border-color: #454f63;
+        }
+
+        .site-menu {
+            list-style: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.5rem;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+            position: fixed;
+            inset: auto;
+            inset-block-start: 4.5rem;
+            inset-block-start: anchor(--menu-button bottom);
+            inset-inline-end: 1rem;
+            inline-size: min(82dvw, 19rem);
+            max-inline-size: calc(100dvw - 2rem);
+            block-size: fit-content;
+            max-block-size: calc(100dvh - 6rem);
+            margin-block-start: 0.45rem;
+            overflow: auto;
+        }
+
+        .site-menu a {
+            display: block;
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.92rem;
+            font-weight: 600;
+            padding-block: 0.55rem;
+            padding-inline: 0.8rem;
+            border-radius: 6px;
+            border-inline-start: 3px solid transparent;
+        }
+
+        .site-menu a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .site-menu a[aria-current="page"] {
+            color: var(--accent-tear);
+            border-inline-start-color: var(--accent-tear);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        .site-header.is-wide .menu-button {
+            display: none;
+        }
+
+        .site-header.is-wide .site-menu {
+            position: static;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            inline-size: auto;
+            max-inline-size: none;
+            block-size: auto;
+            max-block-size: none;
+            overflow: visible;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .site-header.is-wide .site-menu::backdrop {
+            display: none;
+        }
+
+        .site-header.is-wide .site-menu a {
+            padding-block: 0.4rem;
+            padding-inline: 0.75rem;
+            border-inline-start: 0;
+            border-block-end: 2px solid transparent;
+            border-radius: 6px 6px 2px 2px;
+        }
+
+        .site-header.is-wide .site-menu a[aria-current="page"] {
+            color: var(--accent-tear);
+            border-block-end-color: var(--accent-tear);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        /* Page Container & Two-Column Docs Grid */
+        .page-shell {
+            max-inline-size: 1220px;
+            inline-size: 100%;
+            margin-inline: auto;
+            padding-block: 2rem 4rem;
+            padding-inline: 1.25rem;
+            flex: 1;
+        }
+
+        .hero {
+            background: linear-gradient(145deg, rgba(0, 229, 255, 0.08), rgba(139, 123, 255, 0.07) 55%, rgba(255, 184, 74, 0.08));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding-block: 2rem;
+            padding-inline: 1.75rem;
+            margin-block-end: 2rem;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            padding-block: 0.3rem;
+            padding-inline: 0.8rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-block-end: 0.9rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(1.75rem, 3vw, 2.35rem);
+            font-weight: 900;
+            letter-spacing: -0.4px;
+            line-height: 1.2;
+            margin-block-end: 0.7rem;
+            color: #fff;
+        }
+
+        .hero p {
+            color: var(--text-dim);
+            max-inline-size: 74ch;
+            font-size: 1rem;
+        }
+
+        .quick-jumps {
+            display: flex;
+            flex-wrap: wrap;
+            flex-wrap: balance;
+            gap: 0.55rem;
+            margin-block-start: 1.25rem;
+        }
+
+        .jump-pill {
+            text-decoration: none;
+            font-size: 0.83rem;
+            font-weight: 700;
+            color: var(--text-main);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding-block: 0.35rem;
+            padding-inline: 0.85rem;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .jump-pill:hover {
+            border-color: var(--accent-tear);
+            background: var(--bg-panel);
+        }
+
+        .docs-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        @media (min-width: 920px) {
+            .docs-layout {
+                grid-template-columns: minmax(230px, 265px) minmax(0, 1fr);
+            }
+        }
+
+        /* Scrollspy Sidebar TOC */
+        .toc-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            min-inline-size: 0;
+        }
+
+        @media (min-width: 920px) {
+            .toc-sidebar {
+                position: sticky;
+                inset-block-start: calc(var(--header-h) + 1rem);
+                max-block-size: calc(100dvh - var(--header-h) - 2rem);
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                overscroll-behavior: contain;
+            }
+        }
+
+        .toc-title {
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-block-end: 0.65rem;
+            padding-inline-start: 0.6rem;
+        }
+
+        .toc-nav {
+            scroll-target-group: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .toc-link {
+            display: block;
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.88rem;
+            font-weight: 500;
+            padding-block: 0.45rem;
+            padding-inline: 0.7rem;
+            border-inline-start: 3px solid transparent;
+            border-radius: 0 6px 6px 0;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .toc-link:is(:target-current, .target-current) {
+            color: var(--accent-tear);
+            font-weight: 700;
+            border-inline-start-color: var(--accent-tear);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        /* Guide Main Content & Sections */
+        .guide-main {
+            min-inline-size: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        .guide-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.75rem;
+            scroll-margin-block-start: calc(var(--header-h) + 1rem);
+            min-inline-size: 0;
+        }
+
+        .section-eyebrow {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            color: var(--accent-tear);
+            margin-block-end: 0.3rem;
+        }
+
+        .section-eyebrow.juno { color: var(--accent-juno); }
+        .section-eyebrow.chorus { color: var(--accent-chorus); }
+        .section-eyebrow.orange { color: var(--accent-orange); }
+
+        .guide-section h2 {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #fff;
+            margin-block-end: 0.85rem;
+            padding-block-end: 0.65rem;
+            border-block-end: 1px solid var(--border);
+        }
+
+        .guide-section h3 {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: #fff;
+            margin-block: 1.35rem 0.55rem;
+        }
+
+        .guide-section p {
+            color: var(--text-dim);
+            margin-block-end: 0.85rem;
+        }
+
+        .guide-section p strong,
+        .guide-section li strong {
+            color: var(--text-main);
+        }
+
+        .guide-section ul,
+        .guide-section ol {
+            padding-inline-start: 1.35rem;
+            color: var(--text-dim);
+            margin-block-end: 1rem;
+        }
+
+        .guide-section li {
+            margin-block-end: 0.45rem;
+        }
+
+        .guide-section a {
+            color: var(--accent-tear);
+            text-underline-offset: 3px;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.86em;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e6edf3;
+            padding-block: 0.1rem;
+            padding-inline: 0.35rem;
+            border-radius: 4px;
+        }
+
+        kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.82em;
+            font-weight: 700;
+            background: var(--bg-panel);
+            color: #fff;
+            border: 1px solid #454e60;
+            border-block-end-width: 2px;
+            padding-block: 0.08rem;
+            padding-inline: 0.42rem;
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+
+        pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin-block: 0.75rem 1rem;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            color: #d7e0ea;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .callout {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-inline-start: 4px solid var(--accent-tear);
+            border-radius: 8px;
+            padding-block: 0.9rem;
+            padding-inline: 1.1rem;
+            margin-block: 1rem;
+            font-size: 0.92rem;
+            color: var(--text-dim);
+        }
+
+        .callout.warn {
+            border-inline-start-color: var(--accent-juno);
+        }
+
+        .callout.chorus {
+            border-inline-start-color: var(--accent-chorus);
+        }
+
+        .callout strong {
+            color: var(--text-main);
+        }
+
+        .two-col-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-block: 1rem;
+        }
+
+        .mini-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.1rem;
+            min-inline-size: 0;
+        }
+
+        .mini-card h4 {
+            font-size: 0.98rem;
+            font-weight: 800;
+            margin-block-end: 0.45rem;
+            color: #fff;
+        }
+
+        .mini-card.juno-card {
+            border-block-start: 3px solid var(--accent-juno);
+        }
+
+        .mini-card.tear-card {
+            border-block-start: 3px solid var(--accent-tear);
+        }
+
+        /* Responsive Tables */
+        .table-wrapper {
+            overflow: auto;
+            max-inline-size: 100%;
+            max-block-size: min(460px, 72dvh);
+            container-type: inline-size;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-block: 0.85rem 1.15rem;
+            background: var(--bg-code);
+        }
+
+        table.ref-table {
+            inline-size: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.88rem;
+            text-align: start;
+        }
+
+        table.ref-table caption {
+            padding: 0.65rem 0.9rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-align: start;
+            background: var(--bg-panel);
+            border-block-end: 1px solid var(--border);
+        }
+
+        table.ref-table thead th {
+            position: sticky;
+            inset-block-start: 0;
+            z-index: 1;
+            background: #1a1f28;
+            color: var(--text-main);
+            font-weight: 700;
+            padding: 0.65rem 0.85rem;
+            border-block-end: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        table.ref-table tbody th,
+        table.ref-table tbody td {
+            padding: 0.65rem 0.85rem;
+            border-block-end: 1px solid rgba(45, 51, 64, 0.7);
+            vertical-align: top;
+            color: var(--text-dim);
+        }
+
+        table.ref-table tbody th {
+            position: sticky;
+            inset-inline-start: 0;
+            background: #12161d;
+            color: var(--text-main);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        table.ref-table tbody tr:last-child th,
+        table.ref-table tbody tr:last-child td {
+            border-block-end: 0;
+        }
+
+        @container (width < 560px) {
+            table.ref-table,
+            table.ref-table thead,
+            table.ref-table tbody,
+            table.ref-table tr,
+            table.ref-table th,
+            table.ref-table td {
+                display: block;
+            }
+
+            table.ref-table thead {
+                display: none;
+            }
+
+            table.ref-table tbody tr {
+                margin: 0.65rem;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--bg-card);
+                overflow: clip;
+            }
+
+            table.ref-table tbody th {
+                position: sticky;
+                inset-block-start: 0;
+                z-index: 2;
+                background: var(--bg-panel);
+                border-block-end: 1px solid var(--border);
+                white-space: normal;
+            }
+
+            table.ref-table tbody td {
+                border-block-end: 1px solid rgba(45, 51, 64, 0.55);
+            }
+
+            table.ref-table tbody td::before {
+                font-weight: 700;
+                color: var(--text-main);
+                display: block;
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-block-end: 0.15rem;
+            }
+
+            table.ref-table.cols-3 tbody td:nth-child(2)::before { content: var(--label-2); }
+            table.ref-table.cols-3 tbody td:nth-child(3)::before { content: var(--label-3); }
+
+            table.ref-table.cols-4 tbody td:nth-child(2)::before { content: var(--label-2); }
+            table.ref-table.cols-4 tbody td:nth-child(3)::before { content: var(--label-3); }
+            table.ref-table.cols-4 tbody td:nth-child(4)::before { content: var(--label-4); }
+        }
+
+        @media (forced-colors: active) {
+            .site-menu a[aria-current="page"],
+            .toc-link:is(:target-current, .target-current) {
+                border: 2px solid Highlight;
+            }
+        }
+
+        footer {
+            margin-block-start: auto;
+            text-align: center;
+            padding: 1.75rem 1.25rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            border-block-start: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header" id="site-header">
+        <div class="header-inner" id="header-inner">
+            <a class="site-logo" href="index.html">
+                <span>Traqr</span>
+                <span class="site-logo-badge">User Guide</span>
+            </a>
+
+            <nav class="site-nav" aria-label="Primary">
+                <button
+                    class="menu-button"
+                    type="button"
+                    popovertarget="site-menu"
+                    popovertargetaction="toggle"
+                    aria-controls="site-menu"
+                >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <rect x="1" y="3" width="14" height="2" rx="1"></rect>
+                        <rect x="1" y="7" width="14" height="2" rx="1"></rect>
+                        <rect x="1" y="11" width="14" height="2" rx="1"></rect>
+                    </svg>
+                    <span>Menu</span>
+                </button>
+
+                <ul id="site-menu" class="site-menu" popover="auto">
+                    <li><a href="index.html">Web Synth Hub</a></li>
+                    <li><a href="guide.html" aria-current="page">Feature Guide</a></li>
+                    <li><a href="synths/juno/">JUNO Web Synth</a></li>
+                    <li><a href="synths/tear/">TEAR Web Synth</a></li>
+                    <li><a href="https://github.com/monquixote/Traqr/releases" target="_blank" rel="noopener">Releases</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="page-shell">
+        <div class="hero">
+            <div class="badge-pill">Traqr Firmware &bull; Polyend Tracker, Mini &amp; Tracker+</div>
+            <h1>How to Use Every Traqr Feature</h1>
+            <p>
+                Step-by-step hardware workflows, menu locations, shortcut keys, and MIDI maps for everything added in Traqr:
+                <strong>JUNO</strong> &amp; <strong>TEAR</strong> synth engines, <strong>Synth Performance Mode</strong>,
+                <strong>Wavetable Sub-Oscillator &amp; Warp Modulation</strong>, and the <strong>Master Stereo Chorus Send</strong>.
+            </p>
+            <div class="quick-jumps">
+                <a class="jump-pill" href="#install">1. Install &amp; SD Setup</a>
+                <a class="jump-pill" href="#synths">2. JUNO &amp; TEAR Synths</a>
+                <a class="jump-pill" href="#synth-perf">3. Synth Performance &amp; MIDI</a>
+                <a class="jump-pill" href="#wavetable">4. Wavetable Sub-Osc &amp; Warp</a>
+                <a class="jump-pill" href="#chorus">5. Master Stereo Chorus</a>
+                <a class="jump-pill" href="#extras">6. .ptfx Plugins &amp; More</a>
+            </div>
+        </div>
+
+        <div class="docs-layout">
+            <aside class="toc-sidebar" aria-label="On this page">
+                <div class="toc-title">On This Page</div>
+                <nav class="toc-nav" aria-label="Guide sections">
+                    <a class="toc-link" href="#install">1. Installation &amp; SD Card Layout</a>
+                    <a class="toc-link" href="#synths">2. JUNO &amp; TEAR Synth Engines</a>
+                    <a class="toc-link" href="#synth-perf">3. Synth Performance &amp; Circuit Tracks MIDI</a>
+                    <a class="toc-link" href="#wavetable">4. Wavetable Sub-Osc, Warp &amp; Mod</a>
+                    <a class="toc-link" href="#chorus">5. Master Stereo Chorus Send</a>
+                    <a class="toc-link" href="#extras">6. .ptfx Effects &amp; More Guides</a>
+                </nav>
+            </aside>
+
+            <main class="guide-main">
+                <!-- SECTION 1: INSTALL -->
+                <section id="install" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow">Getting Started</div>
+                    <h2>1. Firmware Installation &amp; SD Card Setup</h2>
+                    <p>
+                        Download the latest Traqr release bundle from
+                        <a href="https://github.com/monquixote/Traqr/releases" target="_blank" rel="noopener">GitHub Releases</a>
+                        and place the files on your microSD card as shown below:
+                    </p>
+
+                    <pre><code>SD Card Root/
+├── Firmware/
+│   └── TrackerMini_NL_1.0.26.ptf   (or TrackerPlus_NL_*.ptf / PolyendTracker_NL_*.ptf)
+├── Patches/
+│   ├── JUNO/                       (unzipped contents of JUNO_Patches.zip)
+│   └── TEAR/                       (unzipped contents of TEAR_Patches.zip)
+└── Effects/
+    └── *.ptfx                      (optional: unzipped PolyendTracker_CE_Effects.zip)</code></pre>
+
+                    <ol>
+                        <li>Back up any important projects from your SD card before flashing firmware.</li>
+                        <li>Insert the microSD card into your Tracker and navigate to <strong>Config &rarr; Firmware &rarr; Firmware update</strong>.</li>
+                        <li>Select the Traqr <code>.ptf</code> file for your model (<strong>Tracker Mini</strong>, <strong>Tracker+</strong>, or <strong>Original Tracker</strong>) and confirm.</li>
+                    </ol>
+
+                    <div class="callout warn">
+                        <strong>Note for Original Polyend Tracker (MK66):</strong> Traqr's wavetable improvements, Master Stereo Chorus send, and Sample Editor <code>.ptfx</code> plugins run across all hardware models. Internal polyphonic synth engines (<code>JUNO</code>, <code>TEAR</code>, and Synth Performance) require the Tracker Mini or Tracker+ IMX synth platform.
+                    </div>
+                </section>
+
+                <!-- SECTION 2: JUNO & TEAR SYNTHS -->
+                <section id="synths" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow juno">Polyphonic Engines</div>
+                    <h2>2. JUNO &amp; TEAR Custom Synth Engines</h2>
+                    <p>
+                        Traqr adds two custom polyphonic synth engines alongside Polyend's stock engines (<code>ACD</code>, <code>FAT</code>, <code>VAP</code>, <code>WTFM</code>, <code>PERC</code>, <code>DIRT</code>, <code>CHIP</code>).
+                    </p>
+
+                    <h3>Selecting an Engine &amp; Loading Presets on Hardware</h3>
+                    <ol>
+                        <li>Switch to any Synth slot (<strong>Synth 1</strong>, <strong>Synth 2</strong>, or <strong>Synth 3</strong>).</li>
+                        <li>Open <strong>Instrument Parameters</strong> to enter the Synth Editor.</li>
+                        <li>Turn the encoder / adjust the engine selector to pick <strong><code>JUNO</code></strong> or <strong><code>TEAR</code></strong>, or open the Patch Browser to load any <code>.patch</code> file placed in <code>/Patches/JUNO/</code> or <code>/Patches/TEAR/</code>.</li>
+                        <li>Use the 6 editor page buttons at the bottom of the screen to sculpt every parameter, then save or tweak the 6 Macros for live automation.</li>
+                    </ol>
+
+                    <h3>Designing Patches in Your Browser</h3>
+                    <p>
+                        Both <a href="synths/juno/">JUNO Web Synth</a> and <a href="synths/tear/">TEAR Web Synth</a> run the exact same C++20 DSP code compiled to WebAssembly:
+                    </p>
+                    <ul>
+                        <li>Play notes with your computer keyboard, mouse, or a connected USB MIDI controller.</li>
+                        <li>Audition all <strong>18 built-in factory presets</strong> per engine, configure custom <strong>Macro 1–6</strong> parameter bindings and ranges, then export either a single <code>.patch</code> file or a full preset <code>.zip</code> directly to your SD card's <code>/Patches/</code> folder.</li>
+                    </ul>
+
+                    <div class="two-col-cards">
+                        <div class="mini-card juno-card">
+                            <h4>JUNO &mdash; Vintage DCO Poly</h4>
+                            <p>6 pages: <code>DCO</code>, <code>Filter</code>, <code>F-Env</code>, <code>A-Env</code>, <code>LFO</code>, <code>Chorus</code>.</p>
+                            <ul>
+                                <li><strong>DCO:</strong> <code>Saw Level</code>, <code>Pulse Level</code>, <code>Pulse Width</code>, <code>PWM Depth/Source</code>, <code>Sub Level</code>/<code>Sub Octave</code>, <code>Noise</code>, <code>Voice Drift</code>.</li>
+                                <li><strong>Filter:</strong> Non-resonant <code>HPF</code> + 4-pole resonant LPF (<code>Cutoff</code>, <code>Resonance</code>, <code>Env Amount</code>, <code>LFO Amount</code>, <code>Key Track</code>, <code>OTA Drive</code>).</li>
+                                <li><strong>BBD Chorus:</strong> Dedicated stereo <code>Chorus</code> (Off, I, II, I+II) built into the synth engine.</li>
+                                <li><strong>Default Macros 1&ndash;6:</strong> <code>Cutoff</code>, <code>Resonance</code>, <code>Env Mod</code>, <code>Sub / Bass</code>, <code>PWM Depth</code>, <code>Release</code>.</li>
+                            </ul>
+                        </div>
+                        <div class="mini-card tear-card">
+                            <h4>TEAR &mdash; Phase-Tearing Sync</h4>
+                            <p>6 pages: <code>Osc</code>, <code>Mod</code>, <code>Filter</code>, <code>Env 1</code>, <code>Amp</code>, <code>Voice</code>.</p>
+                            <ul>
+                                <li><strong>Oscillator:</strong> 5 <code>Sync Mode</code>s (Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, Ring Shred), <code>Sync Ratio</code>, <code>Shape Morph</code>, and Sub Osc.</li>
+                                <li><strong>Sync Modulation:</strong> Dedicated <code>Sync Decay</code> / <code>Sync Depth</code> envelope and <code>Sync LFO Rate</code> / <code>Depth</code>.</li>
+                                <li><strong>Filter &amp; Drive:</strong> Selectable <code>Filter Model</code>, <code>Drive</code>, 5 <code>Saturation</code> circuits, and <code>Glide Mode</code>/<code>Time</code>.</li>
+                                <li><strong>Default Macros 1&ndash;6:</strong> <code>Tear Pitch</code>, <code>Sync Env</code>, <code>Sync LFO</code>, <code>Cutoff</code>, <code>Drive</code>, <code>Shape Morph</code>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 3: SYNTH PERFORMANCE & MIDI -->
+                <section id="synth-perf" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow">Live Control &amp; MIDI</div>
+                    <h2>3. Synth Performance Mode &amp; Circuit Tracks MIDI</h2>
+                    <p>
+                        <strong>Synth Performance</strong> puts all 3 active Synth parts on one live control surface styled around an 8-column layout:
+                        <strong>Macros 1&ndash;6 + Delay Send + Reverb Send</strong>. Every row shows the active patch, MIDI channel, voice count,
+                        Volume (dB), Pan, live stereo L/R RMS meters, and updates in real time when Pattern FX automate macros or sends.
+                    </p>
+
+                    <h3>How to Open Synth Performance</h3>
+                    <p>
+                        Press <kbd>Menu</kbd> to open the module grid and choose <strong>Synth Performance</strong> (located in the bottom-right / Game module slot).
+                    </p>
+
+                    <div tabindex="0" role="region" aria-labelledby="perf-controls-caption" class="table-wrapper">
+                        <table class="ref-table cols-3" style="--label-2: 'Action'; --label-3: 'Notes';">
+                            <caption id="perf-controls-caption">Synth Performance On-Device Controls</caption>
+                            <thead>
+                                <tr>
+                                    <th>Control</th>
+                                    <th>Action</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th>Screen Buttons 1&ndash;8</th>
+                                    <td>Select Macro 1&ndash;6, Delay, or Reverb</td>
+                                    <td>Pressing the already-selected column button cycles through <strong>Synth 1 &rarr; 2 &rarr; 3</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <th><kbd>Left</kbd> / <kbd>Right</kbd></th>
+                                    <td>Move column selection</td>
+                                    <td>Steps horizontally across columns 1&ndash;8.</td>
+                                </tr>
+                                <tr>
+                                    <th><kbd>Up</kbd> / <kbd>Down</kbd></th>
+                                    <td>Switch Synth row (1&ndash;3)</td>
+                                    <td>Hold <kbd>Shift</kbd> + <kbd>Up</kbd>/<kbd>Down</kbd> to nudge the active parameter by <code>&plusmn;1</code>.</td>
+                                </tr>
+                                <tr>
+                                    <th>Encoder / <kbd>+</kbd> <kbd>-</kbd></th>
+                                    <td>Adjust selected parameter</td>
+                                    <td>Hold <kbd>Shift</kbd> + Encoder to adjust the selected synth's <strong>Volume (dB)</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <th><kbd>Instr</kbd></th>
+                                    <td>Cycle Synth 1 &rarr; 2 &rarr; 3</td>
+                                    <td>Quickly jump between the 3 synth slots while keeping your active column.</td>
+                                </tr>
+                                <tr>
+                                    <th><kbd>Delete</kbd></th>
+                                    <td>Reset parameter to default</td>
+                                    <td>Resets unipolar macros to <code>0</code>, bipolar macros to center, or sends to default.</td>
+                                </tr>
+                                <tr>
+                                    <th>Pads / <kbd>Middle</kbd></th>
+                                    <td>Audition notes live</td>
+                                    <td><kbd>Play</kbd> starts pattern playback; <kbd>Shift</kbd> + <kbd>Play</kbd> starts Song playback.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Multitimbral MIDI Routing &amp; Novation Circuit Tracks</h3>
+                    <p>
+                        You can drive all 3 Synth parts simultaneously from an external sequencer or groovebox such as the <strong>Novation Circuit Tracks</strong>:
+                    </p>
+                    <ol>
+                        <li>Open <strong>Config &rarr; MIDI</strong>.</li>
+                        <li>Make sure <strong>Notes in</strong> and <strong>CC in</strong> are enabled for your USB or MIDI IN port.</li>
+                        <li>Assign independent MIDI channels to <strong>Synth 1 MIDI ch</strong>, <strong>Synth 2 MIDI ch</strong>, and <strong>Synth 3 MIDI ch</strong> (for example, channels <code>1</code>, <code>2</code>, and <code>3</code>, or Circuit Tracks MIDI track channels).</li>
+                    </ol>
+
+                    <div tabindex="0" role="region" aria-labelledby="midi-cc-caption" class="table-wrapper">
+                        <table class="ref-table cols-4" style="--label-2: 'Macros 1–6'; --label-3: 'Delay / Reverb'; --label-4: 'Extra';">
+                            <caption id="midi-cc-caption">Supported Incoming MIDI CC Mappings per Synth Channel</caption>
+                            <thead>
+                                <tr>
+                                    <th>Controller / Mode</th>
+                                    <th>Macros 1&ndash;6</th>
+                                    <th>Delay / Reverb Send</th>
+                                    <th>Extra</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th>Circuit Tracks Synth Tracks</th>
+                                    <td><code>CC 80 &ndash; 85</code></td>
+                                    <td><code>CC 86</code> / <code>CC 87</code></td>
+                                    <td>Direct 1:1 8-knob layout</td>
+                                </tr>
+                                <tr>
+                                    <th>Circuit Tracks MIDI Tracks</th>
+                                    <td><code>CC 1, 2, 5, 11, 71, 74</code></td>
+                                    <td><code>CC 12</code> / <code>CC 13</code></td>
+                                    <td>Matches factory MIDI track template</td>
+                                </tr>
+                                <tr>
+                                    <th>Generic 8-Knob Controller</th>
+                                    <td><code>CC 1 &ndash; 6</code></td>
+                                    <td><code>CC 7</code> / <code>CC 8</code></td>
+                                    <td>Sequential encoders 1&ndash;8</td>
+                                </tr>
+                                <tr>
+                                    <th>PolySynth / Tracker Standard</th>
+                                    <td><code>CC 102&ndash;107</code> or <code>CC 110&ndash;115</code></td>
+                                    <td><code>CC 116</code> / <code>CC 117</code></td>
+                                    <td><code>CC 118</code> Pan, <code>CC 119</code> Gain</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECTION 4: WAVETABLE ENGINE -->
+                <section id="wavetable" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow">Sample &amp; Wavetable Synthesis</div>
+                    <h2>4. Enhanced Wavetable Engine: Sub-Osc, Warp &amp; Modulation</h2>
+                    <p>
+                        Traqr upgrades Sample Playback's <strong>Wavetable</strong> mode with a phase-locked sub-oscillator, three oscillator warp modes,
+                        independent <strong>Wavetable Warp</strong> modulation, 32-sample de-clicked window stepping, a 32-sample note-onset declicker,
+                        and fixed single-cycle seam wrapping in ITCM RAM &mdash; while remaining 100% compatible with official Polyend projects.
+                    </p>
+
+                    <h3>Using Sub-Oscillator &amp; Warp in Sample Playback</h3>
+                    <ol>
+                        <li>Select a sample-based instrument and open <strong>Sample Playback</strong>.</li>
+                        <li>Press <strong>Play Mode</strong> (Screen Button 7) and pick <strong>Wavetable</strong>.</li>
+                        <li>Set starting <strong>Position</strong> (Button 2) and single-cycle <strong>Window</strong> size (Button 3).</li>
+                        <li>Press <strong>Sub Wave</strong> (Button 4) to pick <code>Off</code>, <code>Sine</code>, <code>Tri</code>, or <code>Square</code>. Turning it on from <code>Off</code> automatically initializes <strong>Sub Level</strong> (Button 5) to <code>20%</code>; dial <code>0%&ndash;100%</code> to taste.</li>
+                        <li>Press <strong>Warp</strong> (Button 6) to choose a wave/phase shaper and turn up the Warp amount (<code>0%&ndash;100%</code>; enabling a Warp mode defaults amount to <code>50%</code>):</li>
+                    </ol>
+
+                    <div tabindex="0" role="region" aria-labelledby="wt-warp-caption" class="table-wrapper">
+                        <table class="ref-table cols-3" style="--label-2: 'Display'; --label-3: 'Sonic Behavior';">
+                            <caption id="wt-warp-caption">Wavetable Sub-Oscillator &amp; Warp Controls</caption>
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Display / Options</th>
+                                    <th>Sonic Behavior</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th>Sub Wave &amp; Level</th>
+                                    <td><code>Off</code>, <code>Sine</code>, <code>Tri</code>, <code>Square</code> &bull; <code>0&ndash;100%</code></td>
+                                    <td>Phase-locked sub-oscillator tracked to the fundamental cycle for solid low-end weight without phase drift.</td>
+                                </tr>
+                                <tr>
+                                    <th>Warp: Asymmetric</th>
+                                    <td><code>Asy 0&ndash;100%</code></td>
+                                    <td>Bends phase symmetry inside each wavetable cycle (PWM-like timbre shift on any wavetable).</td>
+                                </tr>
+                                <tr>
+                                    <th>Warp: Sync</th>
+                                    <td><code>Snc 0&ndash;100%</code></td>
+                                    <td>Accelerates readout phase inside the cycle and hard-resets at the period boundary for tearing sync harmonics.</td>
+                                </tr>
+                                <tr>
+                                    <th>Warp: Fold</th>
+                                    <td><code>Fld 0&ndash;100%</code></td>
+                                    <td>Applies wavefolder gain and reflection for rich metallic overtones and gritty harmonic saturation.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Simultaneous Modulation of Wavetable Position &amp; Warp</h3>
+                    <p>
+                        Because <strong>Wavetable Warp</strong> has its own dedicated modulation slot alongside <strong>Wavetable Position</strong>,
+                        you can animate both at the same time:
+                    </p>
+                    <ol>
+                        <li>Press <strong>Instrument Parameters</strong> twice to open <strong>Instrument Automation (2/2)</strong>.</li>
+                        <li>Select Destination <strong><code>Wavetable Position</code></strong> and set Type to <code>Envelope</code>, <code>LFO</code>, <code>WT Env</code>, or <code>WT LFO</code> to scan frames over time.</li>
+                        <li>Still on Destination column 1, select <strong><code>Wavetable Warp</code></strong> and assign a separate <code>Envelope</code>, <code>LFO</code>, <code>WT Env</code>, or <code>WT LFO</code>.</li>
+                        <li>Modulation adds cleanly onto your instrument's base <strong>Warp</strong> percentage (clamped <code>0%&ndash;100%</code>), updating live as notes play.</li>
+                    </ol>
+
+                    <div class="callout">
+                        <strong>Want custom modulation shapes &amp; Pattern FX?</strong> See the companion
+                        <a href="https://github.com/monquixote/Traqr/blob/main/docs/wavetable_envelopes.md" target="_blank" rel="noopener">Wavetable Envelopes (<code>WT Env</code>), LFOs (<code>WT LFO</code>) &amp; Step FX (<code>w</code> / <code>y</code>) Guide</a>
+                        for dual-axis <code>Warp X/Y</code> curves and user wavetable loading.
+                    </div>
+                </section>
+
+                <!-- SECTION 5: MASTER CHORUS -->
+                <section id="chorus" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow chorus">Master Send Effects</div>
+                    <h2>5. Master Stereo Chorus Send Effect</h2>
+                    <p>
+                        Traqr adds a warm, dual-modulated BBD-style <strong>Master Stereo Chorus</strong> wired as a global send effect alongside Delay and Reverb.
+                    </p>
+
+                    <div class="callout chorus">
+                        <strong>Signal Routing Scope:</strong> Sample-based instruments, Wavetable instruments, and <strong>Line In</strong> route into the Master Chorus send.
+                        Polyphonic Synth tracks (<code>S1&ndash;S3</code>) are intentionally excluded &mdash; use <code>JUNO</code>'s authentic built-in stereo BBD Chorus or <code>TEAR</code>'s internal modulation instead.
+                    </div>
+
+                    <h3>Step 1: Send an Instrument to Chorus</h3>
+                    <ol>
+                        <li>Select a sample or wavetable instrument and open <strong>Instrument Parameters &rarr; Effects (1/2)</strong>.</li>
+                        <li>Press <strong>More</strong> to open the secondary Effects page.</li>
+                        <li>Turn up <strong>Chorus send</strong> (Screen Button 6) from <code>0%</code> to <code>100%</code>.</li>
+                    </ol>
+
+                    <h3>Step 2: Shape Tone in Master 1/3 &rarr; Master Chorus</h3>
+                    <p>
+                        Open <strong>Master 1/3</strong> and press <strong>Chorus</strong> (Screen Button 8, replacing the standalone <code>Space</code> slot). Inside the <strong>Master Chorus</strong> screen:
+                    </p>
+
+                    <div tabindex="0" role="region" aria-labelledby="chorus-params-caption" class="table-wrapper">
+                        <table class="ref-table cols-3" style="--label-2: 'Range'; --label-3: 'Function';">
+                            <caption id="chorus-params-caption">Master Chorus Screen Parameters</caption>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Range / Control</th>
+                                    <th>Function</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th>Rate (Btn 1)</th>
+                                    <td><code>0.10 Hz &ndash; 5.00 Hz</code></td>
+                                    <td>LFO modulation speed across the stereo delay lines.</td>
+                                </tr>
+                                <tr>
+                                    <th>Depth (Btn 2)</th>
+                                    <td><code>0% &ndash; 100%</code></td>
+                                    <td>Pitch and delay modulation intensity.</td>
+                                </tr>
+                                <tr>
+                                    <th>Width (Btn 3)</th>
+                                    <td><code>0% &ndash; 100%</code></td>
+                                    <td>Stereo L/R phase offset and image wideness of the wet Chorus signal.</td>
+                                </tr>
+                                <tr>
+                                    <th>Space (Btn 4)</th>
+                                    <td><code>0 &ndash; 8</code></td>
+                                    <td>Master stereo widening boost (moved inside the Chorus menu to free Master 1/3).</td>
+                                </tr>
+                                <tr>
+                                    <th>Line in (Btn 5)</th>
+                                    <td><code>0% &ndash; 100%</code> + <kbd>Shift</kbd> Mute</td>
+                                    <td>Controls how much external Line In audio feeds Chorus. Hold <kbd>Shift</kbd> + press <strong>Line in</strong> to Mute/Unmute.</td>
+                                </tr>
+                                <tr>
+                                    <th>Back (Btn 8)</th>
+                                    <td>Button press</td>
+                                    <td>Returns directly to <strong>Master 1/3</strong>.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Step 3: Mix the Chorus Return in Global Mixer 3/3</h3>
+                    <ol>
+                        <li>Cycle to <strong>Global Mixer 3/3</strong> (the Sends / Returns mixer page in Master mode).</li>
+                        <li>Use the dedicated <strong>Chorus</strong> channel strip to trim the stereo return fader, watch real-time <strong>L/R RMS meters</strong>, or <strong>Mute</strong> / <strong>Solo</strong> the Chorus return alongside <code>Delay</code> and <code>Reverb</code>.</li>
+                    </ol>
+                </section>
+
+                <!-- SECTION 6: EXTRAS -->
+                <section id="extras" class="guide-section" tabindex="-1">
+                    <div class="section-eyebrow orange">Ecosystem &amp; Deeper Reading</div>
+                    <h2>6. Modular Sample Editor Plugins &amp; Reference Docs</h2>
+                    <p>
+                        Traqr inherits and ships with Polyend Tracker Community Edition's ecosystem tools as well. Explore these companion guides:
+                    </p>
+                    <ul>
+                        <li>
+                            <strong>Modular Sample Editor Effects (<code>.ptfx</code>):</strong> Extract <code>PolyendTracker_CE_Effects.zip</code> to <code>SD:/Effects/</code> and preview/apply custom DSP plugins (Multi-Mode Filter, Transient Shaper, Stereo Delay, Haas, Chiptune &amp; Analog Kick Generators) inside the Sample Editor.
+                            See the <a href="https://github.com/monquixote/Traqr/blob/main/docs/modular_effects_system.md" target="_blank" rel="noopener">Modular Effects System Guide</a>.
+                        </li>
+                        <li>
+                            <strong>Wavetable Envelopes &amp; Step FX:</strong> Full breakdown of <code>WT Env</code>, <code>WT LFO</code>, and pattern commands <code>w</code> / <code>y</code> in
+                            <a href="https://github.com/monquixote/Traqr/blob/main/docs/wavetable_envelopes.md" target="_blank" rel="noopener">wavetable_envelopes.md</a>.
+                        </li>
+                        <li>
+                            <strong>Custom Themes, Fonts &amp; Image Viewer:</strong> Learn how to theme your UI in
+                            <a href="https://github.com/monquixote/Traqr/blob/main/docs/custom_themes_and_fonts.md" target="_blank" rel="noopener">custom_themes_and_fonts.md</a>
+                            and view SD images with <a href="https://github.com/monquixote/Traqr/blob/main/docs/image_viewer.md" target="_blank" rel="noopener">image_viewer.md</a>.
+                        </li>
+                    </ul>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <p>Traqr &bull; Enhanced Firmware for Polyend Tracker, Mini &amp; Tracker+ &bull; <a href="index.html">Web Synth Hub</a> &bull; <a href="https://github.com/monquixote/Traqr" target="_blank" rel="noopener">GitHub Repository</a></p>
+    </footer>
+
+    <script type="module">
+        // Conditional Popover API polyfill only when native support is missing
+        if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
+            import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+        }
+
+        // Responsive navbar switching between native popover and inline bar
+        const siteHeader = document.getElementById("site-header");
+        const headerInner = document.getElementById("header-inner");
+        const siteMenu = document.getElementById("site-menu");
+
+        let lastMeasuredHeaderWidth = 0;
+
+        function updateNavbarLayout() {
+            const wasWide = siteHeader.classList.contains("is-wide");
+            const currentHeaderWidth = siteHeader.clientWidth;
+            if (!wasWide && currentHeaderWidth <= lastMeasuredHeaderWidth) {
+                lastMeasuredHeaderWidth = currentHeaderWidth;
+                return;
+            }
+            lastMeasuredHeaderWidth = currentHeaderWidth;
+
+            let wasPopoverOpen = false;
+            if (!wasWide) {
+                try {
+                    wasPopoverOpen = siteMenu.matches(":is(:popover-open, .\\:popover-open)");
+                } catch (_) {
+                    wasPopoverOpen = false;
+                }
+            }
+
+            siteHeader.classList.add("is-measuring", "is-wide");
+            siteMenu.removeAttribute("popover");
+            const fitsInline = headerInner.scrollWidth <= headerInner.clientWidth;
+
+            if (fitsInline) {
+                siteHeader.classList.add("is-wide");
+                siteMenu.removeAttribute("popover");
+            } else {
+                siteHeader.classList.remove("is-wide");
+                siteMenu.setAttribute("popover", "auto");
+                if (wasPopoverOpen && typeof siteMenu.showPopover === "function") {
+                    try {
+                        siteMenu.showPopover();
+                    } catch (_) {
+                        // Ignore if popover transition cannot re-open immediately
+                    }
+                }
+            }
+
+            requestAnimationFrame(() => {
+                siteHeader.classList.remove("is-measuring");
+            });
+        }
+
+        const navObserver = new ResizeObserver(() => {
+            updateNavbarLayout();
+        });
+        navObserver.observe(siteHeader);
+        navObserver.observe(siteMenu);
+        updateNavbarLayout();
+
+        // Scrollspy: native scroll-target-group when available + IntersectionObserver fallback
+        const tocLinks = Array.from(document.querySelectorAll(".toc-nav .toc-link"));
+        const sections = Array.from(document.querySelectorAll("main section[id]"));
+
+        function setActiveLink(activeLink) {
+            tocLinks.forEach((link) => {
+                const isCurrent = link === activeLink;
+                link.setAttribute("aria-current", isCurrent ? "true" : "false");
+                link.classList.toggle("target-current", isCurrent);
+            });
+        }
+
+        if (CSS.supports("scroll-target-group: auto")) {
+            const syncNativeCurrent = () => {
+                const currentLink = document.querySelector(".toc-nav a:target-current");
+                if (currentLink) {
+                    tocLinks.forEach((link) => {
+                        link.setAttribute("aria-current", link === currentLink ? "true" : "false");
+                    });
+                }
+            };
+            syncNativeCurrent();
+            document.addEventListener("scrollend", syncNativeCurrent);
+        } else {
+            const sectionObserver = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            const id = entry.target.getAttribute("id");
+                            const match = tocLinks.find((link) => link.getAttribute("href") === `#${id}`);
+                            if (match) {
+                                setActiveLink(match);
+                            }
+                        }
+                    });
+                },
+                { rootMargin: "-25% 0px -65% 0px", threshold: 0 }
+            );
+            sections.forEach((section) => sectionObserver.observe(section));
+            if (tocLinks[0]) {
+                setActiveLink(tocLinks[0]);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), covering the **Original Polyend Tracker** (`MK66`), **Polyend Tracker+** and **Polyend Tracker Mini** (`IMX`).
 
+* **[Traqr Feature User Guide](https://monquixote.github.io/Traqr/guide.html)** - Step-by-step instructions for installing Traqr, designing patches with JUNO & TEAR, Synth Performance & Circuit Tracks MIDI, Wavetable Sub-Osc & Warp modulation, and the Master Stereo Chorus send.
 * **[Interactive Web DSP Hub](https://monquixote.github.io/Traqr/)** - Real-time WASM web interfaces for JUNO and TEAR synth engines.
 * **[Release Changelog (`CHANGELOG.md`)](../CHANGELOG.md)** - Full list of new features, improvements, and fixes in each release.
 * **[Latest Releases on GitHub](https://github.com/monquixote/Traqr/releases)** - Download `.ptf` firmware builds and preset archives.
