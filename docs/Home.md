@@ -15,7 +15,8 @@ Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), 
 * **`TEAR` Sync Synthesizer**: 5 sync modes (Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, Ring Shred), morphable slave shape, dedicated sync envelope/LFO, and 5 saturation circuits.
   * [Live Web Interface](https://monquixote.github.io/Traqr/synths/tear/)
 * **Synth Performance Dashboard (Optimised for Circuit Tracks)**: Dedicated live tracking and performance screen for Macros 1–6, Delay/Reverb sends (matching the Novation Circuit Tracks 8-macro layout), Volume, Pan, polyphony counts, and real-time pattern FX automation tracking.
-* **Enhanced Wavetable Engine**: Continuous Z-axis frame interpolation (smooth morphing without stepped zipper noise), and single-cycle seam wrap glitch fix with 100% project backwards compatibility.
+* **Enhanced Wavetable Engine**: Phase-locked Sub-Oscillator (`Off`, `Sine`, `Tri`, `Square`), Oscillator Warp modes (`Off`, `Asym`, `Sync`, `Fold`) with independent `Wavetable Warp` Envelope/LFO modulation, 32-sample de-clicked window stepping, onset declicker, ITCM execution, and single-cycle seam wrap fix with 100% project backwards compatibility.
+* **Master Stereo Chorus Send**: Shared BBD-style stereo chorus send for sample/wavetable instruments and Line In (`Master 1/3` -> `Chorus` screen with `Rate`, `Depth`, `Width`, `Space`, and `Line in`, plus dedicated `Global Mixer 3/3` stereo return fader, L/R meters, Mute, and Solo).
 
 ---
 

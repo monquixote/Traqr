@@ -2,7 +2,7 @@
 
 Welcome to **Traqr** — an enhanced, community-driven edition of the firmware for the **Polyend Tracker**, **Tracker Mini**, and **Tracker+**.
 
-Built directly from the original Polyend Tracker firmware source code, **Traqr** adds custom polyphonic synthesizer engines, a dedicated real-time Synth Performance dashboard, heavily optimized DSP with control-rate decimation, and browser-based WebAssembly synth interfaces, while maintaining complete project compatibility and respecting existing muscle memory.
+Built directly from the original Polyend Tracker firmware source code, **Traqr** adds custom polyphonic synthesizer engines, a dedicated real-time Synth Performance dashboard, a global Master Stereo Chorus send effect, an upgraded Wavetable engine (Sub-Oscillator, Warp modes with independent Envelope/LFO modulation, and de-clicked window stepping), heavily optimized DSP with control-rate decimation, and browser-based WebAssembly synth interfaces, while maintaining complete project compatibility and respecting existing muscle memory.
 
 ---
 
@@ -54,10 +54,15 @@ A live performance dashboard designed for hands-on control over your synth track
 * **Division-Free PolyBLEP**: Precomputed inverse delta phases eliminate hardware floating-point division from anti-aliasing calculations in the inner audio loop.
 * **Shared BLEP Residuals & Bitmasked Buffers**: Optimizes waveform generation and replaces modulo operations with single-cycle bitwise masking in delay lines.
 
-### 5. Enhanced Wavetable Engine (Smooth Morphing & Seam Bug Fix)
-* **Smooth Continuous Z-Axis Frame Interpolation**: Continuous fixed-point crossfading between wavetable frames during modulation (from Envelopes, LFOs, and Step FX). Eliminates harsh frame stepping and zipper noise, transforming wavetable sweeps into liquid, analog-smooth morphs.
-* **Single-Cycle Seam Bug Fix**: Corrected a cyclic wrapping bug where the final sample of a single-cycle wave interpolated into adjacent memory rather than looping back to sample 0. Eliminates the harsh boundary discontinuity spike at the fundamental pitch period.
-* **100% Backwards & Forwards Compatible**: Retains the exact 372-byte `strInstrument` binary memory layout; fully compatible with all official Polyend project files.
+### 5. Enhanced Wavetable Engine (Sub-Oscillator, Warp Modes & De-Clicked Synthesis)
+* **Phase-Locked Sub-Oscillator**: Per-instrument sub-oscillator in `Wavetable` Sample Playback with selectable `Off`, `Sine`, `Tri`, and `Square` waveforms and `0–100%` mix level (defaults to `20%` when enabled).
+* **Oscillator Warp Modes & Simultaneous Modulation**: Per-instrument warp modes (`Off`, `Asym`, `Sync`, `Fold`) with `0–100%` warp depth (defaults to `50%` when enabled), plus a dedicated **`Wavetable Warp`** modulation target in Instrument Parameters so Wavetable Position and Warp can be modulated simultaneously by Envelopes and LFOs.
+* **De-Clicked Window Stepping, Seam Fix & ITCM Headroom**: 32-sample de-clicked window-stepping crossfade, 32-sample note-onset declicker, cyclic single-cycle seam wrap bug fix, and ITCM RAM execution for `updateWavetable` — keeping 6+ track headroom while retaining the exact `372`-byte `strInstrument` layout for 100% Polyend project compatibility.
+
+### 6. Master Stereo Chorus Send Effect
+* **BBD-Style Global Stereo Chorus Send**: Shared stereo chorus (`AudioEffectChorus`) wired as a global send effect alongside Delay and Reverb for sample-based instruments, wavetable instruments, and Line In (Synth tracks excluded).
+* **Per-Instrument Send & Master Chorus Menu**: Per-instrument `Chorus send` control on the Instrument Effects `More` page, plus a `Chorus` button on **Master 1/3** opening the **Master Chorus** subscreen (`Rate` `0.10–5.00 Hz`, `Depth` `0–100%`, `Width` `0–100%`, `Space` `0–8` moved inside, `Line in` send level with Shift+Press Mute, and `Back`).
+* **Global Mixer 3/3 Return Channel**: Dedicated stereo `Chorus` return fader with L/R RMS metering, Mute, and Solo.
 
 ---
 
