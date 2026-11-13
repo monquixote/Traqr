@@ -48,6 +48,7 @@ AUDIO_CORE_RAM void playerEngine::update()
         handleUpdateRefreshPanning();
         handleUpdateRefreshGranPos();
         handleUpdateRefreshWtPos();
+        handleUpdateRefreshWtWarp();
         handleUpdateRefreshFinetune();
         //**********
         handleUpdateRefreshLP1();
@@ -183,6 +184,11 @@ inline void playerEngine::handleUpdateEnvelope(uint8_t type, bool enableConditio
                         mtProject.instrument[currentInstrument_idx].playMode == playModeGranular)
                     {
                         refreshRegister |= GRANULAR_LEN_SEND_MASK;
+                    }
+                    else if (type == envWtWarp &&
+                             mtProject.instrument[currentInstrument_idx].playMode == playModeWavetable)
+                    {
+                        refreshRegister |= WT_WARP_SEND_MASK;
                     }
                     else
                     {
@@ -645,6 +651,23 @@ inline void playerEngine::handleUpdateRefreshGranPos()
         modGranularPosition(localGranPosition);
     }
 }
+inline void playerEngine::handleUpdateRefreshWtWarp()
+{
+    if (refreshRegister & WT_WARP_SEND_MASK)
+    {
+        refreshRegister &= (~WT_WARP_SEND_MASK);
+        if (!mtProject.instrument[currentInstrument_idx].isWtWarpEnvEnabled())
+        {
+            currentEnvelopeModification[envWtWarp] = 0;
+        }
+
+        const uint8_t warpAmt = getEnvelopeWtWarpMod();
+        for (int channel = 0; channel < (int)playMemPtr.size(); channel++)
+        {
+            playMemPtr[channel]->setWavetableWarpAmount(warpAmt);
+        }
+    }
+}
 inline void playerEngine::handleUpdateRefreshGranLen()
 {
     if (refreshRegister & GRANULAR_LEN_SEND_MASK)
@@ -871,7 +894,7 @@ inline void playerEngine::handleUpdateRefreshGranPosLFO()
         if ((mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWaveFile) &&
             (mtProject.instrument[currentInstrument_idx].playMode == playModeGranular))
         {
-            if ((mtProject.instrument[currentInstrument_idx].envelope[envGranPos].enable) &&
+            if ((mtProject.instrument[currentInstrument_idx].isEnvEnabled(envGranPos)) &&
                 (!trackControlParameter[(int)controlType::sequencerMode]
                                        [(int)parameterList::lfoGranularPosition]) &&
                 (!trackControlParameter[(int)controlType::sequencerMode2]
@@ -906,6 +929,45 @@ inline void playerEngine::handleUpdateRefreshGranPosLFO()
                       &mtProject.instrument[currentInstrument_idx].envelope[envGranPos]);
                     envelopePtr[envGranPos]->setIsRandom(false);
                 }
+            }
+        }
+        else if ((mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWavetable) &&
+                 (mtProject.instrument[currentInstrument_idx].playMode == playModeWavetable))
+        {
+            if (mtProject.instrument[currentInstrument_idx].isWtWarpEnvEnabled())
+            {
+                uint8_t curWarpLoop = mtProject.instrument[currentInstrument_idx].envelope[envWtWarp].loop;
+                if (curWarpLoop == 1 || curWarpLoop == 3)
+                {
+                    calcLfoBasedEnvelope(
+                      &lfoBasedEnvelope[envWtWarp],
+                      &mtProject.instrument[currentInstrument_idx].lfo[envWtWarp],
+                      mtProject.instrument[currentInstrument_idx].lfo[envWtWarp].speed,
+                      0,
+                      curWarpLoop);
+                    initEnvelopesParameters(envWtWarp, &lfoBasedEnvelope[envWtWarp]);
+                    if (currentInstrument_idx == mtProject.values.lastUsedInstrument)
+                    {
+                        setSyncParamsLFO(envWtWarp);
+                    }
+
+                    bool isRandom = (curWarpLoop == 1) &&
+                      (mtProject.instrument[currentInstrument_idx].lfo[envWtWarp].shape ==
+                       lfoShapeRandom);
+                    envelopePtr[envWtWarp]->setIsRandom(isRandom);
+                }
+                else
+                {
+                    initEnvelopesParameters(
+                      envWtWarp,
+                      &mtProject.instrument[currentInstrument_idx].envelope[envWtWarp]);
+                    envelopePtr[envWtWarp]->setIsRandom(false);
+                }
+            }
+            else
+            {
+                currentEnvelopeModification[envWtWarp] = 0;
+                refreshRegister |= WT_WARP_SEND_MASK;
             }
         }
     }

@@ -401,6 +401,7 @@ AUDIO_CORE_RAM void playerEngine::handleInitNoteOnAllEnvelopes()
     if (mtProject.instrument[currentInstrument_idx].playMode == playModeWavetable)
     {
         handleInitNoteOnEnvelope(envWtPos);
+        handleInitNoteOnEnvelope(envWtWarp);
     }
 
     if (mtProject.instrument[currentInstrument_idx].playMode == playModeGranular)
@@ -686,6 +687,7 @@ AUDIO_CORE_RAM void playerEngine::handleInitFxNoteOnAllEnvelopes()
     if (mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWavetable)
     {
         handleInitFxNoteOnEnvelope(envWtPos);
+        handleInitFxNoteOnEnvelope(envWtWarp);
     }
 
     if ((mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWaveFile) &&

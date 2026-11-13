@@ -2346,6 +2346,11 @@ static void modWavetableWarpMode(int16_t value)
         SP->editorInstrument->wtWarpAmount = 50;
     }
 
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        instrumentPlayer[i].setRefreshBit(WT_WARP_SEND_MASK);
+    }
+
     SP->showWavetableWarp();
     newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
 }
@@ -2364,6 +2369,10 @@ static void modWavetableWarpAmount(int16_t value)
         next = 0;
 
     SP->editorInstrument->wtWarpAmount = (uint8_t)next;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        instrumentPlayer[i].setRefreshBit(WT_WARP_SEND_MASK);
+    }
     SP->showWavetableWarp();
     newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
 }

@@ -61,6 +61,9 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     fPitchCounter = 0.0f;
     subPhase32 = 0;
     prevWaveTablePosition = UINT32_MAX;
+    currentWarpAmount = mtProject.instrument[instrIdx].wtWarpAmount;
+    if (currentWarpAmount > 100)
+        currentWarpAmount = 100;
 
     playing = 1;
     AudioInterrupts();
@@ -114,7 +117,7 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
     uint8_t warpMode = mtProject.instrument[currentInstrIdx].wtWarpMode;
     if (warpMode > 3)
         warpMode = 0;
-    uint8_t warpAmt = mtProject.instrument[currentInstrIdx].wtWarpAmount;
+    uint8_t warpAmt = currentWarpAmount;
     if (warpAmt > 100)
         warpAmt = 100;
     if (warpAmt == 0)

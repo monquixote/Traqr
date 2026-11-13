@@ -2597,6 +2597,19 @@ uint32_t playerEngine::getEnvelopeGranLenMod()
     return static_cast<uint32_t>(clamp<int32_t>(localGranLen, MIN_GRANULAR_LENGTH, maxGrainLen));
 }
 
+uint8_t playerEngine::getEnvelopeWtWarpMod()
+{
+    int32_t localWarp = mtProject.instrument[currentInstrument_idx].wtWarpAmount;
+    if (mtProject.instrument[currentInstrument_idx].isWtWarpEnvEnabled() &&
+        ((envelopePtr[envWtWarp]->isKeyPressed() == 1) ||
+         (envelopePtr[envWtWarp]->getPhase() != 0)))
+    {
+        localWarp += static_cast<int32_t>(currentEnvelopeModification[envWtWarp] * 100.0f);
+    }
+
+    return static_cast<uint8_t>(clamp<int32_t>(localWarp, 0, 100));
+}
+
 void playerEngine::calcLfoBasedEnvelope(envelopeGenerator::strEnv* env,
                                         strInstrument::strEnvBasedLfo* lfo,
                                         uint8_t rate,

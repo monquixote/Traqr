@@ -77,6 +77,7 @@ const char* const envelopesLabels[autoDestCount] = {
     "Panning",
     "Cutoff",
     "Wavetable Position",
+    "Wavetable Warp",
     "Granular Position",
     "Granular Length",
     "Finetune"

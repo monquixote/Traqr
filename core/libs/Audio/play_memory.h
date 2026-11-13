@@ -120,6 +120,7 @@ class AudioPlayMemory : public AudioStream
     //*********
     //*****Wavetable
     void setWavetableWindow(int16_t value);
+    inline void setWavetableWarpAmount(uint8_t value) { currentWarpAmount = (value > 100) ? 100 : value; }
     //*********
     //*****************************************************************
     //*********Wymuszanie Parametrów z Sequencera lub PerformanceMode
@@ -437,6 +438,7 @@ class AudioPlayMemory : public AudioStream
     uint32_t prevWaveTablePosition = UINT32_MAX;
     uint32_t subPhase32 = 0;
     uint8_t onsetFadeSamples = 0;
+    uint8_t currentWarpAmount = 0;
 
     //********
     //********** Granular

@@ -1857,7 +1857,7 @@ void playerEngine::endFxPositionGranularLFO(uint8_t fx_n)
         }
         else
         {
-            if (mtProject.instrument[currentInstrument_idx].envelope[envGranPos].enable)
+            if (mtProject.instrument[currentInstrument_idx].isEnvEnabled(envGranPos))
             {
                 if (curLoop == 1 || curLoop == 3)
                 {

@@ -2707,7 +2707,10 @@ int cInstrumentEditor::getEnvelopeIdx(SampleInstrumentParamsCC param)
         case kGranularPositionDecay_SpeedLFO:
         case kGranularPositionSustain:
         case kGranularPositionRelease:
-        case kGranularPositionAmount: return enAutomationDest::autoDestGranPos;
+        case kGranularPositionAmount:
+            return (IE->editorInstrument && IE->editorInstrument->playMode == playModeWavetable)
+                     ? enAutomationDest::autoDestWtWarp
+                     : enAutomationDest::autoDestGranPos;
         case kFinetuneAutomationType:
         case kFinetuneAttack_ShapeLFO:
         case kFinetuneDecay_SpeedLFO:

@@ -1094,6 +1094,7 @@ void AudioPlayMemory::clean(void)
         prevWaveTablePosition = UINT32_MAX;
         subPhase32 = 0;
         onsetFadeSamples = 0;
+        currentWarpAmount = 0;
         //	    wavetableSync=0;
         //	    wavetablePWM=0;
         //	    wavetableFlip=0;

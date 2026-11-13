@@ -245,6 +245,7 @@ constexpr uint32_t LFO_FINETUNE_SEND_MASK = 0b00000000000010000000000000000000;
 constexpr uint32_t REVERB_SEND_MASK = 0b00000000000100000000000000000000;
 constexpr uint32_t OVERDRIVE_MASK = 0b00000000001000000000000000000000;
 constexpr uint32_t BIT_DEPTH_MASK = 0b00000000010000000000000000000000;
+constexpr uint32_t WT_WARP_SEND_MASK = 0b00000000100000000000000000000000;
 
 const uint8_t MIN_NOTE_OFFSET = 0;
 const uint8_t MAX_NOTE_OFFSET = 13;
@@ -422,6 +423,8 @@ enum envelopesType
     // playModeGranular are mutually exclusive, preserving the 372-byte strInstrument .pti layout.
     envGranLen = envWtPos,
     envGranPos,
+    // Wavetable Warp shares slot 4 with Granular Position for the same reason.
+    envWtWarp = envGranPos,
     envFinetune,
 
     envMax
@@ -434,6 +437,7 @@ enum enAutomationDest : uint8_t
     autoDestPanning,
     autoDestCutoff,
     autoDestWtPos,
+    autoDestWtWarp,
     autoDestGranPos,
     autoDestGranLen,
     autoDestFinetune,
@@ -449,6 +453,7 @@ static constexpr envelopesType automationDestToEnvSlot(uint8_t destIdx)
         case autoDestPanning: return envPan;
         case autoDestCutoff: return envCutoff;
         case autoDestWtPos: return envWtPos;
+        case autoDestWtWarp: return envWtWarp;
         case autoDestGranPos: return envGranPos;
         case autoDestGranLen: return envGranLen;
         case autoDestFinetune: return envFinetune;
@@ -678,10 +683,12 @@ struct strInstrument
     uint8_t bitDepth; // = BIT_DEPTH_MAX;
     int8_t tuneResample;
 
-    // Bitmasks for envelope[envWtPos / envGranLen].enable so legacy .pti files (which only ever
-    // set bit 0 = 0x01 for Wavetable Position) never unintendedly enable Granular Length automation.
+    // Bitmasks for shared envelope slots so legacy .pti files (which only ever set bit 0 = 0x01)
+    // never unintendedly enable Wavetable Warp or Granular Length automation.
     static constexpr uint8_t kEnvEnableWtPosBit = 0x01;
     static constexpr uint8_t kEnvEnableGranLenBit = 0x02;
+    static constexpr uint8_t kEnvEnableGranPosBit = 0x01;
+    static constexpr uint8_t kEnvEnableWtWarpBit = 0x02;
 
     bool isWtPosEnvEnabled() const
     {
@@ -693,11 +700,25 @@ struct strInstrument
         return (envelope[envGranLen].enable & kEnvEnableGranLenBit) != 0;
     }
 
+    bool isGranPosEnvEnabled() const
+    {
+        return (envelope[envGranPos].enable & kEnvEnableGranPosBit) != 0;
+    }
+
+    bool isWtWarpEnvEnabled() const
+    {
+        return (envelope[envWtWarp].enable & kEnvEnableWtWarpBit) != 0;
+    }
+
     bool isEnvEnabled(uint8_t envIdx) const
     {
         if (envIdx == envWtPos)
         {
             return (playMode == playModeGranular) ? isGranLenEnvEnabled() : isWtPosEnvEnabled();
+        }
+        if (envIdx == envGranPos)
+        {
+            return (playMode == playModeWavetable) ? isWtWarpEnvEnabled() : isGranPosEnvEnabled();
         }
         return envelope[envIdx].enable != 0;
     }
@@ -708,6 +729,10 @@ struct strInstrument
             return isWtPosEnvEnabled();
         if (destIdx == autoDestGranLen)
             return isGranLenEnvEnabled();
+        if (destIdx == autoDestGranPos)
+            return isGranPosEnvEnabled();
+        if (destIdx == autoDestWtWarp)
+            return isWtWarpEnvEnabled();
         return envelope[automationDestToEnvSlot(destIdx)].enable != 0;
     }
 
@@ -726,6 +751,20 @@ struct strInstrument
                 envelope[envGranLen].enable |= kEnvEnableGranLenBit;
             else
                 envelope[envGranLen].enable &= ~kEnvEnableGranLenBit;
+        }
+        else if (destIdx == autoDestGranPos)
+        {
+            if (enabled)
+                envelope[envGranPos].enable |= kEnvEnableGranPosBit;
+            else
+                envelope[envGranPos].enable &= ~kEnvEnableGranPosBit;
+        }
+        else if (destIdx == autoDestWtWarp)
+        {
+            if (enabled)
+                envelope[envWtWarp].enable |= kEnvEnableWtWarpBit;
+            else
+                envelope[envWtWarp].enable &= ~kEnvEnableWtWarpBit;
         }
         else
         {

@@ -331,6 +331,7 @@ class playerEngine
     uint32_t getEnvelopeGranLenMod();
 
     uint32_t getEnvelopeWtPosMod();
+    uint8_t getEnvelopeWtWarpMod();
 
     uint16_t getWavePosition();
     int16_t* getWaveStartAddressIfPlaying(int channel);
@@ -687,6 +688,7 @@ class playerEngine
     inline void handleUpdateRefreshOverdrive();
     inline void handleUpdateRefreshBitDepth();
     inline void handleUpdateRefreshWtPos();
+    inline void handleUpdateRefreshWtWarp();
     inline void handleUpdateRefreshGranPos();
     inline void handleUpdateRefreshGranLen();
     inline void handleUpdateRefreshGranWave();

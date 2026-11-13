@@ -1200,7 +1200,7 @@ void playerEngine::endPositionLfoRatePerformanceMode()
         }
         else
         {
-            if (mtProject.instrument[currentInstrument_idx].envelope[envGranPos].enable)
+            if (mtProject.instrument[currentInstrument_idx].isEnvEnabled(envGranPos))
             {
                 if (curGranLoop == 1 || curGranLoop == 3)
                 {
