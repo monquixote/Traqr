@@ -241,10 +241,12 @@ class cSamplePlayback : public ModuleBase
     char wavetableWindowSizeText[7];
     char wtSubWaveText[8];
     char wtSubLevelText[7];
+    char wtWarpText[12];
     void showWavetablePosition();
     void showWavetableWindowSize();
     void showWavetableSubWave();
     void showWavetableSubLevel();
+    void showWavetableWarp();
     uint16_t convertWavetableWindowsCounterToSize(uint8_t cnt);
     uint8_t convertWavetableWindowsSizeToCounter(uint16_t size);
     uint8_t wavetableWindowsCounter = 11;

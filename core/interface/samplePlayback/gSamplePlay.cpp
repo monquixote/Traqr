@@ -305,7 +305,7 @@ void cSamplePlayback::showDefaultScreen()
         display.setControlText(label[2], "Window");
         display.setControlText(label[3], "Sub Wave");
         display.setControlText(label[4], "Sub Level");
-        display.setControlText(label[5], "");
+        display.setControlText(label[5], "Warp");
 
         display.setControlValue(label[0], 0);
 
@@ -326,6 +326,7 @@ void cSamplePlayback::showDefaultScreen()
         showWavetableWindowSize();
         showWavetableSubWave();
         showWavetableSubLevel();
+        showWavetableWarp();
         refreshSpectrum = 1;
 
         processWavetableCursor(editorInstrument->wavetableCurrentWindow);
@@ -456,6 +457,30 @@ void cSamplePlayback::showWavetableSubLevel()
     display.setControlText2(label[4], wtSubLevelText);
     display.setControlShow(label[4]);
     display.refreshControl(label[4]);
+}
+
+void cSamplePlayback::showWavetableWarp()
+{
+    static const char* const warpNames[4] = { "Off", "Asy", "Snc", "Fld" };
+    uint8_t mode = editorInstrument->wtWarpMode;
+    if (mode > 3)
+        mode = 0;
+
+    if (mode == 0)
+    {
+        sprintf(wtWarpText, "Off");
+    }
+    else
+    {
+        uint8_t amt = editorInstrument->wtWarpAmount;
+        if (amt > 100)
+            amt = 100;
+        sprintf(wtWarpText, "%s %d%%", warpNames[mode], amt);
+    }
+
+    display.setControlText2(label[5], wtWarpText);
+    display.setControlShow(label[5]);
+    display.refreshControl(label[5]);
 }
 
 void cSamplePlayback::showZoomValue()

@@ -618,6 +618,7 @@ struct strInstrument
     void setStreamPreferred(bool streamed) { name[3] = streamed ? kStreamPrefMagic : 0; }
 
     uint8_t playMode;
+    uint8_t wtWarpMode; // 0 = Off, 1 = Asym, 2 = Sync, 3 = Fold
     uint16_t startPoint;
     uint16_t loopPoint1;
     uint16_t loopPoint2;
@@ -652,6 +653,7 @@ struct strInstrument
     int8_t fineTune;
 
     uint8_t volume;
+    uint8_t wtWarpAmount; // 0..100 (%)
 
     uint16_t glide;
     int16_t panning; // = 50;
@@ -739,6 +741,7 @@ const strInstrument defaultInstrumentParams = {
     .sample = { 0, {}, nullptr, 0, 2048, 0 },
     .name = {},
     .playMode = playModeSingleShot,
+    .wtWarpMode = 0,
     .startPoint = 0,
     .loopPoint1 = 1,
     .loopPoint2 = MAX_16BIT - 1,
@@ -765,6 +768,7 @@ const strInstrument defaultInstrumentParams = {
     .tune = 0,
     .fineTune = 0,
     .volume = 50,
+    .wtWarpAmount = 0,
     .glide = 0,
     .panning = 50,
     .delaySend = 0,

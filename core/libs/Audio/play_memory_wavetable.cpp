@@ -111,6 +111,107 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
     if (subLevel > 100)
         subLevel = 100;
 
+    uint8_t warpMode = mtProject.instrument[currentInstrIdx].wtWarpMode;
+    if (warpMode > 3)
+        warpMode = 0;
+    uint8_t warpAmt = mtProject.instrument[currentInstrIdx].wtWarpAmount;
+    if (warpAmt > 100)
+        warpAmt = 100;
+    if (warpAmt == 0)
+        warpMode = 0;
+
+    const uint32_t wSize = wavetableWindowSize;
+    const uint32_t wSize16 = wSize << 16;
+    const bool wIsPow2 = (wSize & (wSize - 1U)) == 0;
+    const uint32_t wMask16 = wSize16 - 1U;
+
+    uint32_t asymMid16 = 0;
+    uint32_t asymHalfW16 = 0;
+    uint32_t asymSlope1_12 = 4096U;
+    uint32_t asymSlope2_12 = 4096U;
+    uint32_t syncRatio12 = 4096U;
+    int32_t foldGain12 = 4096;
+
+    if (warpMode == 1)
+    {
+        asymHalfW16 = wSize << 15;
+        asymMid16 = (uint32_t)(((uint64_t)asymHalfW16 * (100U - ((uint32_t)warpAmt * 9U) / 10U)) / 100U);
+        if (asymMid16 < 1U)
+            asymMid16 = 1U;
+        asymSlope1_12 = (uint32_t)(((uint64_t)asymHalfW16 << 12) / asymMid16);
+        const uint32_t rem16 = wSize16 - asymMid16;
+        asymSlope2_12 = (uint32_t)(((uint64_t)asymHalfW16 << 12) / (rem16 ? rem16 : 1U));
+    }
+    else if (warpMode == 2)
+    {
+        syncRatio12 = 4096U + ((uint32_t)warpAmt * 12288U) / 100U;
+    }
+    else if (warpMode == 3)
+    {
+        foldGain12 = 4096 + ((int32_t)warpAmt * 12288) / 100;
+    }
+
+    auto readWarpedSample = [&](int i, int32_t fracCounter) -> int32_t {
+        uint32_t idx1 = (uint32_t)iPitchCounter;
+        int32_t frac = fracCounter;
+
+        if (warpMode == 1)
+        {
+            const uint32_t p16 = (idx1 << 16) + (uint32_t)fracCounter;
+            uint32_t warped16 = (p16 < asymMid16)
+                                  ? (uint32_t)(((uint64_t)p16 * asymSlope1_12) >> 12)
+                                  : (asymHalfW16 + (uint32_t)(((uint64_t)(p16 - asymMid16) * asymSlope2_12) >> 12));
+            if (warped16 >= wSize16)
+                warped16 = wSize16 - 1U;
+            idx1 = warped16 >> 16;
+            frac = (int32_t)(warped16 & 0xFFFFU);
+        }
+        else if (warpMode == 2)
+        {
+            const uint32_t p16 = (idx1 << 16) + (uint32_t)fracCounter;
+            uint32_t warped16 = (uint32_t)(((uint64_t)p16 * syncRatio12) >> 12);
+            if (wIsPow2)
+                warped16 &= wMask16;
+            else
+                warped16 %= wSize16;
+            idx1 = warped16 >> 16;
+            frac = (int32_t)(warped16 & 0xFFFFU);
+        }
+
+        uint32_t idx2 = idx1 + 1U;
+        if (idx2 >= wSize)
+            idx2 = 0;
+
+        const int32_t currentSampleValue = in[idx1];
+        const int32_t interpolationDif = in[idx2] - currentSampleValue;
+
+        int32_t wtSample = currentSampleValue +
+                           (int32_t)(((frac >> 2) * interpolationDif) >> 14);
+
+        if (doWindowXfade && i < 32)
+        {
+            const int32_t prevSampleValue = inPrev[idx1];
+            const int32_t prevInterpDif = inPrev[idx2] - prevSampleValue;
+            const int32_t prevWtSample = prevSampleValue +
+                                         (int32_t)(((frac >> 2) * prevInterpDif) >> 14);
+            wtSample = ((prevWtSample * (32 - i)) + (wtSample * i)) >> 5;
+        }
+
+        if (warpMode == 3)
+        {
+            wtSample = (wtSample * foldGain12) >> 12;
+            while (wtSample > 32767 || wtSample < -32768)
+            {
+                if (wtSample > 32767)
+                    wtSample = 65534 - wtSample;
+                else
+                    wtSample = -65536 - wtSample;
+            }
+        }
+
+        return wtSample;
+    };
+
     if (subWave == 0 || subLevel == 0)
     {
         for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
@@ -137,26 +238,7 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                 }
             }
 
-            const uint32_t idx1 = (uint32_t)iPitchCounter;
-            uint32_t idx2 = idx1 + 1;
-            if (idx2 >= wavetableWindowSize)
-                idx2 = 0;
-
-            const int32_t currentSampleValue = in[idx1];
-            const int32_t interpolationDif = in[idx2] - currentSampleValue;
-
-            int32_t wtSample = currentSampleValue +
-                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
-
-            if (doWindowXfade && i < 32)
-            {
-                const int32_t prevSampleValue = inPrev[idx1];
-                const int32_t prevInterpDif = inPrev[idx2] - prevSampleValue;
-                const int32_t prevWtSample = prevSampleValue +
-                                             (int32_t)(((currentFractionPitchCounter >> 2) * prevInterpDif) >> 14);
-                wtSample = ((prevWtSample * (32 - i)) + (wtSample * i)) >> 5;
-            }
-
+            const int32_t wtSample = readWarpedSample(i, currentFractionPitchCounter);
             *out++ = (int16_t)wtSample;
 
             iPitchCounter += castPitchControl;
@@ -204,25 +286,7 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                 }
             }
 
-            const uint32_t idx1 = (uint32_t)iPitchCounter;
-            uint32_t idx2 = idx1 + 1;
-            if (idx2 >= wavetableWindowSize)
-                idx2 = 0;
-
-            const int32_t currentSampleValue = in[idx1];
-            const int32_t interpolationDif = in[idx2] - currentSampleValue;
-
-            int32_t wtSample = currentSampleValue +
-                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
-
-            if (doWindowXfade && i < 32)
-            {
-                const int32_t prevSampleValue = inPrev[idx1];
-                const int32_t prevInterpDif = inPrev[idx2] - prevSampleValue;
-                const int32_t prevWtSample = prevSampleValue +
-                                             (int32_t)(((currentFractionPitchCounter >> 2) * prevInterpDif) >> 14);
-                wtSample = ((prevWtSample * (32 - i)) + (wtSample * i)) >> 5;
-            }
+            const int32_t wtSample = readWarpedSample(i, currentFractionPitchCounter);
 
             int32_t subSample = 0;
             if (subWave == 1)

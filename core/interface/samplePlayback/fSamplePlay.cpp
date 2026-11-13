@@ -73,6 +73,8 @@ static void modWavetablePostion(int32_t value);
 static void modWavetableWindowSize(int16_t value);
 static void modWavetableSubWave(int16_t value);
 static void modWavetableSubLevel(int16_t value);
+static void modWavetableWarpMode(int16_t value);
+static void modWavetableWarpAmount(int16_t value);
 static void modStartPoint(int16_t value);
 static void modEndPoint(int16_t value);
 static void modLoopPoint1(int16_t value);
@@ -1127,6 +1129,12 @@ static void functButton5()
 {
     if (SP->editorInstrument->playMode == playModeWavetable)
     {
+        if (SP->selectedPlace == 5)
+        {
+            modWavetableWarpMode(1);
+        }
+        SP->selectedPlace = 5;
+        SP->activateLabelsBorder();
         return;
     }
     if (SP->editorInstrument->playMode == playModeGranular)
@@ -1282,8 +1290,12 @@ static void functEncoder(int16_t value)
             }
             case 5:
             {
-                if ((SP->editorInstrument->playMode != playModeSlice) &&
-                    (SP->editorInstrument->playMode != playModeBeatSlice))
+                if (SP->editorInstrument->playMode == playModeWavetable)
+                {
+                    modWavetableWarpAmount(value);
+                }
+                else if ((SP->editorInstrument->playMode != playModeSlice) &&
+                         (SP->editorInstrument->playMode != playModeBeatSlice))
                 {
                     changeZoom(value);
                 }
@@ -1408,7 +1420,7 @@ static void functLeft()
             }
             else if (SP->loadedInstrumentType == mtSampleTypeWavetable)
             {
-                SP->selectedPlace = 4;
+                SP->selectedPlace = 5;
             }
             else if (SP->editorInstrument->playMode == playModeGranular)
             {
@@ -1520,7 +1532,7 @@ static void functRight()
             }
             else if (SP->editorInstrument->playMode == playModeWavetable)
             {
-                SP->selectedPlace = 6;
+                SP->selectedPlace = 5;
             }
             else if (SP->editorInstrument->playMode == playModeGranular)
             {
@@ -1645,7 +1657,12 @@ static void functUp()
                 }
                 break;
             }
-            case 5: changeZoom(1); break;
+            case 5:
+                if (SP->editorInstrument->playMode == playModeWavetable)
+                    modWavetableWarpAmount(1);
+                else
+                    changeZoom(1);
+                break;
             case 6: changePlayModeSelection(-1); break;
         }
     }
@@ -1755,7 +1772,12 @@ static void functDown()
                 }
                 break;
             }
-            case 5: changeZoom(-1); break;
+            case 5:
+                if (SP->editorInstrument->playMode == playModeWavetable)
+                    modWavetableWarpAmount(-1);
+                else
+                    changeZoom(-1);
+                break;
             case 6: changePlayModeSelection(1); break;
         }
     }
@@ -2310,6 +2332,42 @@ static void modWavetableSubLevel(int16_t value)
     newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
 }
 
+static void modWavetableWarpMode(int16_t value)
+{
+    int16_t next = (int16_t)SP->editorInstrument->wtWarpMode + ((value > 0) ? 1 : -1);
+    if (next > 3)
+        next = 0;
+    else if (next < 0)
+        next = 3;
+
+    SP->editorInstrument->wtWarpMode = (uint8_t)next;
+    if (SP->editorInstrument->wtWarpMode != 0 && SP->editorInstrument->wtWarpAmount == 0)
+    {
+        SP->editorInstrument->wtWarpAmount = 50;
+    }
+
+    SP->showWavetableWarp();
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+}
+
+static void modWavetableWarpAmount(int16_t value)
+{
+    if (SP->editorInstrument->wtWarpMode == 0 && value > 0)
+    {
+        SP->editorInstrument->wtWarpMode = 1;
+    }
+
+    int16_t next = (int16_t)SP->editorInstrument->wtWarpAmount + value;
+    if (next > 100)
+        next = 100;
+    else if (next < 0)
+        next = 0;
+
+    SP->editorInstrument->wtWarpAmount = (uint8_t)next;
+    SP->showWavetableWarp();
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+}
+
 static void modSliceSelect(int16_t value, bool set)
 {
     if (set)
@@ -2774,7 +2832,19 @@ void cSamplePlayback::setDefault(uint8_t pos)
             }
             break;
         }
-        case 5: setDefaultZoom(); break;
+        case 5:
+            if (loadedInstrumentType == mtSampleTypeWavetable)
+            {
+                editorInstrument->wtWarpMode = defaultInstrumentParams.wtWarpMode;
+                editorInstrument->wtWarpAmount = defaultInstrumentParams.wtWarpAmount;
+                showWavetableWarp();
+                newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+            }
+            else
+            {
+                setDefaultZoom();
+            }
+            break;
         case 6: break;
     }
 }
