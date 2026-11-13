@@ -60,6 +60,7 @@ AUDIO_CORE_FLASH void AudioPlayMemory::playWavetable(uint8_t instrIdx, int8_t no
     iPitchCounter = 0;
     fPitchCounter = 0.0f;
     subPhase32 = 0;
+    prevWaveTablePosition = UINT32_MAX;
 
     playing = 1;
     AudioInterrupts();
@@ -95,6 +96,10 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
     }
 
     const int16_t* in = (const int16_t*)next + waveTablePosition;
+    const bool doWindowXfade = (prevWaveTablePosition != UINT32_MAX &&
+                                prevWaveTablePosition != waveTablePosition &&
+                                prevWaveTablePosition <= maxlength);
+    const int16_t* inPrev = doWindowXfade ? ((const int16_t*)next + prevWaveTablePosition) : nullptr;
     int32_t castPitchControl = (int32_t)pitchControl;
     float pitchFraction = pitchControl - (int32_t)pitchControl;
 
@@ -140,8 +145,19 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
             const int32_t currentSampleValue = in[idx1];
             const int32_t interpolationDif = in[idx2] - currentSampleValue;
 
-            *out++ = (int16_t)(currentSampleValue +
-                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14));
+            int32_t wtSample = currentSampleValue +
+                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
+
+            if (doWindowXfade && i < 32)
+            {
+                const int32_t prevSampleValue = inPrev[idx1];
+                const int32_t prevInterpDif = inPrev[idx2] - prevSampleValue;
+                const int32_t prevWtSample = prevSampleValue +
+                                             (int32_t)(((currentFractionPitchCounter >> 2) * prevInterpDif) >> 14);
+                wtSample = ((prevWtSample * (32 - i)) + (wtSample * i)) >> 5;
+            }
+
+            *out++ = (int16_t)wtSample;
 
             iPitchCounter += castPitchControl;
             currentFractionPitchCounter += currentFractionPitchControl;
@@ -196,8 +212,17 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
             const int32_t currentSampleValue = in[idx1];
             const int32_t interpolationDif = in[idx2] - currentSampleValue;
 
-            const int32_t wtSample = currentSampleValue +
-                                     (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
+            int32_t wtSample = currentSampleValue +
+                               (int32_t)(((currentFractionPitchCounter >> 2) * interpolationDif) >> 14);
+
+            if (doWindowXfade && i < 32)
+            {
+                const int32_t prevSampleValue = inPrev[idx1];
+                const int32_t prevInterpDif = inPrev[idx2] - prevSampleValue;
+                const int32_t prevWtSample = prevSampleValue +
+                                             (int32_t)(((currentFractionPitchCounter >> 2) * prevInterpDif) >> 14);
+                wtSample = ((prevWtSample * (32 - i)) + (wtSample * i)) >> 5;
+            }
 
             int32_t subSample = 0;
             if (subWave == 1)
@@ -261,6 +286,7 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
         }
     }
 
+    prevWaveTablePosition = waveTablePosition;
     next = currentStartAddress + pointsInSamples.start;
     fPitchCounter = (float)currentFractionPitchCounter / MAX_16BIT;
 

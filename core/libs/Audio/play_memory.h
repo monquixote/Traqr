@@ -434,6 +434,7 @@ class AudioPlayMemory : public AudioStream
     uint16_t wavetableWindowSize;
     uint32_t currentWindow;
     uint32_t waveTablePosition;
+    uint32_t prevWaveTablePosition = UINT32_MAX;
     uint32_t subPhase32 = 0;
     uint8_t onsetFadeSamples = 0;
 

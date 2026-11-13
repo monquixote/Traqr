@@ -1091,6 +1091,7 @@ void AudioPlayMemory::clean(void)
         wavetableWindowSize = 0;
         currentWindow = 0;
         waveTablePosition = 0;
+        prevWaveTablePosition = UINT32_MAX;
         subPhase32 = 0;
         onsetFadeSamples = 0;
         //	    wavetableSync=0;
