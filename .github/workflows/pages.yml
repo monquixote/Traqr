@@ -64,8 +64,8 @@ jobs:
           # Copy synth pages
           cp tools/tear_harness/index.html _site/synths/tear/index.html
           cp tools/juno_harness/index.html _site/synths/juno/index.html
-          # Root portal landing page
-          cp docs/index.html _site/index.html
+          # Root portal & HTML documentation pages
+          cp docs/*.html _site/
           # Copy preset bundles for direct download
           mkdir -p _site/patches
           cp patches/*.zip _site/patches/ || true
