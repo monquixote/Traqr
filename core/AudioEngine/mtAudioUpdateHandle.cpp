@@ -31,6 +31,8 @@ AUDIO_CORE_RAM void playerEngine::update()
       ((mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWaveFile) &&
        (mtProject.instrument[currentInstrument_idx].playMode == playModeGranular));
     envelopeCondition[envGranPos] =
+      (mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWavetable) ||
+      (mtProject.instrument[currentInstrument_idx].playMode == playModeWavetable) ||
       ((mtProject.instrument[currentInstrument_idx].sample.type == mtSampleTypeWaveFile) &&
        (mtProject.instrument[currentInstrument_idx].playMode == playModeGranular));
     envelopeCondition[envFinetune] = true;
