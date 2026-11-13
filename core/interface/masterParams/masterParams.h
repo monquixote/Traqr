@@ -63,6 +63,11 @@ class cMasterParams : public ModuleBase
     void showReverbDamp();
     void showReverbPredelay();
     void showReverbDiffusion();
+    // chorus
+    void showChorusScreen();
+    void showChorusRate();
+    void showChorusDepth();
+    void showChorusWidth();
     // limiter
     void showLimiterScreen();
     void showLimiterAttack();
@@ -94,8 +99,17 @@ class cMasterParams : public ModuleBase
         synthVolumeScreenPositionStart,
         synthVolumeScreenPositionEnd = synthVolumeScreenPositionStart + kSynthParts - 1,
 #endif
+        chorusVolumeScreenPosition,
         screenPositionCount
     };
+
+#ifdef FEATURE_SYNTH
+    static constexpr uint8_t kChorusBarLeft = 8 + kSynthParts;
+#else
+    static constexpr uint8_t kChorusBarLeft = 8;
+#endif
+    static constexpr uint8_t kChorusBarRight = kChorusBarLeft + 1;
+    static constexpr uint8_t kTotalBarCount = kChorusBarRight + 1;
 
     static_assert(screenPositionCount <= 8);
 
@@ -105,10 +119,12 @@ class cMasterParams : public ModuleBase
         reverbIsSolo,
         dryMixIsSolo,
         lineInIsSolo,
+        chorusIsSolo,
     };
 
     uint8_t selectedPlaceDelay;
     uint8_t selectedPlaceReverb;
+    uint8_t selectedPlaceChorus;
     uint8_t selectedPlaceLimiter;
     uint8_t selectedPlaceEqualizer;
 
@@ -116,6 +132,8 @@ class cMasterParams : public ModuleBase
     bool isDelayScreenBeforeMasterPress;
     bool isReverbScreen;
     bool isReverbScreenBeforeMasterPress;
+    bool isChorusScreen;
+    bool isChorusScreenBeforeMasterPress;
     bool isLimiterScreen;
     bool isLimiterScreenBeforeMasterPress;
     bool isEqualizerScreen;
@@ -129,6 +147,7 @@ class cMasterParams : public ModuleBase
     void showTrackVolumeBar(uint8_t n);
     void showDelayVolumeBar();
     void showReverbVolumeBar();
+    void showChorusVolumeBar();
     void showDryMixVolumeBar();
     void showLineInVolumeBar();
 #ifdef FEATURE_SYNTH
@@ -136,6 +155,7 @@ class cMasterParams : public ModuleBase
 #endif
     void showLineInDelaySend();
     void showLineInReverbSend();
+    void showLineInChorusSend();
     void switchScreen();
     void returnToScreen();
     void switchToMaster();
@@ -143,6 +163,7 @@ class cMasterParams : public ModuleBase
     void switchToMixerDelayReverb();
     void switchToDelayScreen();
     void switchToReverbScreen();
+    void switchToChorusScreen();
     void switchToLimiterScreen();
     void switchToEqualizerScreen();
     void calcLevel(strTrackLevel* level, float value);
@@ -152,6 +173,7 @@ class cMasterParams : public ModuleBase
     void calcTrackLevel(uint8_t n);
     void calcDelayLevel();
     void calcReverbLevel();
+    void calcChorusLevel();
     void calcDryMixLevel();
     void calcLineInLevel();
 #ifdef FEATURE_SYNTH
@@ -171,7 +193,7 @@ class cMasterParams : public ModuleBase
         uint8_t value;
         uint8_t lastValue;
 
-    } trackLevel[8], reverbLevel[2], delayLevel[2], dryMixLevel[2], lineInLevel[2];
+    } trackLevel[8], reverbLevel[2], delayLevel[2], chorusLevel[2], dryMixLevel[2], lineInLevel[2];
 #ifdef FEATURE_SYNTH
     strTrackLevel synthLevel[kSynthParts];
 #endif
@@ -190,10 +212,12 @@ class cMasterParams : public ModuleBase
     char mixerVolumeLabel[8][12];
     char delayVolumeLabel[12];
     char reverbVolumeLabel[12];
+    char chorusVolumeLabel[12];
     char dryMixVolumeLabel[12];
     char lineInVolumeLabel[12];
     char lineInDelaySendLabel[12];
     char lineInReverbSendLabel[12];
+    char lineInChorusSendLabel[12];
 #ifdef FEATURE_SYNTH
     char synthVolumeLabel[kSynthParts][12];
     char synthVoiceLabel[kSynthParts][10];
@@ -210,6 +234,8 @@ class cMasterParams : public ModuleBase
     bool ignoreMuteReleaseDryMix;
     bool lineInIsEdited;
     bool ignoreMuteReleaseLineIn;
+    bool chorusIsEdited;
+    bool ignoreMuteReleaseChorus;
 #ifdef FEATURE_SYNTH
     bool synthGainIsEdited[kSynthParts];
 #endif
@@ -254,6 +280,10 @@ class cMasterParams : public ModuleBase
     void changeReverbDamp(int16_t val);
     void changeReverbPredelay(int16_t val);
     void changeReverbDiffusion(int16_t val);
+    // chorus
+    void changeChorusRate(int16_t val);
+    void changeChorusDepth(int16_t val);
+    void changeChorusWidth(int16_t val);
     // equalizer
     void changeEqualizerBandAdjust(uint8_t n, int16_t val);
 
@@ -263,20 +293,28 @@ class cMasterParams : public ModuleBase
     // Mixer Delay Reverb
     void changeReverbVolume(int16_t val);
     void changeDelayVolume(int16_t val);
+    void changeChorusVolume(int16_t val);
     void changeDryMixVolume(int16_t val);
     void changeLineInVolume(int16_t val);
     void changeLineInDelaySend(int16_t val);
     void changeLineInReverbSend(int16_t val);
+    void changeLineInChorusSend(int16_t val);
 #ifdef FEATURE_SYNTH
     void changeSynthGain(int synthIdx, int16_t val);
     void setDefaultSynthGain(int synthIdx);
 #endif
     void setDefaultReverbVolume();
     void setDefaultDelayVolume();
+    void setDefaultChorusVolume();
     void setDefaultDryMixVolume();
     void setDefaultLineInVolume();
     void setDefaultLineInDelaySend();
     void setDefaultLineInReverbSend();
+    void setDefaultLineInChorusSend();
+
+    void setDefaultChorusRate();
+    void setDefaultChorusDepth();
+    void setDefaultChorusWidth();
 
     void setDefaultReverbSize();
     void setDefaultReverbDamp();
@@ -289,6 +327,7 @@ class cMasterParams : public ModuleBase
     void activateLabelsBorder();
     void refreshDelayFrame();
     void refreshReverbFrame();
+    void refreshChorusFrame();
     void refreshLimiterFrame();
     void refreshEqualizerFrame();
 
@@ -305,20 +344,8 @@ class cMasterParams : public ModuleBase
     strList syncRateData;
     strList limiterSidechainData;
 
-#ifdef FEATURE_SYNTH
-    strBarData barData[8 + kSynthParts];
-    uint32_t levelBarColors[8 + kSynthParts][5] = {
-        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
-        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
-        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }
-    };
-#else
-    strBarData barData[8];
-    uint32_t levelBarColors[8][5] = {
-        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
-        { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
-    };
-#endif
+    strBarData barData[kTotalBarCount];
+    uint32_t levelBarColors[kTotalBarCount][5] = {};
     strList saturationListData;
 
     const char* const delayPingPongEnable[2] = { (char*)"On", (char*)"Off" };
@@ -364,11 +391,7 @@ class cMasterParams : public ModuleBase
 #endif
 
     hControl label[8];
-#ifdef FEATURE_SYNTH
-    hControl barControl[8 + kSynthParts];
-#else
-    hControl barControl[8];
-#endif
+    hControl barControl[kTotalBarCount];
     hControl blankSpaceCover[3];
 
     hControl bgLabel;
@@ -407,6 +430,10 @@ class cMasterParams : public ModuleBase
     char reverbDampVal[4];
     char reverbPredelayVal[4];
     char reverbDiffusionVal[4];
+
+    char chorusRateVal[10];
+    char chorusDepthVal[6];
+    char chorusWidthVal[6];
 
     char limitAttackVal[8];
     char limitReleaseVal[8];
@@ -460,6 +487,7 @@ class cMasterParams : public ModuleBase
 
     float localDelayLevel[2];
     float localReverbLevel[2];
+    float localChorusLevel[2];
     float localLineInLevel[2];
     float localDryMixLevel[2];
 #ifdef FEATURE_SYNTH

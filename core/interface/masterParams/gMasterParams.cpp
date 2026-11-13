@@ -135,6 +135,24 @@ void cMasterParams::initDisplayControls()
     }
 #endif
 
+    for (uint8_t barIdx = kChorusBarLeft; barIdx <= kChorusBarRight; barIdx++)
+    {
+        strControlProperties chorusBarProp;
+        barData[barIdx].changingColor = 1;
+        chorusBarProp.data = &barData[barIdx];
+        chorusBarProp.colors = levelBarColors[barIdx];
+        chorusBarProp.value = 0;
+        chorusBarProp.x = 0;
+        chorusBarProp.y = 29;
+        chorusBarProp.w = 800 / 8 - 3;
+        chorusBarProp.style =
+          controlStyleValue_0_100 | controlStyleBackground |
+          (display.getTheme().barShadow > 0 ? controlStyleGradient : 0) |
+          (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
+        chorusBarProp.h = 394;
+        barControl[barIdx] = display.createControl<cBar>(&chorusBarProp);
+    }
+
     prop2.value = 0;
     prop2.data = nullptr;
     prop2.text = nullptr;
@@ -281,7 +299,7 @@ void cMasterParams::showMasterScreen()
     display.setControlText(label[5], "Saturation");
     display.setControlText2(label[5], " ");
     display.setControlText(label[6], "Bass Boost");
-    display.setControlText(label[7], "Space");
+    display.setControlText(label[7], "Chorus");
     display.setControlText2(label[7], " ");
 
     resizeToDefaultMaster();
@@ -296,7 +314,7 @@ void cMasterParams::showMasterScreen()
         display.setControlShow(label[i]);
         display.refreshControl(label[i]);
 
-        if ((i == 0) || (i == 6) || (i == 7))
+        if ((i == 0) || (i == 6))
         {
             display.setControlShow(barControl[i]);
         }
@@ -311,6 +329,7 @@ void cMasterParams::showMasterScreen()
     display.setControlValue(label[2], 0);
     display.setControlValue(label[3], 0);
     display.setControlValue(label[4], 0);
+    display.setControlValue(label[7], 0);
 
     display.refreshControl(bgLabel);
     display.setControlValue(bgLabel, 255);
@@ -318,7 +337,6 @@ void cMasterParams::showMasterScreen()
     showVolume();
     showSaturationType();
     showBassBoost();
-    showStereoBoost();
 
     frameData.placesCount = 8;
     frameData.startPlace = selectedPlace;
@@ -424,6 +442,97 @@ void cMasterParams::showReverbScreen()
 
     display.refreshControl(bgLabel);
     display.setControlValue(bgLabel, 255); // 0b10011111
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        display.setControlHide(trackNameLabel[i]);
+        display.refreshControl(trackNameLabel[i]);
+
+        display.setControlHide(trackVolumeBar[i]);
+        display.refreshControl(trackVolumeBar[i]);
+    }
+
+    // empty space covers
+    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 5 + 2, -1);
+    display.setControlSize(blankSpaceCover[0], (800 / 8) * 3 - 3, -1);
+    display.setControlShow(blankSpaceCover[0]);
+    display.refreshControl(blankSpaceCover[0]);
+
+    display.setControlHide(blankSpaceCover[1]);
+    display.setControlHide(blankSpaceCover[2]);
+
+    display.synchronizeRefresh();
+
+    lightUpPadBoard();
+}
+
+void cMasterParams::showChorusScreen()
+{
+    display.setControlHide(saturationList);
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        barData[i].value = display.getTheme().white;
+    }
+
+    titleBar->show();
+    titleBar->setTitle("Master Chorus");
+
+    display.setControlText(label[0], "Rate");
+    display.setControlText(label[1], "Depth");
+    display.setControlText(label[2], "Width");
+    display.setControlText(label[3], "Space");
+    display.setControlText(label[4], "Line in");
+    display.setControlText(label[5], " ");
+    display.setControlText2(label[5], " ");
+    display.setControlText(label[6], " ");
+    display.setControlText2(label[6], " ");
+    display.setControlText(label[7], "Back");
+    display.setControlText2(label[7], " ");
+
+    resizeToDefaultMaster();
+    resizeBarControl(displayMode::masterValues);
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        display.setControlValue(label[i], 1);
+        display.setControlStyle2(label[i],
+                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
+        display.setControlShow(label[i]);
+        display.refreshControl(label[i]);
+
+        if (i < 5)
+        {
+            display.setControlShow(barControl[i]);
+        }
+        else
+        {
+            display.setControlHide(barControl[i]);
+        }
+        display.refreshControl(barControl[i]);
+    }
+
+    showChorusRate();
+    showChorusDepth();
+    showChorusWidth();
+    showStereoBoost();
+    showLineInChorusSend();
+
+    frameData.placesCount = 5;
+    frameData.startPlace = selectedPlaceChorus;
+    frameData.places[0] = &framesPlaces[0][0];
+    frameData.places[1] = &framesPlaces[1][0];
+    frameData.places[2] = &framesPlaces[2][0];
+    frameData.places[3] = &framesPlaces[3][0];
+    frameData.places[4] = &framesPlaces[4][0];
+    frameData.places[5] = &framesPlaces[5][0];
+    frameData.places[6] = &framesPlaces[6][0];
+    frameData.places[7] = &framesPlaces[7][0];
+
+    refreshChorusFrame();
+
+    display.refreshControl(bgLabel);
+    display.setControlValue(bgLabel, 255);
 
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -613,6 +722,49 @@ void cMasterParams::showReverbDiffusion()
 
     display.setControlText2(label[3], reverbDiffusionVal);
     display.refreshControl(label[3]);
+}
+
+void cMasterParams::showChorusRate()
+{
+    if (!isChorusScreen)
+        return;
+
+    float hz = 0.1f + 0.049f * mtProject.values.chorusRate;
+    snprintf(chorusRateVal, sizeof(chorusRateVal), "%0.2f Hz", hz);
+
+    display.setControlValue(barControl[0], mtProject.values.chorusRate);
+    display.refreshControl(barControl[0]);
+
+    display.setControlText2(label[0], chorusRateVal);
+    display.refreshControl(label[0]);
+}
+
+void cMasterParams::showChorusDepth()
+{
+    if (!isChorusScreen)
+        return;
+
+    snprintf(chorusDepthVal, sizeof(chorusDepthVal), "%d%%", mtProject.values.chorusDepth);
+
+    display.setControlValue(barControl[1], mtProject.values.chorusDepth);
+    display.refreshControl(barControl[1]);
+
+    display.setControlText2(label[1], chorusDepthVal);
+    display.refreshControl(label[1]);
+}
+
+void cMasterParams::showChorusWidth()
+{
+    if (!isChorusScreen)
+        return;
+
+    snprintf(chorusWidthVal, sizeof(chorusWidthVal), "%d%%", mtProject.values.chorusWidth);
+
+    display.setControlValue(barControl[2], mtProject.values.chorusWidth);
+    display.refreshControl(barControl[2]);
+
+    display.setControlText2(label[2], chorusWidthVal);
+    display.refreshControl(label[2]);
 }
 //==============================================================================================================
 // limiter
@@ -958,6 +1110,16 @@ void cMasterParams::refreshReverbFrame()
     display.refreshControl(frameControl);
 }
 
+void cMasterParams::refreshChorusFrame()
+{
+    if (selectedPlaceChorus > frameData.placesCount - 1)
+        return;
+
+    display.setControlValue(frameControl, selectedPlaceChorus);
+    display.setControlShow(frameControl);
+    display.refreshControl(frameControl);
+}
+
 void cMasterParams::refreshLimiterFrame()
 {
     if (selectedPlaceLimiter > frameData.placesCount - 1)
@@ -1042,6 +1204,11 @@ void cMasterParams::resizeBarControl(displayMode val)
             display.refreshControl(barControl[i]);
         }
 #endif
+        for (uint8_t i = kChorusBarLeft; i <= kChorusBarRight; i++)
+        {
+            display.setControlHide(barControl[i]);
+            display.refreshControl(barControl[i]);
+        }
     }
     else if (val == displayMode::mixer)
     {
@@ -1067,6 +1234,11 @@ void cMasterParams::resizeBarControl(displayMode val)
             display.refreshControl(barControl[i]);
         }
 #endif
+        for (uint8_t i = kChorusBarLeft; i <= kChorusBarRight; i++)
+        {
+            display.setControlHide(barControl[i]);
+            display.refreshControl(barControl[i]);
+        }
     }
     else if (val == displayMode::mixerDelayReverb)
     {
@@ -1123,6 +1295,22 @@ void cMasterParams::resizeBarControl(displayMode val)
             display.refreshControl(barControl[i + 4]);
         }
 #endif
+        display.setControlPosition(
+          trackVolumeBar[chorusVolumeScreenPosition], (800 / 8) * chorusVolumeScreenPosition + 2, 64);
+        display.setControlSize(trackVolumeBar[chorusVolumeScreenPosition], 32, 359);
+        display.refreshControl(trackVolumeBar[chorusVolumeScreenPosition]);
+
+        display.setControlPosition(
+          barControl[kChorusBarLeft], (800 / 8) * chorusVolumeScreenPosition + 2 + 32, 64);
+        display.setControlSize(barControl[kChorusBarLeft], 32, 359);
+        display.setControlShow(barControl[kChorusBarLeft]);
+        display.refreshControl(barControl[kChorusBarLeft]);
+
+        display.setControlPosition(
+          barControl[kChorusBarRight], (800 / 8) * chorusVolumeScreenPosition + 2 + 64, 64);
+        display.setControlSize(barControl[kChorusBarRight], 32, 359);
+        display.setControlShow(barControl[kChorusBarRight]);
+        display.refreshControl(barControl[kChorusBarRight]);
     }
 }
 
@@ -1161,7 +1349,7 @@ void cMasterParams::showVolume()
         return;
     }
 
-    if (isDelayScreen || isReverbScreen || isLimiterScreen || isEqualizerScreen)
+    if (isDelayScreen || isReverbScreen || isChorusScreen || isLimiterScreen || isEqualizerScreen)
     {
         return;
     }
@@ -1208,15 +1396,18 @@ void cMasterParams::showBassBoost()
 
 void cMasterParams::showStereoBoost()
 {
+    if (!isChorusScreen)
+        return;
+
     uint8_t barValue = (uint8_t)map<int>(mtProject.values.stereoBoost, 0, 8, 0, 100);
 
     sprintf(stereoBoostVal, "%d", mtProject.values.stereoBoost);
 
-    display.setControlValue(barControl[7], barValue);
-    display.refreshControl(barControl[7]);
+    display.setControlValue(barControl[3], barValue);
+    display.refreshControl(barControl[3]);
 
-    display.setControlText2(label[7], stereoBoostVal);
-    display.refreshControl(label[7]);
+    display.setControlText2(label[3], stereoBoostVal);
+    display.refreshControl(label[3]);
 }
 
 // delay
@@ -1460,6 +1651,12 @@ void cMasterParams::showMixerDelayReverbScreen()
                         mixerLabelFormat,
                         soloTrack == lineInIsSolo ? unsoloText : soloText);
             }
+            else if (i == chorusVolumeScreenPosition)
+            {
+                sprintf(mixerLabel[i],
+                        mixerLabelFormat,
+                        soloTrack == chorusIsSolo ? unsoloText : soloText);
+            }
 #ifdef FEATURE_SYNTH
             else if (i >= synthVolumeScreenPositionStart && i <= synthVolumeScreenPositionEnd)
             {
@@ -1499,6 +1696,12 @@ void cMasterParams::showMixerDelayReverbScreen()
                         mixerLabelFormat,
                         mtProject.values.lineInMute ? unmuteText : muteText);
             }
+            else if (i == chorusVolumeScreenPosition)
+            {
+                sprintf(mixerLabel[i],
+                        mixerLabelFormat,
+                        mtProject.values.chorusMute ? unmuteText : muteText);
+            }
 #ifdef FEATURE_SYNTH
             else if (i >= synthVolumeScreenPositionStart && i <= synthVolumeScreenPositionEnd)
             {
@@ -1523,6 +1726,8 @@ void cMasterParams::showMixerDelayReverbScreen()
         showLevelBar(dryMixVolumeScreenPosition + 4, &dryMixLevel[1]);
         showLevelBar(lineInVolumeScreenPosition, &lineInLevel[0]);
         showLevelBar(lineInVolumeScreenPosition + 4, &lineInLevel[1]);
+        showLevelBar(kChorusBarLeft, &chorusLevel[0]);
+        showLevelBar(kChorusBarRight, &chorusLevel[1]);
 #ifdef FEATURE_SYNTH
         static constexpr int kSynthOffset = 8;
         for (int synthIdx = 0; synthIdx < kSynthParts; synthIdx++)
@@ -1533,6 +1738,7 @@ void cMasterParams::showMixerDelayReverbScreen()
 
         showDelayVolumeBar();
         showReverbVolumeBar();
+        showChorusVolumeBar();
         showDryMixVolumeBar();
         showLineInVolumeBar();
 
@@ -1540,6 +1746,7 @@ void cMasterParams::showMixerDelayReverbScreen()
         display.setControlText(trackNameLabel[reverbVolumeScreenPosition], "Reverb");
         display.setControlText(trackNameLabel[dryMixVolumeScreenPosition], "Dry Mix");
         display.setControlText(trackNameLabel[lineInVolumeScreenPosition], "Line In");
+        display.setControlText(trackNameLabel[chorusVolumeScreenPosition], "Chorus");
 #ifdef FEATURE_SYNTH
         for (int labelIdx = synthVolumeScreenPositionStart;
              labelIdx <= synthVolumeScreenPositionEnd;
@@ -1589,6 +1796,9 @@ void cMasterParams::showMixerDelayReverbScreen()
     display.setControlColors(label[lineInVolumeScreenPosition],
                              mtProject.values.lineInMute ? display.getTheme().inactiveLabelsColors
                                                          : display.getTheme().activeLabelsColors);
+    display.setControlColors(label[chorusVolumeScreenPosition],
+                             mtProject.values.chorusMute ? display.getTheme().inactiveLabelsColors
+                                                         : display.getTheme().activeLabelsColors);
 
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -1607,14 +1817,14 @@ void cMasterParams::showMixerDelayReverbScreen()
 
     // empty space covers
 #ifdef FEATURE_SYNTH
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 7 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 1 - 4, -1);
+    display.setControlHide(blankSpaceCover[0]);
+    display.refreshControl(blankSpaceCover[0]);
 #else
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 4 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 4 - 4, -1);
-#endif
+    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 5 + 2, -1);
+    display.setControlSize(blankSpaceCover[0], (800 / 8) * 3 - 4, -1);
     display.setControlShow(blankSpaceCover[0]);
     display.refreshControl(blankSpaceCover[0]);
+#endif
 
     display.setControlHide(blankSpaceCover[1]);
     display.setControlHide(blankSpaceCover[2]);
@@ -1695,6 +1905,11 @@ void cMasterParams::showLevelBar(uint8_t n, strTrackLevel* level)
         else if ((n == lineInVolumeScreenPosition) || (n == lineInVolumeScreenPosition + 4))
         {
             if (mtProject.values.lineInMute)
+                barData[n].value = display.getTheme().grey_22;
+        }
+        else if ((n == kChorusBarLeft) || (n == kChorusBarRight))
+        {
+            if (mtProject.values.chorusMute)
                 barData[n].value = display.getTheme().grey_22;
         }
     }
@@ -1780,6 +1995,32 @@ void cMasterParams::showReverbVolumeBar()
 
     display.refreshControl(label[reverbVolumeScreenPosition]);
     display.refreshControl(trackVolumeBar[reverbVolumeScreenPosition]);
+
+    display.synchronizeRefresh();
+}
+
+void cMasterParams::showChorusVolumeBar()
+{
+    float chorusVolumeInDecibels = calcLevelDecybelValue(mtProject.values.chorusVolume);
+
+    sprintf(chorusVolumeLabel, "%0.2f dB", chorusVolumeInDecibels);
+
+    display.setControlShow(trackVolumeBar[chorusVolumeScreenPosition]);
+
+    if (mtProject.values.chorusMute)
+        display.setControlColors(trackVolumeBar[chorusVolumeScreenPosition],
+                                 display.getTheme().inactiveBarColors);
+    else
+        display.setControlColors(trackVolumeBar[chorusVolumeScreenPosition],
+                                 display.getTheme().activeBarColors);
+
+    display.setControlValue(trackVolumeBar[chorusVolumeScreenPosition],
+                            mtProject.values.chorusVolume);
+
+    display.setControlText(label[chorusVolumeScreenPosition], chorusVolumeLabel);
+
+    display.refreshControl(label[chorusVolumeScreenPosition]);
+    display.refreshControl(trackVolumeBar[chorusVolumeScreenPosition]);
 
     display.synchronizeRefresh();
 }
@@ -1931,6 +2172,45 @@ void cMasterParams::showLineInReverbSend()
     display.synchronizeRefresh();
 }
 
+void cMasterParams::showLineInChorusSend()
+{
+    const uint8_t pos = 4;
+    float valDb = calcLevelDecybelValue(mtProject.values.lineInChorusSend);
+
+    if (buttons->isButtonPressed(interfaceButtonShift))
+    {
+        snprintf(lineInChorusSendLabel,
+                 sizeof(lineInChorusSendLabel),
+                 "%s",
+                 mtProject.values.lineInChorusSendMute ? "Unmute" : "Mute");
+    }
+    else
+    {
+        snprintf(lineInChorusSendLabel, sizeof(lineInChorusSendLabel), "%0.2f dB", valDb);
+    }
+
+    display.setControlText2(label[pos], lineInChorusSendLabel);
+    display.setControlColors(label[pos],
+                             mtProject.values.lineInChorusSendMute
+                               ? display.getTheme().inactiveLabelsColors
+                               : display.getTheme().activeLabelsColors);
+
+    display.setControlColors(barControl[pos],
+                             mtProject.values.lineInChorusSendMute
+                               ? display.getTheme().inactiveBarColors
+                               : display.getTheme().activeBarColors);
+    barData[pos].value =
+      mtProject.values.lineInChorusSendMute ? display.getTheme().grey_22 : display.getTheme().white;
+
+    display.setControlShow(barControl[pos]);
+    display.setControlValue(barControl[pos], mtProject.values.lineInChorusSend);
+
+    display.refreshControl(label[pos]);
+    display.refreshControl(barControl[pos]);
+
+    display.synchronizeRefresh();
+}
+
 void cMasterParams::showEditTracksNamesMode()
 {
     if (editTrackNameMode)
@@ -2024,7 +2304,7 @@ void cMasterParams::hideControlUnderMenu()
 {
     if (displayType == displayMode::mixerDelayReverb)
     {
-        for (int idx = 0; idx < 7; idx++)
+        for (int idx = 0; idx < screenPositionCount; idx++)
         {
             display.setControlHide(trackNameLabel[idx]);
             display.setControlHide(trackVolumeBar[idx]);
@@ -2032,7 +2312,7 @@ void cMasterParams::hideControlUnderMenu()
             display.refreshControl(trackNameLabel[idx]);
         }
 
-        for (int barIdx = 0; barIdx < 8 + kSynthParts; barIdx++)
+        for (int barIdx = 0; barIdx < kTotalBarCount; barIdx++)
         {
             display.setControlHide(barControl[barIdx]);
             display.refreshControl(barControl[barIdx]);

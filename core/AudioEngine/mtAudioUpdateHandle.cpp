@@ -60,6 +60,7 @@ AUDIO_CORE_RAM void playerEngine::update()
         handleUpdateRefreshResonance();
         handleUpdateRefreshDelay();
         handleUpdateRefreshReverb();
+        handleUpdateRefreshChorus();
         handleUpdateRefreshOverdrive();
         handleUpdateRefreshBitDepth();
         handleUpdateRefreshGranLen();
@@ -489,6 +490,26 @@ void playerEngine::handleUpdateRefreshReverb()
         else
         {
             modReverbSend(AMP_MUTED);
+        }
+    }
+}
+
+void playerEngine::handleUpdateRefreshChorus()
+{
+    if (refreshRegister & CHORUS_SEND_MASK)
+    {
+        refreshRegister &= (~CHORUS_SEND_MASK);
+
+        uint8_t localChorusSend = mtProject.instrument[currentInstrument_idx].chorusSend;
+
+        if (((muteState == 0) && (onlyChorusMuteState == 0)) ||
+            ((engine.forceChorusSend == 1) && !mtProject.values.trackMute[nChannel]))
+        {
+            modChorusSend(localChorusSend);
+        }
+        else
+        {
+            modChorusSend(AMP_MUTED);
         }
     }
 }

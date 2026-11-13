@@ -246,6 +246,7 @@ constexpr uint32_t REVERB_SEND_MASK = 0b00000000000100000000000000000000;
 constexpr uint32_t OVERDRIVE_MASK = 0b00000000001000000000000000000000;
 constexpr uint32_t BIT_DEPTH_MASK = 0b00000000010000000000000000000000;
 constexpr uint32_t WT_WARP_SEND_MASK = 0b00000000100000000000000000000000;
+constexpr uint32_t CHORUS_SEND_MASK = 0b00000001000000000000000000000000;
 
 const uint8_t MIN_NOTE_OFFSET = 0;
 const uint8_t MAX_NOTE_OFFSET = 13;
@@ -308,6 +309,15 @@ const uint8_t DEFAULT_REVERB_VOLUME = 86;
 const uint8_t DELAY_VOLUME_MAX = 100;
 const uint8_t DELAY_VOLUME_MIN = 0;
 const uint8_t DEFAULT_DELAY_VOLUME = 86;
+const uint8_t CHORUS_VOLUME_MAX = 100;
+const uint8_t CHORUS_VOLUME_MIN = 0;
+const uint8_t DEFAULT_CHORUS_VOLUME = 86;
+const uint8_t CHORUS_PARAM_MIN = 0;
+const uint8_t CHORUS_PARAM_MAX = 100;
+const uint8_t DEFAULT_CHORUS_RATE = 25;
+const uint8_t DEFAULT_CHORUS_DEPTH = 50;
+const uint8_t DEFAULT_CHORUS_WIDTH = 50;
+const uint8_t CHORUS_INIT_MAGIC = 0xC1;
 const uint8_t DRY_MIX_VOLUME_MAX = 100;
 const uint8_t DRY_MIX_VOLUME_MIN = 0;
 const uint8_t DEFAULT_DRY_MIX_VOLUME = 86;
@@ -623,14 +633,16 @@ struct strInstrument
     void setStreamPreferred(bool streamed) { name[3] = streamed ? kStreamPrefMagic : 0; }
 
     uint8_t playMode;
-    uint8_t wtWarpMode; // 0 = Off, 1 = Asym, 2 = Sync, 3 = Fold
+    uint8_t chorusSend; // 0..100 (%)
     uint16_t startPoint;
     uint16_t loopPoint1;
     uint16_t loopPoint2;
     uint16_t endPoint;
 
     uint16_t wavetableCurrentWindow;
-    uint8_t wtSubWave;  // 0 = Off, 1 = Sine, 2 = Tri, 3 = Square
+    uint8_t wtSubWave : 2;  // 0 = Off, 1 = Sine, 2 = Tri, 3 = Square
+    uint8_t wtWarpMode : 2; // 0 = Off, 1 = Asym, 2 = Sync, 3 = Fold
+    uint8_t wtModeReserved : 4;
     uint8_t wtSubLevel; // 0..100 (%)
     //    uint16_t wavetableSync;
     //    uint16_t wavetablePWM;
@@ -780,13 +792,15 @@ const strInstrument defaultInstrumentParams = {
     .sample = { 0, {}, nullptr, 0, 2048, 0 },
     .name = {},
     .playMode = playModeSingleShot,
-    .wtWarpMode = 0,
+    .chorusSend = 0,
     .startPoint = 0,
     .loopPoint1 = 1,
     .loopPoint2 = MAX_16BIT - 1,
     .endPoint = MAX_16BIT,
     .wavetableCurrentWindow = 0,
     .wtSubWave = 0,
+    .wtWarpMode = 0,
+    .wtModeReserved = 0,
     .wtSubLevel = 20,
     .envelope = { { 1.0, 0, 10, 0, 0, 1.0, 1000, 0, 1 },
                   { 1.0, 0, 3000, 0, 0, 1.0, 1000, 0, 0 },
@@ -954,7 +968,22 @@ struct strMtValues
     uint8_t lineInReverbSend = 0;
     uint8_t lineInReverbSendMute = 1;
 
-    uint8_t oldMidiInstrument[10] = { 0 };
+    union
+    {
+        uint8_t oldMidiInstrument[10] = { 0 };
+        struct
+        {
+            uint8_t chorusRate;
+            uint8_t chorusDepth;
+            uint8_t chorusWidth;
+            uint8_t chorusVolume;
+            uint8_t chorusMute;
+            uint8_t lineInChorusSend;
+            uint8_t lineInChorusSendMute;
+            uint8_t chorusInitMagic;
+            uint8_t chorusReserved[2];
+        };
+    };
 
     uint8_t allPatternsBitmask[PATTERN_INDEX_MAX];
 

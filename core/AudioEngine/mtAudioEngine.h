@@ -67,11 +67,13 @@ class audioEngine
     void refreshTrackVolume();
     void refreshReverbVolume();
     void refreshDelayVolume();
+    void refreshChorusVolume();
     void refreshAllSends();
     void forceLineInStreamVolume(uint8_t value);
     void refreshLineInStreamVolume();
     void refreshLineInStreamDelaySend();
     void refreshLineInStreamReverbSend();
+    void refreshLineInStreamChorusSend();
     void disableLineInImpact();
     void enableLineInImpact();
     void setHeadphonesVolume(uint8_t value);
@@ -86,6 +88,9 @@ class audioEngine
     void setReverbDamp(float value);
     void setReverbPredelay(float value);
     void setReverbDiffusion(float value);
+    void setChorusRate(uint8_t value);
+    void setChorusDepth(uint8_t value);
+    void setChorusWidth(uint8_t value);
     void setDelayParams(uint8_t value);
     void setLimiterAttack(uint16_t attack);
     void setLimiterRelease(float release);
@@ -139,10 +144,13 @@ class audioEngine
     void soloTrack(uint8_t channel, uint8_t state);
     void muteDelaySend(uint8_t channel, uint8_t state);
     void muteReverbSend(uint8_t channel, uint8_t state);
+    void muteChorusSend(uint8_t channel, uint8_t state);
     void soloDelaySend(uint8_t state);
     void soloReverbSend(uint8_t state);
+    void soloChorusSend(uint8_t state);
     void clearDelay();
     void clearReverb();
+    void clearChorus();
     void resetLimiter();
     void performanceModeEndAll();
     void startTestSignal(float amp, float freq);
@@ -164,9 +172,11 @@ class audioEngine
     void setInterpolationEnable(bool value);
     float getDelayAverageRMS();
     float getReverbAverageRMS();
+    float getChorusAverageRMS();
     float getDryMixAverageRMS();
     float getDelayRMS(uint8_t channel);
     float getReverbRMS(uint8_t channel);
+    float getChorusRMS(uint8_t channel);
     float getLineInRMS(uint8_t channel);
     float getDryMixRMS(uint8_t channel);
     void disconnectMixerImpact();
@@ -215,6 +225,7 @@ class audioEngine
 
     uint8_t forceDelaySend;
     uint8_t forceReverbSend;
+    uint8_t forceChorusSend;
     float lastTempo[4];
     float currentTempo;
     float lastDelayRefreshTempo;
@@ -227,6 +238,7 @@ class audioEngine
         uint8_t trackVolume[8];
         uint8_t delayVolume;
         uint8_t reverbVolume;
+        uint8_t chorusVolume;
         uint8_t dryMixVolume;
     } mixerValuesStore;
 
@@ -251,6 +263,7 @@ class audioEngine
     AudioOutput output;
     AudioAnalyzeRMS* delayRms[(int)MixerAndFxChannelType::kChannelCount];
     AudioAnalyzeRMS* polyverbRms[(int)MixerAndFxChannelType::kChannelCount];
+    AudioAnalyzeRMS* chorusRms[(int)MixerAndFxChannelType::kChannelCount];
     AudioAnalyzeRMS* dryMixRms[(int)MixerAndFxChannelType::kChannelCount];
     AudioMixer<AudioOutput::FinalMixInputs::kFinalMixerSize>*
       finalMixer[AudioOutput::OutputChannels::kChannelsCount];
@@ -259,8 +272,10 @@ class audioEngine
     AudioEffectLimiter* limiter[AudioOutput::OutputChannels::kChannelsCount];
     AudioEffectPolyverb* polyverb;
     AudioEffectShortDelay* delay;
+    AudioEffectChorus* chorus;
     AudioMixer<MixerAndFxs<kVoices>::kSendsInputsCount>* preDelayMixer;
     AudioMixer<MixerAndFxs<kVoices>::kSendsInputsCount>* prePolyverbMixer;
+    AudioMixer<MixerAndFxs<kVoices>::kSendsInputsCount>* preChorusMixer;
 };
 
 class playerEngine
@@ -271,7 +286,8 @@ class playerEngine
     static bool isZeroInPointZone(uint16_t position, uint32_t sampleLength, int16_t* sampleAddress);
     void init(Timer* timer,
               AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preDelayMixer,
-              AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* prePolyverbMixer);
+              AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* prePolyverbMixer,
+              AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preChorusMixer);
 
     uint8_t noteOn(uint8_t instr_idx, int8_t note, int8_t velocity);
     uint8_t noteOn(uint8_t instr_idx,
@@ -310,6 +326,7 @@ class playerEngine
     void modTune(int8_t value);
     void modDelaySend(uint8_t value);
     void modReverbSend(uint8_t value);
+    void modChorusSend(uint8_t value);
 
     void modGranularPosition(uint16_t value);
     void modGranularGrainLength();
@@ -612,6 +629,7 @@ class playerEngine
     uint8_t muteState = 0;
     uint8_t onlyDelayMuteState = 0;
     uint8_t onlyReverbMuteState = 0;
+    uint8_t onlyChorusMuteState = 0;
 
     uint8_t envelopePassFlag = 0;
     float currentSeqTempo = 0;
@@ -635,6 +653,7 @@ class playerEngine
     Timer* timer;
     AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preDelayMixer;
     AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* prePolyverbMixer;
+    AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preChorusMixer;
     //**********************FUNKCJE POMOCNICZE
     uint8_t isFxVelocity(uint8_t fx_id);
     float getMostSignificantAmount();
@@ -656,6 +675,7 @@ class playerEngine
     void handleFxNoteOnBitDepth();
     void handleFxNoteOnDelaySend();
     void handleFxNoteOnReverbSend();
+    void handleFxNoteOnChorusSend();
     //*****note on
     void handleInitNoteOnEnvelope(uint8_t n);
     void handleInitNoteOnAmpEnvelope();
@@ -666,6 +686,7 @@ class playerEngine
     void handleNoteOnBitCrusher();
     void handleNoteOnDelaySend();
     void handleNoteOnReverbSend();
+    void handleNoteOnChorusSend();
     //*****note off
     void noteOffFade();
     void noteOffCut();
@@ -685,6 +706,7 @@ class playerEngine
     inline void handleUpdateRefreshResonance();
     void handleUpdateRefreshDelay();
     void handleUpdateRefreshReverb();
+    void handleUpdateRefreshChorus();
     inline void handleUpdateRefreshOverdrive();
     inline void handleUpdateRefreshBitDepth();
     inline void handleUpdateRefreshWtPos();

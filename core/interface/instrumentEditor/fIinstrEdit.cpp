@@ -56,6 +56,7 @@ static void functNote(uint8_t value);
 
 static void functEffectSelectReverb();
 static void functEffectSelectDelay();
+static void functEffectSelectChorus();
 static void functEffectSelectOverdrive();
 static void functEffectSelectBitDepth();
 static void functOpenInstrumentSynthesizer();
@@ -415,6 +416,7 @@ void cInstrumentEditor::setEffectScreenFunct()
     ip->setButtonObj(interfaceButton2, buttonPress, functEffectSelectReverb);
     ip->setButtonObj(interfaceButton3, buttonPress, functEffectSelectDelay);
     ip->setButtonObj(interfaceButton4, buttonPress, functOpenInstrumentSynthesizer);
+    ip->setButtonObj(interfaceButton5, buttonPress, functEffectSelectChorus);
 
     ip->setButtonObj(interfaceButton7, buttonPress, functEffectBack);
 }
@@ -431,6 +433,7 @@ void cInstrumentEditor::changeParamValue(int value, ValueChangeSource source)
             case 1: cInstrumentEditor::changeParamsBitDepth(value); break;
             case 2: cInstrumentEditor::changeParamsReverbSend(value); break;
             case 3: cInstrumentEditor::changeParamsDelaySend(value); break;
+            case 4: cInstrumentEditor::changeParamsChorusSend(value); break;
             default: break;
         }
         return;
@@ -945,6 +948,7 @@ static void functDelete(uint8_t state)
                 case 1: IE->setDefaultBitDepth(); break;
                 case 2: IE->setDefaultReverbSend(); break;
                 case 3: IE->setDefaultDelaySend(); break;
+                case 4: IE->setDefaultChorusSend(); break;
             }
 
             return;
@@ -1985,6 +1989,30 @@ void cInstrumentEditor::changeParamsReverbSend(int16_t value)
         IE->showParamsReverbSend();
 }
 
+void cInstrumentEditor::changeParamsChorusSend(int16_t value)
+{
+    if (IE->editorInstrument->chorusSend + value < SEND_MIN)
+        IE->editorInstrument->chorusSend = SEND_MIN;
+    else if (IE->editorInstrument->chorusSend + value > SEND_MAX)
+        IE->editorInstrument->chorusSend = SEND_MAX;
+    else
+        IE->editorInstrument->chorusSend += value;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        instrumentPlayer[i].setRefreshBit(CHORUS_SEND_MASK);
+    }
+
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+
+    bool isParamVisible = mtInterface.isInstrumentParamsScreenActive() &&
+                          (IE->mode == mtInstrumentEditorMode::mtInstEditModeParams) &&
+                          IE->isEffectsWindow;
+
+    if (isParamVisible)
+        IE->showParamsChorusSend();
+}
+
 void cInstrumentEditor::changeParamsOverdrive(int16_t value)
 {
     if (IE->editorInstrument->overdrive + value < SEND_MIN)
@@ -2959,6 +2987,7 @@ static void functInstrument(uint8_t state)
                 display.setControlHide(IE->ccNameListControl[i]);
             }
             display.setControlHide(IE->blankSpaceCover[0]);
+            display.setControlHide(IE->blankSpaceCover[1]);
         }
         mtPopups.showStepPopup(stepPopupInstr, mtProject.values.lastUsedInstrument);
     }
@@ -3117,6 +3146,12 @@ static void functEffectSelectDelay()
     IE->showSendScreenFrame();
 }
 
+static void functEffectSelectChorus()
+{
+    IE->selectedPlaceSends = 4;
+    IE->showSendScreenFrame();
+}
+
 static void functEffectSelectOverdrive()
 {
     IE->selectedPlaceSends = 0;
@@ -3246,6 +3281,17 @@ void cInstrumentEditor::setDefaultReverbSend()
     }
     newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
     IE->showParamsReverbSend();
+}
+
+void cInstrumentEditor::setDefaultChorusSend()
+{
+    IE->editorInstrument->chorusSend = defaultInstrumentParams.chorusSend;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        instrumentPlayer[i].setRefreshBit(CHORUS_SEND_MASK);
+    }
+    newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
+    IE->showParamsChorusSend();
 }
 
 void cInstrumentEditor::setDefaultOverdrive()

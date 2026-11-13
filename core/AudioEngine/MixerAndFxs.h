@@ -17,6 +17,7 @@ class MixerAndFxs
     {
         kDelay,
         kReverb,
+        kChorus,
         kFxCount
     };
 
@@ -25,7 +26,8 @@ class MixerAndFxs
         kDryMixChannel,
         kDelayChannel,
         kReverbChannel,
-        kInputChannel
+        kInputChannel,
+        kChorusChannel
     };
 
     static constexpr int kExternalInputsCount = 1;
@@ -46,8 +48,10 @@ class MixerAndFxs
     AudioMixer<kTrackAndSendsMixerInputs>* getTracksAndSendsMixer(MixerAndFxChannelType channel);
     AudioEffectShortDelay* getDelay();
     AudioEffectPolyverb* getPolyverb();
+    AudioEffectChorus* getChorus();
     AudioAnalyzeRMS* getDelayRMS(MixerAndFxChannelType channel);
     AudioAnalyzeRMS* getPolyverbRMS(MixerAndFxChannelType channel);
+    AudioAnalyzeRMS* getChorusRMS(MixerAndFxChannelType channel);
     AudioAnalyzeRMS* getDryMixRMS(MixerAndFxChannelType channel);
 #ifdef FEATURE_SYNTH
     AudioAnalyzeRMS* getSynthRMS(int synthIdx, MixerAndFxChannelType channel);
@@ -62,6 +66,7 @@ class MixerAndFxs
 
     AudioAnalyzeRMS delayRMS[(int)MixerAndFxChannelType::kChannelCount];
     AudioAnalyzeRMS polyverbRMS[(int)MixerAndFxChannelType::kChannelCount];
+    AudioAnalyzeRMS chorusRMS[(int)MixerAndFxChannelType::kChannelCount];
     AudioAnalyzeRMS dryMixRMS[(int)MixerAndFxChannelType::kChannelCount];
 #ifdef FEATURE_SYNTH
     AudioAnalyzeRMS synthRMS[kSynthParts][(int)MixerAndFxChannelType::kChannelCount];
@@ -69,6 +74,7 @@ class MixerAndFxs
 
     AudioEffectShortDelay shortDelay;
     AudioEffectPolyverb polyverb;
+    AudioEffectChorus chorus;
 
     std::vector<AudioConnection*> connections;
 };

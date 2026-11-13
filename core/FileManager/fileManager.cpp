@@ -588,6 +588,7 @@ void cFileManager::stopAudioEngine()
     // engine.endAllFx();
     engine.clearDelay();
     engine.clearReverb();
+    engine.clearChorus();
 
     AudioNoInterrupts();
 }
@@ -606,6 +607,7 @@ void cFileManager::startAudioEngine()
     engine.endAllFx();
     engine.clearDelay();
     engine.clearReverb();
+    engine.clearChorus();
 
     engine.unmuteHeadphones();
 }

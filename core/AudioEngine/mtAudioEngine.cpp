@@ -155,6 +155,7 @@ audioEngine::audioEngine()
         dryMixRms[channel] = mixerAndFxs.getDryMixRMS((MixerAndFxChannelType)channel);
         polyverbRms[channel] = mixerAndFxs.getPolyverbRMS((MixerAndFxChannelType)channel);
         delayRms[channel] = mixerAndFxs.getDelayRMS((MixerAndFxChannelType)channel);
+        chorusRms[channel] = mixerAndFxs.getChorusRMS((MixerAndFxChannelType)channel);
 
         finalMixer[channel] = output.getFinalMixer((AudioOutput::OutputChannels)channel);
         tracksAndFxsMixer[channel] =
@@ -164,9 +165,11 @@ audioEngine::audioEngine()
 
     polyverb = mixerAndFxs.getPolyverb();
     delay = mixerAndFxs.getDelay();
+    chorus = mixerAndFxs.getChorus();
 
     prePolyverbMixer = mixerAndFxs.getPreFxMixer(MixerAndFxs<kVoices>::FxType::kReverb);
     preDelayMixer = mixerAndFxs.getPreFxMixer(MixerAndFxs<kVoices>::FxType::kDelay);
+    preChorusMixer = mixerAndFxs.getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus);
 
 }
 
@@ -177,9 +180,9 @@ void audioEngine::init(Platform* platform, [[maybe_unused]] Synth* synth)
     usb = platform->getUsb();
 
 #ifdef PLATFORM_IMX
-    AudioMemory(80);
+    AudioMemory(84);
 #else
-    AudioMemory(70);
+    AudioMemory(74);
 #endif
     AudioPlayMemory::initGranularShapeLookup();
     AudioPlayMemory::initNotesLookup();
@@ -190,7 +193,7 @@ void audioEngine::init(Platform* platform, [[maybe_unused]] Synth* synth)
 
     for (int i = 0; i < 8; i++)
     {
-        instrumentPlayer[i].init(platform->getTimer(), preDelayMixer, prePolyverbMixer);
+        instrumentPlayer[i].init(platform->getTimer(), preDelayMixer, prePolyverbMixer, preChorusMixer);
     }
     finalMixer[AudioOutput::OutputChannels::kLeft]->gain(AudioOutput::FinalMixInputs::kStream, 1.0);
     finalMixer[AudioOutput::OutputChannels::kRight]->gain(AudioOutput::FinalMixInputs::kStream,
@@ -253,6 +256,10 @@ void audioEngine::init(Platform* platform, [[maybe_unused]] Synth* synth)
     polyverb->SetPredelayLength(mtProject.values.reverb.predelay);
     polyverb->SetDiffusion(mtProject.values.reverb.diffusion);
     polyverb->unblockUpdate();
+
+    chorus->begin(mtProject.values.chorusRate,
+                  mtProject.values.chorusDepth,
+                  mtProject.values.chorusWidth);
 
     masterEnhancer.setCodec(codec);
     codec->enableHardwareProcessor(true);
@@ -352,6 +359,11 @@ void audioEngine::connectVoiceToMixer(AudioVoice* voice, MixerAndFxs<kVoices>* m
                           0,
                           mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kDelay),
                           idx));
+    connections.push_back(
+      new AudioConnection(voice->getFilter(),
+                          0,
+                          mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus),
+                          idx));
 }
 #else
 void audioEngine::connectVoiceToMixer(AudioVoice* voice, MixerAndFxs<kVoices>* mixerAndFxs, int idx)
@@ -389,6 +401,17 @@ void audioEngine::connectVoiceToMixer(AudioVoice* voice, MixerAndFxs<kVoices>* m
                           0,
                           mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kDelay),
                           kVoices + kInputsChannels + idx));
+
+    connections.push_back(
+      new AudioConnection(voice->getFilter(AudioVoice::VoiceChannels::kLeft),
+                          0,
+                          mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus),
+                          idx));
+    connections.push_back(
+      new AudioConnection(voice->getFilter(AudioVoice::VoiceChannels::kRight),
+                          0,
+                          mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus),
+                          kVoices + kInputsChannels + idx));
 }
 #endif
 
@@ -419,6 +442,18 @@ void audioEngine::connectInputToMixer(AudioInput* input, MixerAndFxs<kVoices>* m
       new AudioConnection(input->getGate(AudioInput::InputChannels::kRight),
                           0,
                           mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kReverb),
+                          kRightInputMixerChannel));
+
+    connections.push_back(
+      new AudioConnection(input->getGate(AudioInput::InputChannels::kLeft),
+                          0,
+                          mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus),
+                          kLeftInputMixerChannel));
+
+    connections.push_back(
+      new AudioConnection(input->getGate(AudioInput::InputChannels::kRight),
+                          0,
+                          mixerAndFxs->getPreFxMixer(MixerAndFxs<kVoices>::FxType::kChorus),
                           kRightInputMixerChannel));
 
     constexpr int kTracksAndSendsMixerInputIdx = 3;
@@ -899,12 +934,22 @@ void audioEngine::refreshDelayVolume()
 #endif
 }
 
+void audioEngine::refreshChorusVolume()
+{
+    for (uint8_t track = 0; track < 8; track++)
+    {
+        instrumentPlayer[track].setRefreshBit(CHORUS_SEND_MASK);
+    }
+}
+
 void audioEngine::refreshAllSends()
 {
     refreshReverbVolume();
     refreshDelayVolume();
+    refreshChorusVolume();
     refreshLineInStreamDelaySend();
     refreshLineInStreamReverbSend();
+    refreshLineInStreamChorusSend();
 }
 
 void audioEngine::refreshLineInStreamVolume()
@@ -987,6 +1032,34 @@ void audioEngine::refreshLineInStreamReverbSend()
     prePolyverbMixer->gain(9, gain);
 }
 
+void audioEngine::refreshLineInStreamChorusSend()
+{
+    float gain = AMP_MUTED;
+
+    if (!mtProject.values.lineInChorusSendMute && !mtProject.values.chorusMute)
+    {
+        float chorusVol = mixAmpLogValues[mtProject.values.chorusVolume];
+        if (mtProject.values.sendsMode == sendsModePreFader)
+        {
+            gain = (mixAmpLogValues[mtProject.values.lineInChorusSend] * chorusVol) / 2.0f;
+        }
+        else if (!mtProject.values.lineInMute)
+        {
+            gain = (mixAmpLogValues[mtProject.values.lineInVolume] *
+                    mixAmpLogValues[mtProject.values.lineInChorusSend] * chorusVol) /
+                   2.0f;
+        }
+    }
+
+    if (gain < 0.01f)
+    {
+        gain = 0;
+    }
+
+    preChorusMixer->gain(8, gain);
+    preChorusMixer->gain(9, gain);
+}
+
 void audioEngine::disableLineInImpact()
 {
     tracksAndFxsMixer[(int)MixerAndFxChannelType::kLeft]->gain(3, AMP_MUTED);
@@ -995,12 +1068,15 @@ void audioEngine::disableLineInImpact()
     preDelayMixer->gain(9, AMP_MUTED);
     prePolyverbMixer->gain(8, AMP_MUTED);
     prePolyverbMixer->gain(9, AMP_MUTED);
+    preChorusMixer->gain(8, AMP_MUTED);
+    preChorusMixer->gain(9, AMP_MUTED);
 }
 void audioEngine::enableLineInImpact()
 {
     refreshLineInStreamVolume();
     refreshLineInStreamDelaySend();
     refreshLineInStreamReverbSend();
+    refreshLineInStreamChorusSend();
 }
 
 void audioEngine::setHeadphonesVolume(uint8_t value)
@@ -1073,6 +1149,18 @@ void audioEngine::setReverbPredelay(float value)
 void audioEngine::setReverbDiffusion(float value)
 {
     polyverb->SetDiffusion(value);
+}
+void audioEngine::setChorusRate(uint8_t value)
+{
+    chorus->setRate(value);
+}
+void audioEngine::setChorusDepth(uint8_t value)
+{
+    chorus->setDepth(value);
+}
+void audioEngine::setChorusWidth(uint8_t value)
+{
+    chorus->setWidth(value);
 }
 
 void audioEngine::setLimiterAttack(uint16_t attack)
@@ -1562,6 +1650,19 @@ float audioEngine::getReverbAverageRMS()
     return localVal;
 }
 
+float audioEngine::getChorusAverageRMS()
+{
+    float localVal = -1.0f;
+    if (chorusRms[(int)MixerAndFxChannelType::kLeft]->available() &&
+        chorusRms[(int)MixerAndFxChannelType::kRight]->available())
+    {
+        localVal = (chorusRms[(int)MixerAndFxChannelType::kLeft]->read() +
+                    chorusRms[(int)MixerAndFxChannelType::kRight]->read()) /
+                   2.0f;
+    }
+    return localVal;
+}
+
 float audioEngine::getDryMixAverageRMS()
 {
     float localVal = -1.0f;
@@ -1597,6 +1698,19 @@ float audioEngine::getReverbRMS(uint8_t channel)
     if (polyverbRms[channel]->available())
     {
         localVal = polyverbRms[channel]->read();
+    }
+    return localVal;
+}
+// 0  - left channel, 1 - right channel
+float audioEngine::getChorusRMS(uint8_t channel)
+{
+    if (channel > 1)
+        channel = 1;
+    float localVal = -1.0f;
+
+    if (chorusRms[channel]->available())
+    {
+        localVal = chorusRms[channel]->read();
     }
     return localVal;
 }
@@ -1702,6 +1816,7 @@ void audioEngine::storeMixerValues()
     mixerValuesStore.dryMixVolume = mtProject.values.dryMixVolume;
     mixerValuesStore.reverbVolume = mtProject.values.reverbVolume;
     mixerValuesStore.delayVolume = mtProject.values.delayVolume;
+    mixerValuesStore.chorusVolume = mtProject.values.chorusVolume;
 }
 
 void audioEngine::resetMixerValues()
@@ -1714,6 +1829,7 @@ void audioEngine::resetMixerValues()
     mtProject.values.dryMixVolume = DEFAULT_DRY_MIX_VOLUME;
     mtProject.values.reverbVolume = DEFAULT_REVERB_VOLUME;
     mtProject.values.delayVolume = DEFAULT_DELAY_VOLUME;
+    mtProject.values.chorusVolume = DEFAULT_CHORUS_VOLUME;
 }
 
 void audioEngine::restoreMixerValues()
@@ -1726,6 +1842,7 @@ void audioEngine::restoreMixerValues()
     mtProject.values.dryMixVolume = mixerValuesStore.dryMixVolume;
     mtProject.values.reverbVolume = mixerValuesStore.reverbVolume;
     mtProject.values.delayVolume = mixerValuesStore.delayVolume;
+    mtProject.values.chorusVolume = mixerValuesStore.chorusVolume;
 }
 
 playerEngine::playerEngine()
@@ -1992,6 +2109,39 @@ AUDIO_CORE_RAM void playerEngine ::modReverbSend(uint8_t value)
 #endif
     }
 }
+AUDIO_CORE_RAM void playerEngine::modChorusSend(uint8_t value)
+{
+    static constexpr int kInputsChannels = 2;
+    if (mtProject.values.sendsMode == sendsModePreFader)
+    {
+        float gain = mtProject.values.chorusMute
+                       ? AMP_MUTED
+                       : sendsAmpLogValues[value] * mixAmpLogValues[mtProject.values.chorusVolume];
+#ifndef PLATFORM_IMX
+        preChorusMixer->gain(nChannel, gain);
+#else
+        preChorusMixer->gain(nChannel, gain / 2.0f);
+        preChorusMixer->gain(nChannel + audioEngine::kVoices + kInputsChannels, gain / 2.0f);
+#endif
+    }
+    else if (mtProject.values.sendsMode == sendsModePostFader)
+    {
+        bool isMute = (mtProject.values.chorusMute || mtProject.values.trackMute[nChannel]);
+        float gainFromChorus =
+          sendsAmpLogValues[value] * mixAmpLogValues[mtProject.values.chorusVolume];
+        float gainFromVolume = getMostSignificantAmount() *
+                               ampLogValues[getMostSignificantVolume()] *
+                               mixAmpLogValues[mtProject.values.trackVolume[nChannel]];
+
+        float gain = isMute ? AMP_MUTED : gainFromChorus * gainFromVolume;
+#ifndef PLATFORM_IMX
+        preChorusMixer->gain(nChannel, gain);
+#else
+        preChorusMixer->gain(nChannel, gain / 2.0f);
+        preChorusMixer->gain(nChannel + audioEngine::kVoices + kInputsChannels, gain / 2.0f);
+#endif
+    }
+}
 
 void playerEngine::modSeqPoints(uint32_t sp, uint32_t ep, uint8_t fx_n)
 {
@@ -2201,6 +2351,7 @@ uint8_t playerEngine ::noteOnWithoutInstrument(std::vector<int16_t*> addr,
     modPanning(50);
     modDelaySend(AMP_MUTED);
     modReverbSend(AMP_MUTED);
+    modChorusSend(AMP_MUTED);
     modBitDepth(BIT_DEPTH_MAX);
     modOverdrive(OVERDRIVE_DISABLED);
 
@@ -2296,6 +2447,7 @@ void audioEngine::soloTrack(uint8_t channel, uint8_t state)
                 {
                     muteDelaySend(i, 1);
                     muteReverbSend(i, 1);
+                    muteChorusSend(i, 1);
                 }
                 continue;
             }
@@ -2311,6 +2463,7 @@ void audioEngine::soloTrack(uint8_t channel, uint8_t state)
             {
                 muteDelaySend(i, 0);
                 muteReverbSend(i, 0);
+                muteChorusSend(i, 0);
                 continue;
             }
             if (!mtProject.values.trackMute[i])
@@ -2364,6 +2517,28 @@ void audioEngine::soloReverbSend(uint8_t state)
     }
 }
 
+void audioEngine::soloChorusSend(uint8_t state)
+{
+    if (state == 1)
+    {
+        forceChorusSend = 1;
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            if (!mtProject.values.trackMute[i])
+                muteTrack(i, 1);
+        }
+    }
+    else if (state == 0)
+    {
+        forceChorusSend = 0;
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            if (!mtProject.values.trackMute[i])
+                muteTrack(i, 0);
+        }
+    }
+}
+
 void audioEngine::clearDelay()
 {
     delay->clear();
@@ -2391,6 +2566,15 @@ void audioEngine::clearReverb()
         setSynthReverbSend(synthIdx, AMP_MUTED);
     }
 #endif
+}
+
+void audioEngine::clearChorus()
+{
+    chorus->clear();
+    for (uint8_t channel = 0; channel < 8; channel++)
+    {
+        instrumentPlayer[channel].modChorusSend(AMP_MUTED);
+    }
 }
 
 void audioEngine::resetLimiter()
@@ -2447,6 +2631,25 @@ void audioEngine::muteReverbSend(uint8_t channel, uint8_t state)
     instrumentPlayer[channel].setRefreshBit(REVERB_SEND_MASK);
 }
 
+void audioEngine::muteChorusSend(uint8_t channel, uint8_t state)
+{
+    if (channel >= 8)
+    {
+        return;
+    }
+
+    if (state == 0)
+    {
+        instrumentPlayer[channel].onlyChorusMuteState = 0;
+    }
+    else
+    {
+        instrumentPlayer[channel].onlyChorusMuteState = 1;
+    }
+
+    instrumentPlayer[channel].setRefreshBit(CHORUS_SEND_MASK);
+}
+
 //**************************************************************************************************************************************
 // PERFORMANCE MODE
 
@@ -2470,6 +2673,7 @@ void audioEngine::muteTrack(uint8_t channel, uint8_t state)
     instrumentPlayer[channel].setRefreshBit(VOLUME_MASK);
     instrumentPlayer[channel].setRefreshBit(DELAY_SEND_MASK);
     instrumentPlayer[channel].setRefreshBit(REVERB_SEND_MASK);
+    instrumentPlayer[channel].setRefreshBit(CHORUS_SEND_MASK);
 }
 
 //************************************************************************************************************
@@ -2483,11 +2687,13 @@ bool playerEngine::isZeroInPointZone(uint16_t position,
 void playerEngine::init(
   Timer* timer,
   AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preDelayMixer,
-  AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* prePolyverbMixer)
+  AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* prePolyverbMixer,
+  AudioMixer<MixerAndFxs<audioEngine::kVoices>::kSendsInputsCount>* preChorusMixer)
 {
     playerEngine::timer = timer;
     playerEngine::preDelayMixer = preDelayMixer;
     playerEngine::prePolyverbMixer = prePolyverbMixer;
+    playerEngine::preChorusMixer = preChorusMixer;
 
     for (int envIdx = 1; envIdx < envMax; envIdx++)
     {

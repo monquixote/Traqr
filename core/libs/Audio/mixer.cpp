@@ -70,6 +70,7 @@ AUDIO_CORE_RAM void AudioMixer<mixerSize>::update(void)
 // for every class in one .cpp file (to avoid symbol visibility issues)
 template class AudioMixer<2>;
 template class AudioMixer<4>;
+template class AudioMixer<5>;
 template class AudioMixer<7>;
 template class AudioMixer<8>;
 template class AudioMixer<10>;

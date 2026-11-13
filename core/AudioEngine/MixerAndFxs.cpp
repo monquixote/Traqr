@@ -10,6 +10,7 @@ MixerAndFxs<voicesCount>::MixerAndFxs()
       &preFxMixer[FxType::kReverb], 0, &polyverb, (int)MixerAndFxChannelType::kRight));
 
     connections.push_back(new AudioConnection(&preFxMixer[FxType::kDelay], &shortDelay));
+    connections.push_back(new AudioConnection(&preFxMixer[FxType::kChorus], &chorus));
 
     for (int channel = 0; channel < (int)MixerAndFxChannelType::kChannelCount; channel++)
     {
@@ -23,9 +24,12 @@ MixerAndFxs<voicesCount>::MixerAndFxs()
 
         connections.push_back(new AudioConnection(
           &polyverb, channel, &tracksAndSendsMixer[channel], TrackAndFxsChannels::kReverbChannel));
+        connections.push_back(new AudioConnection(
+          &chorus, channel, &tracksAndSendsMixer[channel], TrackAndFxsChannels::kChorusChannel));
 
         connections.push_back(new AudioConnection(&polyverb, channel, &polyverbRMS[channel], 0));
         connections.push_back(new AudioConnection(&shortDelay, channel, &delayRMS[channel], 0));
+        connections.push_back(new AudioConnection(&chorus, channel, &chorusRMS[channel], 0));
         connections.push_back(
           new AudioConnection(&tracksAndSynthMixer[channel], 0, &dryMixRMS[channel], 0));
     }
@@ -65,6 +69,12 @@ AudioEffectPolyverb* MixerAndFxs<voicesCount>::getPolyverb()
 }
 
 template<int voicesCount>
+AudioEffectChorus* MixerAndFxs<voicesCount>::getChorus()
+{
+    return &chorus;
+}
+
+template<int voicesCount>
 AudioAnalyzeRMS* MixerAndFxs<voicesCount>::getDelayRMS(MixerAndFxChannelType channel)
 {
     return &delayRMS[(int)channel];
@@ -74,6 +84,12 @@ template<int voicesCount>
 AudioAnalyzeRMS* MixerAndFxs<voicesCount>::getPolyverbRMS(MixerAndFxChannelType channel)
 {
     return &polyverbRMS[(int)channel];
+}
+
+template<int voicesCount>
+AudioAnalyzeRMS* MixerAndFxs<voicesCount>::getChorusRMS(MixerAndFxChannelType channel)
+{
+    return &chorusRMS[(int)channel];
 }
 
 template<int voicesCount>

@@ -237,6 +237,7 @@ class cInstrumentEditor : public ModuleBase
     void showFilterResonance();
     void showParamsDelaySend();
     void showParamsReverbSend();
+    void showParamsChorusSend();
     void showParamsOverdrive();
     void showParamsBitDepth();
 
@@ -249,6 +250,7 @@ class cInstrumentEditor : public ModuleBase
     static void changeFilterResonance(int16_t value);
     static void changeParamsDelaySend(int16_t value);
     static void changeParamsReverbSend(int16_t value);
+    static void changeParamsChorusSend(int16_t value);
     static void changeParamsOverdrive(int16_t value);
     static void changeParamsBitDepth(int16_t value);
 
@@ -261,6 +263,7 @@ class cInstrumentEditor : public ModuleBase
     void setDefaultResonance();
     void setDefaultDelaySend();
     void setDefaultReverbSend();
+    void setDefaultChorusSend();
     void setDefaultOverdrive();
     void setDefaultBitDepth();
 

@@ -86,6 +86,7 @@ void mtAudioExport::setExternalSettings()
     engine.disableLineInImpact();
     engine.clearDelay();
     engine.clearReverb();
+    engine.clearChorus();
 
     switch (selectedMode)
     {

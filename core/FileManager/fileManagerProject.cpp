@@ -139,6 +139,19 @@ bool cFileManager::loadProjectFileFormFileStruct(strMtProject* project, strProje
 
     memcpy(&project->song, &pFile->projectDataAndHeader.project.song, sizeof(strSong));
     memcpy(&project->values, &pFile->projectDataAndHeader.project.values, sizeof(strMtValues));
+    if (project->values.chorusInitMagic != CHORUS_INIT_MAGIC)
+    {
+        project->values.chorusRate = DEFAULT_CHORUS_RATE;
+        project->values.chorusDepth = DEFAULT_CHORUS_DEPTH;
+        project->values.chorusWidth = DEFAULT_CHORUS_WIDTH;
+        project->values.chorusVolume = DEFAULT_CHORUS_VOLUME;
+        project->values.chorusMute = mtAudioEngineConstans::MUTE_DISABLE;
+        project->values.lineInChorusSend = 0;
+        project->values.lineInChorusSendMute = mtAudioEngineConstans::MUTE_ENABLE;
+        project->values.chorusInitMagic = CHORUS_INIT_MAGIC;
+        project->values.chorusReserved[0] = 0;
+        project->values.chorusReserved[1] = 0;
+    }
     //*proj=pFile.projectDataAndHeader.project;
     // mtProject.values=pFile.projectDataAndHeader.project.values;
     return true;
@@ -356,6 +369,17 @@ void cFileManager::getDefaultValues(struct strMtValues* source)
     source->reverbVolume = DEFAULT_REVERB_VOLUME;
     source->delayVolume = DEFAULT_DELAY_VOLUME;
     source->dryMixVolume = DEFAULT_DELAY_VOLUME;
+
+    source->chorusRate = DEFAULT_CHORUS_RATE;
+    source->chorusDepth = DEFAULT_CHORUS_DEPTH;
+    source->chorusWidth = DEFAULT_CHORUS_WIDTH;
+    source->chorusVolume = DEFAULT_CHORUS_VOLUME;
+    source->chorusMute = mtAudioEngineConstans::MUTE_DISABLE;
+    source->lineInChorusSend = 0;
+    source->lineInChorusSendMute = mtAudioEngineConstans::MUTE_ENABLE;
+    source->chorusInitMagic = CHORUS_INIT_MAGIC;
+    source->chorusReserved[0] = 0;
+    source->chorusReserved[1] = 0;
 
     for (uint8_t band = 0; band < 5; band++)
     {

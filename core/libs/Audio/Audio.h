@@ -51,6 +51,7 @@
 #include "amplifier.h"
 #include "analyze_rms.h"
 #include "effect_bitDepth.h"
+#include "effect_chorus.h"
 #include "effect_dynamics.h"
 #include "effect_limiter.h"
 #include "effect_polyverb.h"

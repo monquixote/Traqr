@@ -42,7 +42,6 @@ static void functSwitchToLimiterScreen();
 static void functSwitchToEqualizerScreen();
 static void functSelectSaturation();
 static void functSelectBassBoost();
-static void functSelectStereoBoost();
 
 // delay
 static void functSwitchToDelayWindow();
@@ -62,6 +61,14 @@ static void functSelectReverbPredelay();
 static void functSelectReverbDiffusion();
 static void functReverbLineIn();
 static void functReverbCancel();
+// chorus
+static void functSwitchToChorusWindow();
+static void functSelectChorusRate();
+static void functSelectChorusDepth();
+static void functSelectChorusWidth();
+static void functSelectChorusSpace();
+static void functChorusLineIn();
+static void functChorusCancel();
 // limiter
 static void functSelectLimiterAttack();
 static void functSelectLimiterRelease();
@@ -84,6 +91,7 @@ static void functSoloMuteDelay(uint8_t state);
 static void functSoloMuteReverb(uint8_t state);
 static void functSoloMuteDryMix(uint8_t state);
 static void functSoloMuteLineIn(uint8_t state);
+static void functSoloMuteChorus(uint8_t state);
 static void functSoloMuteDelayReverb(uint8_t state);
 #ifdef FEATURE_SYNTH
 static void functSelectSynth1(uint8_t state);
@@ -153,6 +161,7 @@ void cMasterParams::update()
     {
         calcDelayLevel();
         calcReverbLevel();
+        calcChorusLevel();
         calcLineInLevel();
         calcDryMixLevel();
 #ifdef FEATURE_SYNTH
@@ -220,6 +229,15 @@ void cMasterParams::update()
                 showLevelBar(dryMixVolumeScreenPosition + i * 4, &dryMixLevel[i]);
             }
             dryMixLevel[i].lastValue = dryMixLevel[i].value;
+        }
+
+        for (uint8_t i = 0; i < 2; i++)
+        {
+            if (chorusLevel[i].value != chorusLevel[i].lastValue)
+            {
+                showLevelBar(i == 0 ? kChorusBarLeft : kChorusBarRight, &chorusLevel[i]);
+            }
+            chorusLevel[i].lastValue = chorusLevel[i].value;
         }
 
 #ifdef FEATURE_SYNTH
@@ -306,6 +324,8 @@ void cMasterParams::start(uint32_t options)
             switchToDelayScreen();
         else if (isReverbScreen)
             switchToReverbScreen();
+        else if (isChorusScreen)
+            switchToChorusScreen();
         else if (isLimiterScreen)
             switchToLimiterScreen();
         else if (isEqualizerScreen)
@@ -321,6 +341,7 @@ void cMasterParams::start(uint32_t options)
     displayTypeBeforeMasterPress = displayType;
     isDelayScreenBeforeMasterPress = isDelayScreen;
     isReverbScreenBeforeMasterPress = isReverbScreen;
+    isChorusScreenBeforeMasterPress = isChorusScreen;
     isLimiterScreenBeforeMasterPress = isLimiterScreen;
     isEqualizerScreenBeforeMasterPress = isEqualizerScreen;
     selectedPlaceBeforeMasterPress = selectedPlace;
@@ -370,7 +391,7 @@ void cMasterParams::setMasterScreenFunct()
     ip->setButtonObj(interfaceButton4, buttonPress, functSwitchToEqualizerScreen);
     ip->setButtonObj(interfaceButton5, buttonPress, functSelectSaturation);
     ip->setButtonObj(interfaceButton6, buttonPress, functSelectBassBoost);
-    ip->setButtonObj(interfaceButton7, buttonPress, functSelectStereoBoost);
+    ip->setButtonObj(interfaceButton7, buttonPress, functSwitchToChorusWindow);
     ip->setButtonObj(interfaceButtonMiniMiddle, functMiniMiddle);
 
     ip->setPotObj(interfacePot0, functEncoder);
@@ -420,6 +441,10 @@ void cMasterParams::shiftHandler()
         else if (isReverbScreen)
         {
             showLineInReverbSend();
+        }
+        else if (isChorusScreen)
+        {
+            showLineInChorusSend();
         }
 
         previousState = buttons->isButtonPressed(interfaceButtonShift);
@@ -481,6 +506,11 @@ static void functEncoder(int16_t value)
             MP->changeReverbVolume(value);
             MP->ignoreMuteReleaseReverb = true;
         }
+        if (MP->chorusIsEdited)
+        {
+            MP->changeChorusVolume(value);
+            MP->ignoreMuteReleaseChorus = true;
+        }
         if (MP->dryMixIsEdited)
         {
             MP->changeDryMixVolume(value);
@@ -534,6 +564,18 @@ static void functEncoder(int16_t value)
             default: break;
         }
     }
+    else if (MP->isChorusScreen)
+    {
+        switch (MP->selectedPlaceChorus)
+        {
+            case 0: MP->changeChorusRate(value); break;
+            case 1: MP->changeChorusDepth(value); break;
+            case 2: MP->changeChorusWidth(value); break;
+            case 3: changeStereoBoost(value); break;
+            case 4: MP->changeLineInChorusSend(value); break;
+            default: break;
+        }
+    }
     else if (MP->isLimiterScreen)
     {
         switch (MP->selectedPlaceLimiter)
@@ -558,7 +600,6 @@ static void functEncoder(int16_t value)
             case 0: changeVolume(value); break;
             case 5: changeSaturationType(interfaceGlobals.invertValForList ? -value : value); break;
             case 6: changeBassBoost(value); break;
-            case 7: changeStereoBoost(value); break;
             default: break;
         }
     }
@@ -592,6 +633,12 @@ static void functLeft()
         if (MP->selectedPlaceReverb > 0)
             MP->selectedPlaceReverb--;
         MP->refreshReverbFrame();
+    }
+    else if (MP->isChorusScreen)
+    {
+        if (MP->selectedPlaceChorus > 0)
+            MP->selectedPlaceChorus--;
+        MP->refreshChorusFrame();
     }
     else if (MP->isLimiterScreen)
     {
@@ -657,6 +704,12 @@ static void functRight()
             MP->selectedPlaceReverb++;
         MP->refreshReverbFrame();
     }
+    else if (MP->isChorusScreen)
+    {
+        if (MP->selectedPlaceChorus < MP->frameData.placesCount - 1)
+            MP->selectedPlaceChorus++;
+        MP->refreshChorusFrame();
+    }
     else if (MP->isLimiterScreen)
     {
         if (MP->selectedPlaceLimiter == 2)
@@ -720,6 +773,11 @@ static void functUp()
             MP->changeReverbVolume(1);
             MP->ignoreMuteReleaseReverb = true;
         }
+        if (MP->chorusIsEdited)
+        {
+            MP->changeChorusVolume(1);
+            MP->ignoreMuteReleaseChorus = true;
+        }
         if (MP->dryMixIsEdited)
         {
             MP->changeDryMixVolume(1);
@@ -769,6 +827,18 @@ static void functUp()
             default: break;
         }
     }
+    else if (MP->isChorusScreen)
+    {
+        switch (MP->selectedPlaceChorus)
+        {
+            case 0: MP->changeChorusRate(10); break;
+            case 1: MP->changeChorusDepth(10); break;
+            case 2: MP->changeChorusWidth(10); break;
+            case 3: changeStereoBoost(1); break;
+            case 4: MP->changeLineInChorusSend(1); break;
+            default: break;
+        }
+    }
     else if (MP->isLimiterScreen)
     {
         switch (MP->selectedPlaceLimiter)
@@ -791,7 +861,6 @@ static void functUp()
             case 0: changeVolume(1); break;
             case 5: changeSaturationType(-1); break;
             case 6: changeBassBoost(1); break;
-            case 7: changeStereoBoost(1); break;
             default: break;
         }
     }
@@ -824,6 +893,11 @@ static void functDown()
         {
             MP->changeReverbVolume(-1);
             MP->ignoreMuteReleaseReverb = true;
+        }
+        if (MP->chorusIsEdited)
+        {
+            MP->changeChorusVolume(-1);
+            MP->ignoreMuteReleaseChorus = true;
         }
         if (MP->dryMixIsEdited)
         {
@@ -873,6 +947,18 @@ static void functDown()
             default: break;
         }
     }
+    else if (MP->isChorusScreen)
+    {
+        switch (MP->selectedPlaceChorus)
+        {
+            case 0: MP->changeChorusRate(-10); break;
+            case 1: MP->changeChorusDepth(-10); break;
+            case 2: MP->changeChorusWidth(-10); break;
+            case 3: changeStereoBoost(-1); break;
+            case 4: MP->changeLineInChorusSend(-1); break;
+            default: break;
+        }
+    }
     else if (MP->isLimiterScreen)
     {
         switch (MP->selectedPlaceLimiter)
@@ -895,7 +981,6 @@ static void functDown()
             case 0: changeVolume(-1); break;
             case 5: changeSaturationType(1); break;
             case 6: changeBassBoost(-1); break;
-            case 7: changeStereoBoost(-1); break;
             default: break;
         }
     }
@@ -927,6 +1012,11 @@ static void functDelete()
         {
             MP->setDefaultReverbVolume();
             MP->ignoreMuteReleaseReverb = true;
+        }
+        if (MP->chorusIsEdited)
+        {
+            MP->setDefaultChorusVolume();
+            MP->ignoreMuteReleaseChorus = true;
         }
         if (MP->dryMixIsEdited)
         {
@@ -978,6 +1068,18 @@ static void functDelete()
             default: break;
         }
     }
+    else if (MP->isChorusScreen)
+    {
+        switch (MP->selectedPlaceChorus)
+        {
+            case 0: MP->setDefaultChorusRate(); break;
+            case 1: MP->setDefaultChorusDepth(); break;
+            case 2: MP->setDefaultChorusWidth(); break;
+            case 3: setDefaultStereoBoost(); break;
+            case 4: MP->setDefaultLineInChorusSend(); break;
+            default: break;
+        }
+    }
     else if (MP->isLimiterScreen)
     {
         switch (MP->selectedPlaceLimiter)
@@ -1000,7 +1102,6 @@ static void functDelete()
             case 0: setDefaultMasterVolume(); break;
             case 5: setDefaultSaturationType(); break;
             case 6: setDefaultBassBoost(); break;
-            case 7: setDefaultStereoBoost(); break;
             default: break;
         }
     }
@@ -1092,12 +1193,6 @@ static void functSelectBassBoost()
     MP->activateLabelsBorder();
 }
 
-static void functSelectStereoBoost()
-{
-    MP->selectedPlace = 7;
-    MP->activateLabelsBorder();
-}
-
 static void functSwitchModule(uint8_t button)
 {
     if (!performanceMode.canPerformanceModeContinueAfterSwitchingTo(button))
@@ -1129,6 +1224,8 @@ void cMasterParams::switchScreen()
             switchToDelayScreen();
         else if (isReverbScreen)
             switchToReverbScreen();
+        else if (isChorusScreen)
+            switchToChorusScreen();
         else if (isLimiterScreen)
             switchToLimiterScreen();
         else if (isEqualizerScreen)
@@ -1156,6 +1253,8 @@ void cMasterParams::returnToScreen()
             MP->switchToDelayScreen();
         else if (isReverbScreenBeforeMasterPress)
             MP->switchToReverbScreen();
+        else if (isChorusScreenBeforeMasterPress)
+            MP->switchToChorusScreen();
         else if (isLimiterScreenBeforeMasterPress)
             MP->switchToLimiterScreen();
         else if (isEqualizerScreenBeforeMasterPress)
@@ -1180,13 +1279,14 @@ void cMasterParams::switchToMaster()
     ip->setButtonObj(interfaceButton4, buttonPress, functSwitchToEqualizerScreen);
     ip->setButtonObj(interfaceButton5, buttonPress, functSelectSaturation);
     ip->setButtonObj(interfaceButton6, buttonPress, functSelectBassBoost);
-    ip->setButtonObj(interfaceButton7, buttonPress, functSelectStereoBoost);
+    ip->setButtonObj(interfaceButton7, buttonPress, functSwitchToChorusWindow);
 
     keyboardManager.deactivateKeyboard();
 
     displayType = displayMode::masterValues;
     isDelayScreen = false;
     isReverbScreen = false;
+    isChorusScreen = false;
     isLimiterScreen = false;
     isEqualizerScreen = false;
 
@@ -1235,6 +1335,9 @@ void cMasterParams::switchToMixerDelayReverb()
     ip->setButtonObj(interfaceButton4, functSelectSynth1);
     ip->setButtonObj(interfaceButton5, functSelectSynth2);
     ip->setButtonObj(interfaceButton6, functSelectSynth3);
+    ip->setButtonObj(interfaceButton7, functSoloMuteChorus);
+#else
+    ip->setButtonObj(interfaceButton4, functSoloMuteChorus);
 #endif
     ip->setButtonObj(interfaceButtonShift, functSoloMuteDelayReverb);
 
@@ -1289,6 +1392,26 @@ void cMasterParams::switchToReverbScreen()
 
     displayType = displayMode::masterValues;
     isReverbScreen = true;
+}
+
+void cMasterParams::switchToChorusScreen()
+{
+    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
+    ip->clearButton(interfaceButtonShift);
+
+    ip->setButtonObj(interfaceButton0, buttonPress, functSelectChorusRate);
+    ip->setButtonObj(interfaceButton1, buttonPress, functSelectChorusDepth);
+    ip->setButtonObj(interfaceButton2, buttonPress, functSelectChorusWidth);
+    ip->setButtonObj(interfaceButton3, buttonPress, functSelectChorusSpace);
+    ip->setButtonObj(interfaceButton4, buttonPress, functChorusLineIn);
+    ip->setButtonObj(interfaceButton7, buttonPress, functChorusCancel);
+
+    keyboardManager.deactivateKeyboard();
+
+    displayType = displayMode::masterValues;
+    isChorusScreen = true;
+
+    showChorusScreen();
 }
 
 void cMasterParams::switchToLimiterScreen()
@@ -1467,6 +1590,57 @@ static void functReverbCancel()
     MP->switchToMaster();
 }
 
+static void functSwitchToChorusWindow()
+{
+    MP->selectedPlace = 7;
+    MP->switchToChorusScreen();
+}
+
+static void functSelectChorusRate()
+{
+    MP->selectedPlaceChorus = 0;
+    MP->refreshChorusFrame();
+}
+
+static void functSelectChorusDepth()
+{
+    MP->selectedPlaceChorus = 1;
+    MP->refreshChorusFrame();
+}
+
+static void functSelectChorusWidth()
+{
+    MP->selectedPlaceChorus = 2;
+    MP->refreshChorusFrame();
+}
+
+static void functSelectChorusSpace()
+{
+    MP->selectedPlaceChorus = 3;
+    MP->refreshChorusFrame();
+}
+
+static void functChorusLineIn()
+{
+    if (MP->buttons->isButtonPressed(interfaceButtonShift))
+    {
+        mtProject.values.lineInChorusSendMute = !mtProject.values.lineInChorusSendMute;
+        MP->showLineInChorusSend();
+        engine.refreshLineInStreamChorusSend();
+        newFileManager.setProjectStructChanged();
+    }
+    else
+    {
+        MP->selectedPlaceChorus = 4;
+        MP->refreshChorusFrame();
+    }
+}
+
+static void functChorusCancel()
+{
+    MP->switchToMaster();
+}
+
 // limiter screen
 static void functSelectLimiterAttack()
 {
@@ -1555,6 +1729,18 @@ void cMasterParams::calcReverbLevel()
         if (localReverbLevel[i] != -1.0f)
         {
             calcLevel(&reverbLevel[i], localReverbLevel[i]);
+        }
+    }
+}
+
+void cMasterParams::calcChorusLevel()
+{
+    for (uint8_t i = 0; i < 2; i++)
+    {
+        localChorusLevel[i] = engine.getChorusRMS(i);
+        if (localChorusLevel[i] != -1.0f)
+        {
+            calcLevel(&chorusLevel[i], localChorusLevel[i]);
         }
     }
 }
@@ -1707,6 +1893,7 @@ void cMasterParams::resetMixerDelayReverbLevels()
     {
         resetLevel(&delayLevel[channel]);
         resetLevel(&reverbLevel[channel]);
+        resetLevel(&chorusLevel[channel]);
         resetLevel(&dryMixLevel[channel]);
         resetLevel(&lineInLevel[channel]);
 
@@ -1720,6 +1907,8 @@ void cMasterParams::resetMixerDelayReverbLevels()
         while (engine.getDelayRMS(channel) != -1.0f)
             ;
         while (engine.getReverbRMS(channel) != -1.0f)
+            ;
+        while (engine.getChorusRMS(channel) != -1.0f)
             ;
         while (engine.getDryMixRMS(channel) != -1.0f)
             ;
@@ -1860,6 +2049,7 @@ static void functSoloMuteDelay(uint8_t state)
                 mtProject.values.dryMixMute = 0;
                 mtProject.values.reverbMute = 0;
                 mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 0;
             }
             else
             {
@@ -1867,6 +2057,7 @@ static void functSoloMuteDelay(uint8_t state)
                 mtProject.values.dryMixMute = 1;
                 mtProject.values.reverbMute = 1;
                 mtProject.values.lineInMute = 1;
+                mtProject.values.chorusMute = 1;
                 MP->soloTrack = cMasterParams::delayIsSolo;
             }
         }
@@ -1881,9 +2072,11 @@ static void functSoloMuteDelay(uint8_t state)
         engine.refreshTrackVolume();
         engine.refreshDelayVolume();
         engine.refreshReverbVolume();
+        engine.refreshChorusVolume();
         engine.refreshLineInStreamVolume();
         engine.refreshLineInStreamReverbSend();
         engine.refreshLineInStreamDelaySend();
+        engine.refreshLineInStreamChorusSend();
         MP->showMixerDelayReverbScreen();
     }
 
@@ -1919,6 +2112,7 @@ static void functSoloMuteReverb(uint8_t state)
                 mtProject.values.dryMixMute = 0;
                 mtProject.values.reverbMute = 0;
                 mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 0;
             }
             else
             {
@@ -1926,6 +2120,7 @@ static void functSoloMuteReverb(uint8_t state)
                 mtProject.values.dryMixMute = 1;
                 mtProject.values.reverbMute = 0;
                 mtProject.values.lineInMute = 1;
+                mtProject.values.chorusMute = 1;
                 MP->soloTrack = cMasterParams::reverbIsSolo;
             }
         }
@@ -1940,9 +2135,11 @@ static void functSoloMuteReverb(uint8_t state)
         engine.refreshTrackVolume();
         engine.refreshDelayVolume();
         engine.refreshReverbVolume();
+        engine.refreshChorusVolume();
         engine.refreshLineInStreamVolume();
         engine.refreshLineInStreamReverbSend();
         engine.refreshLineInStreamDelaySend();
+        engine.refreshLineInStreamChorusSend();
         MP->showMixerDelayReverbScreen();
     }
 
@@ -1978,6 +2175,7 @@ static void functSoloMuteDryMix(uint8_t state)
                 mtProject.values.dryMixMute = 0;
                 mtProject.values.reverbMute = 0;
                 mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 0;
             }
             else
             {
@@ -1985,6 +2183,7 @@ static void functSoloMuteDryMix(uint8_t state)
                 mtProject.values.dryMixMute = 0;
                 mtProject.values.reverbMute = 1;
                 mtProject.values.lineInMute = 1;
+                mtProject.values.chorusMute = 1;
                 MP->soloTrack = cMasterParams::dryMixIsSolo;
             }
         }
@@ -1999,6 +2198,7 @@ static void functSoloMuteDryMix(uint8_t state)
         engine.refreshTrackVolume();
         engine.refreshDelayVolume();
         engine.refreshReverbVolume();
+        engine.refreshChorusVolume();
         engine.refreshLineInStreamVolume();
         MP->showMixerDelayReverbScreen();
     }
@@ -2087,6 +2287,7 @@ static void functSoloMuteLineIn(uint8_t state)
                 mtProject.values.dryMixMute = 0;
                 mtProject.values.reverbMute = 0;
                 mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 0;
             }
             else
             {
@@ -2094,6 +2295,7 @@ static void functSoloMuteLineIn(uint8_t state)
                 mtProject.values.dryMixMute = 1;
                 mtProject.values.reverbMute = 1;
                 mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 1;
                 MP->soloTrack = cMasterParams::lineInIsSolo;
             }
         }
@@ -2108,15 +2310,80 @@ static void functSoloMuteLineIn(uint8_t state)
         engine.refreshTrackVolume();
         engine.refreshDelayVolume();
         engine.refreshReverbVolume();
+        engine.refreshChorusVolume();
         engine.refreshLineInStreamVolume();
         engine.refreshLineInStreamDelaySend();
         engine.refreshLineInStreamReverbSend();
+        engine.refreshLineInStreamChorusSend();
         MP->showMixerDelayReverbScreen();
     }
 
     if (state == buttonPress)
     {
         MP->lineInIsEdited = true;
+    }
+}
+
+static void functSoloMuteChorus(uint8_t state)
+{
+    if (MP->displayType == cMasterParams::displayMode::masterValues)
+    {
+        return;
+    }
+
+    if (state == buttonRelease)
+    {
+        MP->chorusIsEdited = 0;
+        if (MP->ignoreMuteReleaseChorus)
+        {
+            MP->ignoreMuteReleaseChorus = false;
+            return;
+        }
+
+        if (MP->isSolo)
+        {
+            if (MP->soloTrack == cMasterParams::chorusIsSolo)
+            {
+                MP->soloTrack = -1;
+
+                mtProject.values.delayMute = 0;
+                mtProject.values.dryMixMute = 0;
+                mtProject.values.reverbMute = 0;
+                mtProject.values.lineInMute = 0;
+                mtProject.values.chorusMute = 0;
+            }
+            else
+            {
+                mtProject.values.delayMute = 1;
+                mtProject.values.dryMixMute = 1;
+                mtProject.values.reverbMute = 1;
+                mtProject.values.lineInMute = 1;
+                mtProject.values.chorusMute = 0;
+                MP->soloTrack = cMasterParams::chorusIsSolo;
+            }
+        }
+        else
+        {
+            mtProject.values.chorusMute = !mtProject.values.chorusMute;
+            MP->soloTrack = -1;
+        }
+
+        MP->showLevelBar(cMasterParams::kChorusBarLeft, &MP->chorusLevel[0]);
+        MP->showLevelBar(cMasterParams::kChorusBarRight, &MP->chorusLevel[1]);
+        engine.refreshTrackVolume();
+        engine.refreshDelayVolume();
+        engine.refreshReverbVolume();
+        engine.refreshChorusVolume();
+        engine.refreshLineInStreamVolume();
+        engine.refreshLineInStreamDelaySend();
+        engine.refreshLineInStreamReverbSend();
+        engine.refreshLineInStreamChorusSend();
+        MP->showMixerDelayReverbScreen();
+    }
+
+    if (state == buttonPress)
+    {
+        MP->chorusIsEdited = true;
     }
 }
 
@@ -2142,6 +2409,7 @@ static void functSwitchModeMaster(uint8_t state)
         MP->displayTypeBeforeMasterPress = MP->displayType;
         MP->isDelayScreenBeforeMasterPress = MP->isDelayScreen;
         MP->isReverbScreenBeforeMasterPress = MP->isReverbScreen;
+        MP->isChorusScreenBeforeMasterPress = MP->isChorusScreen;
         MP->isLimiterScreenBeforeMasterPress = MP->isLimiterScreen;
         MP->isEqualizerScreenBeforeMasterPress = MP->isEqualizerScreen;
         MP->selectedPlaceBeforeMasterPress = MP->selectedPlace;
@@ -2180,6 +2448,7 @@ static void functSwitchModeMaster(uint8_t state)
                 MP->displayType = MP->displayTypeBeforeMasterPress;
                 MP->isDelayScreen = MP->isDelayScreenBeforeMasterPress;
                 MP->isReverbScreen = MP->isReverbScreenBeforeMasterPress;
+                MP->isChorusScreen = MP->isChorusScreenBeforeMasterPress;
                 MP->isLimiterScreen = MP->isLimiterScreenBeforeMasterPress;
                 MP->isEqualizerScreen = MP->isEqualizerScreenBeforeMasterPress;
                 MP->selectedPlace = MP->selectedPlaceBeforeMasterPress;
@@ -2607,6 +2876,42 @@ void cMasterParams::changeReverbDiffusion(int16_t val)
     newFileManager.setProjectStructChanged();
 }
 
+void cMasterParams::changeChorusRate(int16_t val)
+{
+    mtProject.values.chorusRate =
+      clamp<int>(mtProject.values.chorusRate + val, CHORUS_PARAM_MIN, CHORUS_PARAM_MAX);
+
+    engine.setChorusRate(mtProject.values.chorusRate);
+
+    showChorusRate();
+
+    newFileManager.setProjectStructChanged();
+}
+
+void cMasterParams::changeChorusDepth(int16_t val)
+{
+    mtProject.values.chorusDepth =
+      clamp<int>(mtProject.values.chorusDepth + val, CHORUS_PARAM_MIN, CHORUS_PARAM_MAX);
+
+    engine.setChorusDepth(mtProject.values.chorusDepth);
+
+    showChorusDepth();
+
+    newFileManager.setProjectStructChanged();
+}
+
+void cMasterParams::changeChorusWidth(int16_t val)
+{
+    mtProject.values.chorusWidth =
+      clamp<int>(mtProject.values.chorusWidth + val, CHORUS_PARAM_MIN, CHORUS_PARAM_MAX);
+
+    engine.setChorusWidth(mtProject.values.chorusWidth);
+
+    showChorusWidth();
+
+    newFileManager.setProjectStructChanged();
+}
+
 // equalizer
 void cMasterParams::changeEqualizerBandAdjust(uint8_t n, int16_t val)
 {
@@ -2690,6 +2995,17 @@ void cMasterParams::changeDelayVolume(int16_t val)
     showDelayVolumeBar();
     engine.refreshDelayVolume();
 }
+
+void cMasterParams::changeChorusVolume(int16_t val)
+{
+    mtProject.values.chorusVolume =
+      clamp<int>(mtProject.values.chorusVolume + val, CHORUS_VOLUME_MIN, CHORUS_VOLUME_MAX);
+
+    newFileManager.setProjectStructChanged();
+    showChorusVolumeBar();
+    engine.refreshChorusVolume();
+}
+
 void cMasterParams::changeDryMixVolume(int16_t val)
 {
     if (mtProject.values.dryMixVolume + val > DRY_MIX_VOLUME_MAX)
@@ -2718,6 +3034,7 @@ void cMasterParams::changeLineInVolume(int16_t val)
     engine.refreshLineInStreamVolume();
     engine.refreshLineInStreamDelaySend();
     engine.refreshLineInStreamReverbSend();
+    engine.refreshLineInStreamChorusSend();
 }
 
 void cMasterParams::changeLineInDelaySend(int16_t val)
@@ -2738,6 +3055,16 @@ void cMasterParams::changeLineInReverbSend(int16_t val)
     newFileManager.setProjectStructChanged();
     showLineInReverbSend();
     engine.refreshLineInStreamReverbSend();
+}
+
+void cMasterParams::changeLineInChorusSend(int16_t val)
+{
+    mtProject.values.lineInChorusSend =
+      clamp<int>(mtProject.values.lineInChorusSend + val, 0, LINE_IN_SEND_MAX);
+
+    newFileManager.setProjectStructChanged();
+    showLineInChorusSend();
+    engine.refreshLineInStreamChorusSend();
 }
 
 #ifdef FEATURE_SYNTH
@@ -2788,6 +3115,14 @@ void cMasterParams::setDefaultDelayVolume()
     showDelayVolumeBar();
     engine.refreshDelayVolume();
 }
+
+void cMasterParams::setDefaultChorusVolume()
+{
+    mtProject.values.chorusVolume = DEFAULT_CHORUS_VOLUME;
+    newFileManager.setProjectStructChanged();
+    showChorusVolumeBar();
+    engine.refreshChorusVolume();
+}
 void cMasterParams::setDefaultDryMixVolume()
 {
     mtProject.values.dryMixVolume = DEFAULT_DRY_MIX_VOLUME;
@@ -2802,6 +3137,9 @@ void cMasterParams::setDefaultLineInVolume()
     newFileManager.setProjectStructChanged();
     showLineInVolumeBar();
     engine.refreshLineInStreamVolume();
+    engine.refreshLineInStreamDelaySend();
+    engine.refreshLineInStreamReverbSend();
+    engine.refreshLineInStreamChorusSend();
 }
 
 void cMasterParams::setDefaultLineInDelaySend()
@@ -2818,6 +3156,14 @@ void cMasterParams::setDefaultLineInReverbSend()
     newFileManager.setProjectStructChanged();
     showLineInReverbSend();
     engine.refreshLineInStreamReverbSend();
+}
+
+void cMasterParams::setDefaultLineInChorusSend()
+{
+    mtProject.values.lineInChorusSend = 0;
+    newFileManager.setProjectStructChanged();
+    showLineInChorusSend();
+    engine.refreshLineInStreamChorusSend();
 }
 
 void cMasterParams::setDefaultReverbSize()
@@ -2856,6 +3202,39 @@ void cMasterParams::setDefaultReverbDiffusion()
     engine.setReverbDiffusion(mtProject.values.reverb.diffusion);
 
     showReverbDiffusion();
+
+    newFileManager.setProjectStructChanged();
+}
+
+void cMasterParams::setDefaultChorusRate()
+{
+    mtProject.values.chorusRate = DEFAULT_CHORUS_RATE;
+
+    engine.setChorusRate(mtProject.values.chorusRate);
+
+    showChorusRate();
+
+    newFileManager.setProjectStructChanged();
+}
+
+void cMasterParams::setDefaultChorusDepth()
+{
+    mtProject.values.chorusDepth = DEFAULT_CHORUS_DEPTH;
+
+    engine.setChorusDepth(mtProject.values.chorusDepth);
+
+    showChorusDepth();
+
+    newFileManager.setProjectStructChanged();
+}
+
+void cMasterParams::setDefaultChorusWidth()
+{
+    mtProject.values.chorusWidth = DEFAULT_CHORUS_WIDTH;
+
+    engine.setChorusWidth(mtProject.values.chorusWidth);
+
+    showChorusWidth();
 
     newFileManager.setProjectStructChanged();
 }

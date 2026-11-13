@@ -38,6 +38,8 @@ uint8_t playerEngine ::noteOn(uint8_t instr_idx, int8_t note, int8_t _velocity)
 
     handleNoteOnReverbSend();
 
+    handleNoteOnChorusSend();
+
     handleNoteOnBitCrusher();
 
     status = 1; // playMemPtr->play(instr_idx,note);
@@ -106,6 +108,8 @@ AUDIO_CORE_RAM uint8_t playerEngine ::noteOn(uint8_t instr_idx,
     handleFxNoteOnDelaySend();
 
     handleFxNoteOnReverbSend();
+
+    handleFxNoteOnChorusSend();
 
     //********* obsluga performance parametrow obslugiwanych w play_memory
     if (trackControlParameter[(int)controlType::performanceMode][(int)parameterList::endPoint])
@@ -516,6 +520,21 @@ AUDIO_CORE_RAM void playerEngine::handleNoteOnReverbSend()
     setRefreshBit(REVERB_SEND_MASK);
 }
 
+AUDIO_CORE_RAM void playerEngine::handleNoteOnChorusSend()
+{
+    assert(playMemPtr[0] != nullptr);
+    if (!playMemPtr[0]->isPlaying())
+    {
+        preChorusMixer->gain(nChannel, 0.0f);
+#ifdef PLATFORM_IMX
+        static constexpr int kInputsChannels = 2;
+        preChorusMixer->gain(nChannel + audioEngine::kVoices + kInputsChannels, 0.0f);
+#endif
+    }
+
+    setRefreshBit(CHORUS_SEND_MASK);
+}
+
 void playerEngine::handleInitNoteOnAmpEnvelope()
 {
     if (mtProject.instrument[currentInstrument_idx].envelope[envAmp].enable)
@@ -814,4 +833,9 @@ AUDIO_CORE_RAM void playerEngine::handleFxNoteOnDelaySend()
 AUDIO_CORE_RAM void playerEngine::handleFxNoteOnReverbSend()
 {
     handleNoteOnReverbSend();
+}
+
+AUDIO_CORE_RAM void playerEngine::handleFxNoteOnChorusSend()
+{
+    handleNoteOnChorusSend();
 }

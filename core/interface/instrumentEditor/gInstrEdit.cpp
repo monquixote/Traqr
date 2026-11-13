@@ -473,6 +473,7 @@ void cInstrumentEditor::showInstrumentEnv()
     display.setControlHide(filterModeListControl);
 
     display.setControlHide(blankSpaceCover[0]);
+    display.setControlHide(blankSpaceCover[1]);
     display.setControlHide(noteLabel);
     display.setControlHide(paramsListControl);
     display.setControlHide(modelListControl);
@@ -561,6 +562,7 @@ void cInstrumentEditor::showInstrumentEnv()
         display.setControlShow(list3Control);
         display.setControlShow(list4Control);
 
+        display.setControlHide(blankSpaceCover[1]);
         display.setControlPosition(blankSpaceCover[0], (800 / 8) * 6 + 1, -1);
         display.setControlSize(blankSpaceCover[0], 800 / 4 - 3, 394);
         display.setControlShow(blankSpaceCover[0]);
@@ -677,8 +679,9 @@ void cInstrumentEditor::showInstrumentEnv()
 void cInstrumentEditor::showEffectScreen()
 {
     showTitleBar();
+    frameData.places[4] = &framesPlaces[5][0];
+    frameData.placesCount = 5;
     showSendScreenFrame();
-    frameData.placesCount = 4;
 
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -706,13 +709,17 @@ void cInstrumentEditor::showEffectScreen()
     display.setControlStyle(barControl[3],
                             (controlStyleShow | controlStyleValue_0_100 | controlStyleBackground) |
                               shadow | gradient);
+    display.setControlStyle(barControl[5],
+                            (controlStyleShow | controlStyleValue_0_100 | controlStyleBackground) |
+                              shadow | gradient);
 
     display.setControlShow(barControl[0]);
     display.setControlShow(barControl[1]);
     display.setControlShow(barControl[2]);
     display.setControlShow(barControl[3]);
+    display.setControlShow(barControl[5]);
     display.setControlHide(filterModeListControl);
-    display.setControlHide(barControl[5]);
+    display.setControlHide(barControl[4]);
     display.setControlHide(barControl[6]);
 
     display.setControlText(label[0], "Overdrive");
@@ -721,12 +728,10 @@ void cInstrumentEditor::showEffectScreen()
     display.setControlText(label[3], "Delay send");
     display.setControlText(label[4], "Instrument");
     display.setControlText2(label[4], "MIDI Mapping");
+    display.setControlText(label[5], "Chorus send");
 
-    for (uint8_t i = 5; i < 7; i++)
-    {
-        display.setControlText(label[i], "");
-        display.setControlText2(label[i], "");
-    }
+    display.setControlText(label[6], "");
+    display.setControlText2(label[6], "");
     display.setControlText(label[7], "Back");
     display.setControlText2(label[7], "");
 
@@ -736,6 +741,7 @@ void cInstrumentEditor::showEffectScreen()
 
     showParamsDelaySend();
     showParamsReverbSend();
+    showParamsChorusSend();
     showParamsOverdrive();
     showParamsBitDepth();
 
@@ -772,17 +778,22 @@ void cInstrumentEditor::showEffectScreen()
     display.setControlHide(imgGridControl);
 
     display.setControlPosition(blankSpaceCover[0], (800 / 8) * 4 + 1, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 4 - 3, 394);
+    display.setControlSize(blankSpaceCover[0], (800 / 8) - 3, 394);
     display.setControlShow(blankSpaceCover[0]);
     display.refreshControl(blankSpaceCover[0]);
+
+    display.setControlPosition(blankSpaceCover[1], (800 / 8) * 6 + 1, -1);
+    display.setControlSize(blankSpaceCover[1], (800 / 8) * 2 - 3, 394);
+    display.setControlShow(blankSpaceCover[1]);
+    display.refreshControl(blankSpaceCover[1]);
 
     display.synchronizeRefresh();
 }
 
 void cInstrumentEditor::showSendScreenFrame()
 {
-    if (selectedPlaceSends > 3)
-        return;
+    if (selectedPlaceSends > 4)
+        selectedPlaceSends = 4;
 
     display.setControlValue(frameControl, selectedPlaceSends);
     display.setControlShow(frameControl);
@@ -853,6 +864,7 @@ void cInstrumentEditor::showInstrumentParams()
 
     display.setControlHide(noteLabel);
 
+    display.setControlHide(blankSpaceCover[1]);
     display.setControlPosition(blankSpaceCover[0], (800 / 8) * 7 + 1, -1);
     display.setControlSize(blankSpaceCover[0], 800 / 8 - 3, 394);
     display.setControlShow(blankSpaceCover[0]);
@@ -1001,6 +1013,7 @@ void cInstrumentEditor::showInstrumentSynth()
     display.setControlShow(noteLabel);
     display.refreshControl(noteLabel);
 
+    display.setControlHide(blankSpaceCover[1]);
     display.setControlPosition(blankSpaceCover[0], 0, -1);
     display.setControlSize(blankSpaceCover[0], 800, 394);
     display.setControlShow(blankSpaceCover[0]);
@@ -1160,6 +1173,7 @@ void cInstrumentEditor::showInstrumentMidiParams()
     display.setControlHide(instrumentListControl);
     display.setControlHide(noteLabel);
     display.setControlHide(blankSpaceCover[0]);
+    display.setControlHide(blankSpaceCover[1]);
     display.setControlHide(imgGridControl);
 
     display.synchronizeRefresh();
@@ -1716,6 +1730,19 @@ void cInstrumentEditor::showParamsReverbSend()
 
     display.setControlValue(barControl[2], editorInstrument->reverbSend);
     display.refreshControl(barControl[2]);
+}
+
+void cInstrumentEditor::showParamsChorusSend()
+{
+    float sendInDecybels = calcInstrumentSendsDecybelValue(editorInstrument->chorusSend);
+
+    sprintf(labelText[5], "%0.02f dB", sendInDecybels);
+
+    display.setControlText2(label[5], labelText[5]);
+    display.refreshControl(label[5]);
+
+    display.setControlValue(barControl[5], editorInstrument->chorusSend);
+    display.refreshControl(barControl[5]);
 }
 
 void cInstrumentEditor::showParamsOverdrive()

@@ -373,10 +373,16 @@ uint8_t cProjectEditor::loadProjectValues()
     masterEnhancer.changeStereoBoost(mtProject.values.stereoBoost);
     engine.refreshDelayVolume();
     engine.refreshReverbVolume();
+    engine.refreshChorusVolume();
+    engine.setChorusRate(mtProject.values.chorusRate);
+    engine.setChorusDepth(mtProject.values.chorusDepth);
+    engine.setChorusWidth(mtProject.values.chorusWidth);
+    engine.clearChorus();
     engine.refreshTrackVolume();
     engine.refreshLineInStreamVolume();
     engine.refreshLineInStreamDelaySend();
     engine.refreshLineInStreamReverbSend();
+    engine.refreshLineInStreamChorusSend();
 
     //----------------------------------------------------------------------------------------------------
 
