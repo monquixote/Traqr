@@ -439,6 +439,9 @@ class AudioPlayMemory : public AudioStream
     uint32_t subPhase32 = 0;
     uint8_t onsetFadeSamples = 0;
     uint8_t currentWarpAmount = 0;
+    uint16_t smoothedWarpQ8 = 0;
+    int32_t foldPrevRaw = 0;
+    int32_t foldLpState = 0;
 
     //********
     //********** Granular

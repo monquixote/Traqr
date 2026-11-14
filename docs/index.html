@@ -16,6 +16,7 @@
             --accent-juno-strip: #e5533d;
             --accent-tear: #00e5ff;
             --accent-orange: #ff7b00;
+            --accent-wt: #b07aff;
         }
 
         * {
@@ -119,6 +120,10 @@
             border-color: rgba(0, 229, 255, 0.6);
         }
 
+        .card.card-wt:hover {
+            border-color: rgba(176, 122, 255, 0.6);
+        }
+
         .card-header-stripe {
             height: 6px;
             width: 100%;
@@ -130,6 +135,10 @@
 
         .stripe-tear {
             background: linear-gradient(90deg, #ff7b00, #00e5ff);
+        }
+
+        .stripe-wt {
+            background: linear-gradient(90deg, #b07aff, #00e5ff, #ffb84a);
         }
 
         .card-body {
@@ -178,6 +187,10 @@
 
         .card-tear .card-subtitle {
             color: var(--accent-tear);
+        }
+
+        .card-wt .card-subtitle {
+            color: var(--accent-wt);
         }
 
         .card-desc {
@@ -251,6 +264,18 @@
 
         .btn-tear:hover {
             background: linear-gradient(180deg, #33f3ff, #00bce4);
+            transform: translateY(-1px);
+        }
+
+        .btn-wt {
+            background: linear-gradient(180deg, #c79cff, #9353eb);
+            color: #fff;
+            border: 1px solid #7433cc;
+            box-shadow: 0 4px 14px rgba(147, 83, 235, 0.35);
+        }
+
+        .btn-wt:hover {
+            background: linear-gradient(180deg, #d5b4ff, #a268f4);
             transform: translateY(-1px);
         }
 
@@ -414,6 +439,31 @@
                     <div class="btn-group">
                         <a href="synths/tear/" class="btn-primary btn-tear">⚡ Launch TEAR Web Synth &rarr;</a>
                         <a href="patches/TEAR_Patches.zip" class="btn-secondary" download>📥 Presets (.zip)</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WAVETABLE WORKBENCH CARD -->
+            <div class="card card-wt">
+                <div class="card-header-stripe stripe-wt"></div>
+                <div class="card-body">
+                    <div class="synth-logo-row">
+                        <div class="juno-logo-text" style="font-style: normal;">WAVE<span style="color: var(--accent-tear);">TABLE</span></div>
+                        <span class="tag" style="color: var(--accent-wt); border-color: rgba(176, 122, 255, 0.45);">.PTI EXPORT</span>
+                    </div>
+                    <div class="card-subtitle">Tracker Wavetable Engine + .PTI Designer</div>
+                    <p class="card-desc">
+                        Audition and build Tracker-compatible 2048-sample wavetable instruments in the browser. Features the upgraded musical Warp modes (Smooth Asym, Windowed Sync, 2&times; West-Coast Sine Fold), phase-locked Sub-Oscillator, 128-shape Wavetable Envelopes with X/Y warp, drag-and-drop Serum .WAV loading, and 1-click .PTI instrument export.
+                    </p>
+                    <div class="tag-list">
+                        <span class="tag">Shared WavetableCore.h</span>
+                        <span class="tag">Smooth Asym / Sync / Sine Fold</span>
+                        <span class="tag">128 WT Envelopes</span>
+                        <span class="tag">Serum 2048 .WAV Loader</span>
+                        <span class="tag">.PTI Export &amp; Import</span>
+                    </div>
+                    <div class="btn-group">
+                        <a href="synths/wavetable/" class="btn-primary btn-wt">🌊 Launch WAVETABLE Synth &rarr;</a>
                     </div>
                 </div>
             </div>

@@ -148,7 +148,7 @@ struct SVFCoeffs
 };
 
 // Evaluate raw waveform from phase with PolyBLEP
-inline float evalShape(float phase, float shape, float dt, float invDt)
+__attribute__((noinline)) float evalShape(float phase, float shape, float dt, float invDt)
 {
     if (phase >= 1.0f) phase -= static_cast<int>(phase);
     else if (phase < 0.0f)
@@ -160,12 +160,22 @@ inline float evalShape(float phase, float shape, float dt, float invDt)
     const float blep0 = polyBLEP(phase, dt, invDt);
     const float saw = 2.0f * phase - 1.0f - blep0;
 
+    if (shape <= 0.001f)
+    {
+        return saw;
+    }
+
     float pShift = phase + 0.5f;
     if (pShift >= 1.0f) pShift -= 1.0f;
     const float blepShift = polyBLEP(pShift, dt, invDt);
     const float sq = ((phase < 0.5f) ? 1.0f : -1.0f) + blep0 - blepShift;
 
-    if (shape <= 0.5f)
+    if (std::abs(shape - 0.5f) <= 0.001f)
+    {
+        return sq;
+    }
+
+    if (shape < 0.5f)
     {
         const float morph = shape * 2.0f;
         return saw + morph * (sq - saw);
@@ -326,9 +336,14 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
             const float dtSlave1 = fSlave1 * invSr;
             const float invDtSlave1 = (dtSlave1 > 0.0f) ? (1.0f / dtSlave1) : 0.0f;
 
-            const float fSlave2 = std::clamp(fSlave1 * 1.0081f, 10.0f, sr * 0.48f);
-            const float dtSlave2 = fSlave2 * invSr;
-            const float invDtSlave2 = (dtSlave2 > 0.0f) ? (1.0f / dtSlave2) : 0.0f;
+            float dtSlave2 = 0.0f;
+            float invDtSlave2 = 0.0f;
+            if (syncMode == SyncMode::kDualSuperTear)
+            {
+                const float fSlave2 = std::clamp(fSlave1 * 1.0081f, 10.0f, sr * 0.48f);
+                dtSlave2 = fSlave2 * invSr;
+                invDtSlave2 = (dtSlave2 > 0.0f) ? (1.0f / dtSlave2) : 0.0f;
+            }
 
             // 3. Filter Cutoff and Coefficients
             const float targetCutoff = std::clamp(
@@ -521,12 +536,15 @@ class TearSynthVoice : public sdk::CustomSynthVoice<TearSynthVoice, TearParamId>
                 }
 
                 // 5. Sub-Oscillator
-                const float dtSub = dtMaster * subDiv;
-                subPhase += dtSub;
-                if (subPhase >= 1.0f) subPhase -= 1.0f;
-                const float subTri = 4.0f * std::abs(subPhase - 0.5f) - 1.0f;
-
-                const float oscMix = (slaveOut * mainOscGain) + (subTri * subLevel);
+                float oscMix = slaveOut;
+                if (subLevel > 0.0001f)
+                {
+                    const float dtSub = dtMaster * subDiv;
+                    subPhase += dtSub;
+                    if (subPhase >= 1.0f) subPhase -= 1.0f;
+                    const float subTri = 4.0f * std::abs(subPhase - 0.5f) - 1.0f;
+                    oscMix = (slaveOut * mainOscGain) + (subTri * subLevel);
+                }
 
                 // 6. Zero-Delay Feedback Filter
                 float filtered = oscMix;

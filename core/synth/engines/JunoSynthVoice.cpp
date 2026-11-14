@@ -67,8 +67,8 @@ constexpr int kCtl = 16;
 constexpr float kPi = std::numbers::pi_v<float>;
 constexpr int kChorusBuf = 2048;
 
-// Static buffer placed in external SDRAM (takes 0 bytes of precious SRAM_DTC heap)
-__NOINIT(EXTERNAL_RAM) static float s_junoChorusBuf[kChorusBuf];
+// Static buffer placed in on-chip SRAM_OC (zero-wait-state access vs external SDRAM)
+OCRAM_BSS_SECTION static float s_junoChorusBuf[kChorusBuf];
 
 // Division-free PolyBLEP using precomputed invDt (1.0f / dt)
 inline float polyBLEP(float t, float dt, float invDt)
@@ -117,7 +117,7 @@ inline float tri(float phase)
 
 inline float timeCoef(float seconds, float ratio, float sr)
 {
-    return 1.0f - std::exp(-ratio / (std::max(seconds, 0.0005f) * sr));
+    return 1.0f - sdk::fastPow2(-1.44269504f * ratio / (std::max(seconds, 0.0005f) * sr));
 }
 
 struct Adsr
@@ -220,7 +220,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         aenv.gateOff();
     }
 
-    void renderVoiceAudio(const InstrumentVoiceContext& /*ctx*/,
+    AUDIO_CORE_RAM void renderVoiceAudio(const InstrumentVoiceContext& /*ctx*/,
                           [[maybe_unused]] std::optional<AudioBufferStereoRef> inputBuffer,
                           AudioBufferStereoRef outputBuffer,
                           std::span<AudioBufferRef> /*auxOutBuffer*/) override
@@ -243,14 +243,15 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         const float ladderK = resonance * 4.4f;
         const float inGain = 1.0f + otaDrive * 3.0f;
         const float driveComp = 1.0f / (1.0f + otaDrive * 1.2f);
-        const float gateCoef = 1.0f - std::exp(-1.0f / (0.003f * sr));
+        static_assert(sdk::kSampleRate == 44100.0f, "Update precomputed filter constants for sample rate");
+        constexpr float gateCoef = 0.007530085f;
 
         // HPF: 0 = Bass Boost (+3.5dB low shelf @ 70Hz), then 20Hz..1.2kHz
         const float boostMix = std::clamp(1.0f - hpfCutoff / 0.08f, 0.0f, 1.0f);
         const float shelfGainExtra = 0.496236f * boostMix; // std::pow(10.0f, 3.5f / 20.0f) - 1.0f
-        const float shelfA = 1.0f - std::exp(-2.0f * kPi * 70.0f * invSr);
-        const float hpHz = 20.0f * std::pow(60.0f, hpfCutoff);
-        const float hpA = 1.0f - std::exp(-2.0f * kPi * hpHz * invSr);
+        constexpr float shelfA = 0.009923741f;
+        const float hpHz = 20.0f * sdk::fastPow2(5.9068906f * hpfCutoff);
+        const float hpA = 1.0f - sdk::fastPow2(-1.44269504f * (2.0f * kPi * hpHz * invSr));
 
         // Component tolerances for this voice
         const int vIdx = voiceIndex & 7;
@@ -268,6 +269,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         const float fD = timeCoef(fenvDecaySec * tf, 4.6f, sr);
         const float fR = timeCoef(fenvReleaseSec * tf, 4.6f, sr);
         const float velGain = 0.35f + 0.65f * currentVelocity;
+        const float baseCutHz = 20.0f * sdk::fastPow2(9.81378119f * cutoffNorm);
 
         int done = 0;
         while (done < n)
@@ -320,12 +322,11 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
             const float pw = std::clamp(pulseWidth + pwMod + voiceDrift * kTolPw[vIdx] * 0.015f, 0.05f, 0.95f);
 
             // Filter cutoff
-            float cutHz = 20.0f * std::pow(900.0f, cutoffNorm);
             float oct = filterEnvDepth * fenv.level * 5.0f;
             oct += filterLfoDepth * voiceLfo * 1.5f;
             oct += filterKeytrack * (static_cast<float>(currentNote) - 60.0f) * (1.0f / 12.0f);
             oct += voiceDrift * (kTolCutoff[vIdx] * 0.08f + driftCutoff * 0.05f);
-            cutHz = std::clamp(cutHz * sdk::fastPow2(oct), 20.0f, sr * 0.45f);
+            const float cutHz = std::clamp(baseCutHz * sdk::fastPow2(oct), 20.0f, sr * 0.45f);
             const float g = fastTan(kPi * cutHz * invSr);
             const float G = g / (1.0f + g);
             const float oneMinusG = 1.0f - G;
@@ -433,7 +434,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         }
     }
 
-    void renderPostProcessAudio(const InstrumentVoiceContext& /*ctx*/,
+    AUDIO_CORE_RAM void renderPostProcessAudio(const InstrumentVoiceContext& /*ctx*/,
                                 AudioBufferStereoRef outputBuffer) override
     {
         if (voiceIndex != 0) return;
@@ -452,7 +453,8 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         const float chMixTarget = (chorusMode > 0) ? 1.0f : 0.0f;
 
         const float chCenter = 0.0033f * sr;
-        const float chLpA = 1.0f - std::exp(-2.0f * kPi * 8500.0f * invSr);
+        static_assert(sdk::kSampleRate == 44100.0f, "Update precomputed filter constant for sample rate");
+        constexpr float chLpA = 0.70211411f;
 
         // Chorus smoothing
         chorusDepthSm += (chDepthTarget - chorusDepthSm) * 0.05f;
@@ -480,8 +482,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
 
                 auto readDelay = [&](float d) {
                     float rp = static_cast<float>(chorusWrite) - d;
-                    while (rp < 0.0f) rp += kChorusBuf;
-                    while (rp >= kChorusBuf) rp -= kChorusBuf;
+                    if (rp < 0.0f) rp += kChorusBuf;
                     const int i0 = static_cast<int>(rp);
                     const float fr = rp - i0;
                     const int i1 = (i0 + 1) & (kChorusBuf - 1);

@@ -117,22 +117,7 @@ version:
 TARGET ?= all
 
 bump-patch:
-	@python3 -c 'import re, sys; t="$(TARGET)".upper(); p="version.mk"; s=open(p).read(); \
-	targets = ["ORIGINAL", "PLUS", "MINI"] if t == "ALL" else [t]; \
-	for k in targets: \
-	    m = re.search(rf"{k}_VER_PATCH\s*:=\s*(\d+)", s); \
-	    assert m, f"Unknown TARGET {t}"; \
-	    v = int(m.group(1)) + 1; \
-	    s = re.sub(rf"{k}_VER_PATCH\s*:=\s*\d+", f"{k}_VER_PATCH := {v}", s); \
-	open(p, "w").write(s); print(f"Bumped patch version for {targets}")'
+	@printf 'import re, sys\nt = sys.argv[1].upper()\np = "version.mk"\ns = open(p).read()\ntargets = ["ORIGINAL", "PLUS", "MINI"] if t == "ALL" else [t]\nfor k in targets:\n    m = re.search(rf"{k}_VER_PATCH\\s*:=\\s*(\\d+)", s)\n    assert m, f"Unknown TARGET {t}"\n    v = int(m.group(1)) + 1\n    s = re.sub(rf"{k}_VER_PATCH\\s*:=\\s*\\d+", f"{k}_VER_PATCH := {v}", s)\nopen(p, "w").write(s)\nprint(f"Bumped patch version for {targets}")\n' | python3 - "$(TARGET)"
 
 bump-minor:
-	@python3 -c 'import re, sys; t="$(TARGET)".upper(); p="version.mk"; s=open(p).read(); \
-	targets = ["ORIGINAL", "PLUS", "MINI"] if t == "ALL" else [t]; \
-	for k in targets: \
-	    m = re.search(rf"{k}_VER_MINOR\s*:=\s*(\d+)", s); \
-	    assert m, f"Unknown TARGET {t}"; \
-	    v = int(m.group(1)) + 1; \
-	    s = re.sub(rf"{k}_VER_MINOR\s*:=\s*\d+", f"{k}_VER_MINOR := {v}", s); \
-	    s = re.sub(rf"{k}_VER_PATCH\s*:=\s*\d+", f"{k}_VER_PATCH := 0", s); \
-	open(p, "w").write(s); print(f"Bumped minor version for {targets} (patch reset to 0)")'
+	@printf 'import re, sys\nt = sys.argv[1].upper()\np = "version.mk"\ns = open(p).read()\ntargets = ["ORIGINAL", "PLUS", "MINI"] if t == "ALL" else [t]\nfor k in targets:\n    m = re.search(rf"{k}_VER_MINOR\\s*:=\\s*(\\d+)", s)\n    assert m, f"Unknown TARGET {t}"\n    v = int(m.group(1)) + 1\n    s = re.sub(rf"{k}_VER_MINOR\\s*:=\\s*\\d+", f"{k}_VER_MINOR := {v}", s)\n    s = re.sub(rf"{k}_VER_PATCH\\s*:=\\s*\\d+", f"{k}_VER_PATCH := 0", s)\nopen(p, "w").write(s)\nprint(f"Bumped minor version for {targets} (patch reset to 0)")\n' | python3 - "$(TARGET)"

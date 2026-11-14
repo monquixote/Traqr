@@ -665,7 +665,6 @@ static void functMenu(uint8_t state)
     else if (state == buttonRelease)
     {
         mtMenuPopup.hideModulePopup(SP);
-        SP->showFullScreen();
     }
 }
 

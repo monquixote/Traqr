@@ -93,9 +93,11 @@ AUDIO_CORE_RAM void AudioEffectChorus::update(void)
     bool blockHasSignal = false;
     if (inBlock != nullptr)
     {
-        for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+        for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i += 2)
         {
-            if (inBlock->data[i] != 0)
+            uint32_t pair;
+            std::memcpy(&pair, &inBlock->data[i], sizeof(pair));
+            if (pair != 0U)
             {
                 blockHasSignal = true;
                 break;
@@ -144,40 +146,55 @@ AUDIO_CORE_RAM void AudioEffectChorus::update(void)
     float fR = lpRight;
     uint32_t wIdx = headIdx;
 
-    for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
+    static constexpr int kChunk = 16;
+    static_assert(AUDIO_BLOCK_SAMPLES % kChunk == 0, "AUDIO_BLOCK_SAMPLES must be a multiple of kChunk");
+    const float phaseChunkInc = phaseInc * static_cast<float>(kChunk);
+    static constexpr float kInvChunk = 1.0f / static_cast<float>(kChunk);
+
+    for (int base = 0; base < AUDIO_BLOCK_SAMPLES; base += kChunk)
     {
-        int16_t inSample = (src != nullptr) ? src[i] : 0;
-        chorusDelayBuffer[wIdx] = inSample;
+        const float offset0 = depth * fastSin01(phase);
+        float nextPhase = phase + phaseChunkInc;
+        if (nextPhase >= 1.0f)
+            nextPhase -= 1.0f;
+        const float offset1 = depth * fastSin01(nextPhase);
+        const float offsetStep = (offset1 - offset0) * kInvChunk;
+        float curOffset = offset0;
+        phase = nextPhase;
 
-        float lfo = fastSin01(phase);
-        phase += phaseInc;
-        if (phase >= 1.0f)
-            phase -= 1.0f;
+        for (int j = 0; j < kChunk; j++)
+        {
+            const int16_t inSample = (src != nullptr) ? src[base + j] : 0;
+            chorusDelayBuffer[wIdx] = inSample;
 
-        float delayA = kCenterDelaySamples + depth * lfo;
-        float delayB = kCenterDelaySamples - depth * lfo;
+            const float delayA = kCenterDelaySamples + curOffset;
+            const float delayB = kCenterDelaySamples - curOffset;
 
-        uint32_t intA = static_cast<uint32_t>(delayA);
-        float fracA = delayA - static_cast<float>(intA);
-        uint32_t idxA0 = (wIdx - intA) & kBufferMask;
-        uint32_t idxA1 = (wIdx - intA - 1) & kBufferMask;
-        float tapA = static_cast<float>(chorusDelayBuffer[idxA0]) * (1.0f - fracA) +
-                     static_cast<float>(chorusDelayBuffer[idxA1]) * fracA;
+            const uint32_t intA = static_cast<uint32_t>(delayA);
+            const float fracA = delayA - static_cast<float>(intA);
+            const uint32_t idxA0 = (wIdx - intA) & kBufferMask;
+            const uint32_t idxA1 = (wIdx - intA - 1) & kBufferMask;
+            const float sA0 = static_cast<float>(chorusDelayBuffer[idxA0]);
+            const float sA1 = static_cast<float>(chorusDelayBuffer[idxA1]);
+            const float tapA = sA0 + fracA * (sA1 - sA0);
 
-        uint32_t intB = static_cast<uint32_t>(delayB);
-        float fracB = delayB - static_cast<float>(intB);
-        uint32_t idxB0 = (wIdx - intB) & kBufferMask;
-        uint32_t idxB1 = (wIdx - intB - 1) & kBufferMask;
-        float tapB = static_cast<float>(chorusDelayBuffer[idxB0]) * (1.0f - fracB) +
-                     static_cast<float>(chorusDelayBuffer[idxB1]) * fracB;
+            const uint32_t intB = static_cast<uint32_t>(delayB);
+            const float fracB = delayB - static_cast<float>(intB);
+            const uint32_t idxB0 = (wIdx - intB) & kBufferMask;
+            const uint32_t idxB1 = (wIdx - intB - 1) & kBufferMask;
+            const float sB0 = static_cast<float>(chorusDelayBuffer[idxB0]);
+            const float sB1 = static_cast<float>(chorusDelayBuffer[idxB1]);
+            const float tapB = sB0 + fracB * (sB1 - sB0);
 
-        fL += kBbdLpCoeff * (tapA - fL);
-        fR += kBbdLpCoeff * (tapB - fR);
+            fL += kBbdLpCoeff * (tapA - fL);
+            fR += kBbdLpCoeff * (tapB - fR);
 
-        dstL[i] = clampInt16(fL * cMain + fR * cCross);
-        dstR[i] = clampInt16(fR * cMain + fL * cCross);
+            dstL[base + j] = clampInt16(fL * cMain + fR * cCross);
+            dstR[base + j] = clampInt16(fR * cMain + fL * cCross);
 
-        wIdx = (wIdx + 1) & kBufferMask;
+            wIdx = (wIdx + 1) & kBufferMask;
+            curOffset += offsetStep;
+        }
     }
 
     headIdx = wIdx;

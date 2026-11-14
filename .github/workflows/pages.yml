@@ -6,6 +6,8 @@ on:
     paths:
       - 'tools/tear_harness/**'
       - 'tools/juno_harness/**'
+      - 'tools/wavetable_harness/**'
+      - 'core/libs/Audio/WavetableCore.h'
       - 'docs/**'
       - 'patches/**'
       - '.github/workflows/pages.yml'
@@ -59,11 +61,25 @@ jobs:
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
             -o _site/synths/julyo/juno_dsp.js
 
+      - name: Build WAVETABLE DSP WebAssembly Engine
+        run: |
+          mkdir -p _site/synths/wavetable
+          em++ tools/wavetable_harness/main_wasm.cpp tools/wavetable_harness/WavetableDSP.cpp \
+            -O3 -std=c++20 -fno-exceptions \
+            -s WASM=1 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME="WtModule" \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            -s EXPORTED_FUNCTIONS="['_wt_init','_wt_reset','_wt_note_on','_wt_note_off','_wt_all_notes_off','_wt_set_param','_wt_get_param','_wt_active_voices','_wt_param_count','_wt_param_min','_wt_param_max','_wt_param_default','_wt_render','_wt_load_pcm16','_wt_get_window_size','_wt_get_window_count','_wt_get_total_samples','_wt_get_display_wave','_wt_get_env_preview','_wt_export_pti_size','_wt_export_pti','_wt_import_pti','_malloc','_free']" \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32','HEAP16','HEAPU8']" \
+            -o _site/synths/wavetable/wt_dsp.js
+
       - name: Assemble Web Pages
         run: |
           # Copy synth pages
           cp tools/tear_harness/index.html _site/synths/tear/index.html
           cp tools/juno_harness/index.html _site/synths/julyo/index.html
+          cp tools/wavetable_harness/index.html _site/synths/wavetable/index.html
           # Root portal & HTML documentation pages
           cp docs/*.html _site/
           # Copy preset bundles for direct download

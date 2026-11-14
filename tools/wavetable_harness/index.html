@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAVETABLE Engine // Tracker Mini WASM Synth</title>
+<style>
+    :root {
+        --panel-1: #2a2b32;
+        --panel-2: #1d1e24;
+        --ink: #eceef4;
+        --ink-dim: #9aa0ad;
+        --amber: #ffb84a;
+        --cyan: #00e5ff;
+        --purple: #b07aff;
+        --green: #5bc47a;
+        --red: #ff5c5c;
+        --lcd-bg: #121318;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #0c0d11; color: var(--ink); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    body { min-height: 100vh; padding: 24px 12px 60px; display: flex; justify-content: center; }
+
+    .case { display: flex; width: 100%; max-width: 1520px; border-radius: 10px; box-shadow: 0 30px 70px rgba(0,0,0,.75), 0 0 0 1px #000; overflow: hidden; }
+    .cheek { width: 28px; flex: none; background:
+        repeating-linear-gradient(92deg, rgba(0,0,0,.22) 0 2px, rgba(255,255,255,.03) 2px 5px),
+        linear-gradient(90deg, #2d2f3a, #3e4150 45%, #242630); }
+    .body { flex: 1; min-width: 0; background: linear-gradient(180deg, var(--panel-1), var(--panel-2)); }
+
+    .stripe { height: 5px; background: linear-gradient(90deg, var(--purple) 0 33%, var(--cyan) 33% 66%, var(--amber) 66%); }
+    .topbar { display: flex; align-items: center; gap: 16px; padding: 13px 22px; border-bottom: 2px solid #000; background: linear-gradient(180deg,#33353f,#24262d); flex-wrap: wrap; }
+    .logo { font-weight: 900; font-size: 28px; letter-spacing: 2.5px; color: #fff; line-height: 1; text-shadow: 0 2px 0 #000; }
+    .logo span { color: var(--cyan); }
+    .logo small { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 2.5px; color: var(--ink-dim); margin-top: 5px; text-shadow: none; }
+    .spacer { flex: 1; }
+
+    .lcd { font-family: "SF Mono", Menlo, Consolas, monospace; background: var(--lcd-bg); color: var(--cyan); border: 2px solid #000; border-radius: 5px; padding: 8px 13px; min-width: 245px; box-shadow: inset 0 0 14px rgba(0,0,0,.9); text-shadow: 0 0 6px rgba(0,229,255,.38); }
+    .lcd .l1 { font-size: 10px; opacity: .7; letter-spacing: 1.2px; text-transform: uppercase; }
+    .lcd .l2 { font-size: 16px; letter-spacing: .8px; margin-top: 2px; white-space: nowrap; }
+
+    canvas#scope { background: var(--lcd-bg); border: 2px solid #000; border-radius: 5px; box-shadow: inset 0 0 14px rgba(0,0,0,.9); }
+    .voices { display: flex; gap: 5px; align-items: center; }
+    .voices span { width: 9px; height: 9px; border-radius: 50%; background: #261f33; box-shadow: inset 0 0 2px #000; }
+    .voices span.on { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .voices label { font-size: 9px; letter-spacing: 1.4px; color: var(--ink-dim); margin-right: 4px; }
+
+    button, select, input[type=text] { font-family: inherit; }
+    .btn { background: linear-gradient(180deg,#d8dbe3,#a2a7b3); color: #111; border: 1px solid #000; border-radius: 4px; padding: 7px 13px; font-weight: 800; font-size: 11px; letter-spacing: 1px; cursor: pointer; box-shadow: 0 2px 0 #000; }
+    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn.active { background: linear-gradient(180deg,#5df2ff,#00b8d4); color: #001318; }
+    .btn.pti { background: linear-gradient(180deg,#c79cff,#9353eb); color: #fff; }
+    .btn.pti:hover { filter: brightness(1.08); }
+    select.preset, input.pname { background: #13141a; color: var(--ink); border: 1px solid #000; border-radius: 4px; padding: 7px 10px; font-size: 13px; }
+    input.pname { width: 175px; }
+
+    /* ---------- Visualizer + File Drop Bar ---------- */
+    .vizbar { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; padding: 14px 22px; background: #181920; border-bottom: 2px solid #000; }
+    @media (max-width: 980px) { .vizbar { grid-template-columns: 1fr; } }
+    .vizcard { background: #101116; border: 1px solid #2b2d38; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .vizcard .vh { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: 1.8px; color: var(--ink-dim); text-transform: uppercase; }
+    .vizcard .vh span:last-child { color: var(--cyan); font-family: "SF Mono", Menlo, monospace; }
+    .vizcard canvas { width: 100%; height: 112px; display: block; border-radius: 4px; background: #090a0e; }
+
+    .dropzone { border: 2px dashed #3d4152; border-radius: 6px; background: #12131a; padding: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; transition: border-color .15s, background .15s; cursor: pointer; }
+    .dropzone.dragover { border-color: var(--cyan); background: rgba(0,229,255,.08); }
+    .dropzone strong { font-size: 12px; letter-spacing: .8px; color: #fff; }
+    .dropzone p { margin: 0; font-size: 11px; color: var(--ink-dim); line-height: 1.4; }
+    .dropzone .meta { font-family: "SF Mono", Menlo, monospace; font-size: 11px; color: var(--amber); }
+
+    /* ---------- Control Sections ---------- */
+    .panel { padding: 18px 18px 10px; display: flex; flex-wrap: wrap; gap: 18px 8px; justify-content: center; }
+    .section { background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.06); border-radius: 6px; padding: 12px 14px 14px; }
+    .section > h3 { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 2px; color: var(--ink); text-transform: uppercase; }
+    .section > h3::before, .section > h3::after { content: ""; flex: 1; height: 2px; background: var(--sec, #888); opacity: .9; }
+    .row { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+
+    .ctl { display: flex; flex-direction: column; align-items: center; width: 52px; }
+    .ctl label { margin-top: 7px; font-size: 9px; font-weight: 700; letter-spacing: .8px; color: #d4d6db; text-align: center; text-transform: uppercase; }
+    .ctl .val { font-family: "SF Mono", Menlo, monospace; font-size: 10px; color: var(--sec, var(--cyan)); margin-top: 2px; white-space: nowrap; }
+
+    .slider { position: relative; width: 36px; height: 122px; touch-action: none; cursor: ns-resize; outline: none; }
+    .slider .ticks { position: absolute; left: 3px; top: 10px; bottom: 10px; width: 6px;
+        background: repeating-linear-gradient(180deg, rgba(255,255,255,.45) 0 1px, transparent 1px 12px); }
+    .slider .slot { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 7px; transform: translateX(-50%);
+        background: linear-gradient(90deg, #050505, #181a20 50%, #050505); border-radius: 4px; box-shadow: 0 0 0 1px #000; }
+    .slider .cap { position: absolute; left: 50%; width: 28px; height: 22px; transform: translateX(-50%); border-radius: 3px; border: 1px solid #000;
+        background: linear-gradient(180deg,#fdfdfd,#cfd3dc 55%,#9ea4b0); box-shadow: 0 3px 4px rgba(0,0,0,.6); }
+    .slider .cap::after { content: ""; position: absolute; left: 3px; right: 3px; top: 50%; height: 3px; margin-top: -1px; background: var(--sec, var(--cyan)); border-radius: 1px; }
+    .slider:focus-visible .cap { outline: 2px solid var(--amber); }
+    .slider.bipolar .slot::after { content:""; position:absolute; left:-4px; right:-4px; top:50%; height:1px; background:#fff; opacity:.45; }
+
+    .sw { display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 66px; }
+    .sw h4 { margin: 0 0 3px; font-size: 9px; letter-spacing: 1.2px; color: var(--ink-dim); text-align: center; font-weight: 700; text-transform: uppercase; }
+    .sw button { position: relative; background: linear-gradient(180deg,#5d606c,#40434c); color: #e9ecf2; border: 1px solid #000; border-radius: 3px; padding: 6px 4px 6px 14px; font-size: 10px; font-weight: 800; letter-spacing: .8px; cursor: pointer; box-shadow: 0 2px 0 #000; text-align: center; }
+    .sw button::before { content: ""; position: absolute; left: 5px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #261b2e; box-shadow: inset 0 0 2px #000; }
+    .sw button.on::before { background: var(--sec, var(--cyan)); box-shadow: 0 0 6px var(--sec, var(--cyan)); }
+    .sw button.on { background: linear-gradient(180deg,#7c808f,#5c606d); color: #fff; box-shadow: 0 1px 0 #000; transform: translateY(1px); }
+
+    /* ---------- Keyboard ---------- */
+    .kbwrap { margin: 8px 20px 0; padding: 14px 14px 18px; background: #111217; border-top: 3px solid #000; border-radius: 6px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .kbtools { display: flex; gap: 10px; align-items: center; color: var(--ink-dim); font-size: 11px; letter-spacing: 1px; flex-wrap: wrap; justify-content: center; }
+    .keys { position: relative; height: 124px; user-select: none; touch-action: none; }
+    .wk { position: absolute; top: 0; width: 38px; height: 124px; background: linear-gradient(180deg,#f7f3e6,#e4dfcc); border: 1px solid #1a1a1a; border-radius: 0 0 4px 4px; cursor: pointer; }
+    .wk.down { background: linear-gradient(180deg,#88f5ff,#22b8cf); }
+    .bk { position: absolute; top: 0; width: 24px; height: 78px; background: linear-gradient(180deg,#2c2c33,#000); border: 1px solid #000; border-radius: 0 0 3px 3px; z-index: 2; cursor: pointer; }
+    .bk.down { background: linear-gradient(180deg,#c79cff,#6f34c9); }
+    .kbwrap .hint { font-size: 10px; color: var(--ink-dim); letter-spacing: .5px; }
+
+    .status { text-align: center; padding: 12px; font-size: 12px; color: #8bd18f; min-height: 18px; letter-spacing: .5px; }
+    .fatal { background: #4a1612; color: #ffc9c0; padding: 16px 22px; margin: 18px 20px; border-radius: 4px; border: 1px solid #000; display: none; font-size: 13px; line-height: 1.5; }
+    footer { text-align: center; font-size: 10px; color: var(--ink-dim); letter-spacing: 1px; padding: 8px 0 16px; }
+</style>
+</head>
+<body>
+<div class="case">
+    <div class="cheek"></div>
+    <div class="body">
+        <div class="stripe"></div>
+        <div class="topbar">
+            <div class="logo">WAVE<span>TABLE</span><small>TRACKER MINI &amp; PLUS &middot; WARP + .PTI WORKBENCH</small></div>
+            <div class="lcd"><div class="l1" id="lcdName">PATCH</div><div class="l2" id="lcdVal">Init Basic</div></div>
+            <div class="spacer"></div>
+            <div class="voices" id="voices"><label>VOICES</label></div>
+            <canvas id="scope" width="190" height="52"></canvas>
+            <a href="../../" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 ALL SYNTHS</a>
+            <a href="../julyo/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">🎛️ JULYO</a>
+            <a href="../tear/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">⚡ TEAR</a>
+            <button class="btn" id="btnAudio">START AUDIO</button>
+        </div>
+
+        <div class="topbar" style="border-top:none;padding-top:10px;padding-bottom:10px;background:#24262d;">
+            <button class="btn" id="btnPrev">&#9664;</button>
+            <select class="preset" id="presetSel"></select>
+            <button class="btn" id="btnNext">&#9654;</button>
+            <input class="pname" id="patchName" type="text" value="Init Basic" maxlength="31" spellcheck="false">
+            <div class="spacer"></div>
+            <button class="btn" id="btnImportFile">LOAD .WAV / .PTI</button>
+            <input type="file" id="fileInput" accept=".wav,.pti" style="display:none">
+            <button class="btn pti" id="btnExportPti">EXPORT .PTI INSTRUMENT</button>
+        </div>
+
+        <div class="vizbar">
+            <div class="vizcard">
+                <div class="vh"><span>Warped Cycle Preview (Position + Warp + Sub)</span><span id="waveInfo">2048 &times; 64 frames</span></div>
+                <canvas id="wavePreview" width="520" height="112"></canvas>
+            </div>
+            <div class="vizcard">
+                <div class="vh"><span>Wavetable Envelope (Shape + Warp X/Y + Sustain)</span><span id="envInfo">F 017 &middot; 0 / 0</span></div>
+                <canvas id="envPreview" width="380" height="112"></canvas>
+            </div>
+            <div class="dropzone" id="dropzone">
+                <strong>Drop Serum 2048 .WAV or Tracker .PTI</strong>
+                <p>Supports 16-bit / 24-bit PCM &amp; 32-bit float .WAV wavetables (exact sample alignment, zero resampling) or existing .PTI patches.</p>
+                <div class="meta" id="tableMeta">Built-in: Basic Shapes (64 &times; 2048)</div>
+            </div>
+        </div>
+
+        <div class="fatal" id="fatal"></div>
+        <div class="panel" id="panel"></div>
+
+        <div class="kbwrap">
+            <div class="kbtools">
+                <button class="btn" id="octDown">OCT &minus;</button>
+                <span id="octLabel">C3 &ndash; B6</span>
+                <button class="btn" id="octUp">OCT +</button>
+                <span class="hint">Play with mouse, computer keyboard (Z row / Q row), or USB MIDI</span>
+            </div>
+            <div class="keys" id="keys"></div>
+        </div>
+
+        <div class="status" id="status"></div>
+        <footer>Traqr Firmware &bull; Shared C++ WavetableCore.h WASM Engine &bull; 8 voices &bull; .PTI Export/Import</footer>
+    </div>
+    <div class="cheek"></div>
+</div>
+
+<script src="wt_dsp.js"></script>
+<script>
+const KEYS = [
+    'table', 'pos', 'winSize', 'warpMode', 'warpAmt', 'subWave', 'subLvl',
+    'wtEnvMode', 'wtEnvShape', 'wtWarpX', 'wtWarpY', 'wtEnvSpeed', 'wtEnvSust', 'wtToPos', 'wtToWarp',
+    'fltEn', 'fltType', 'cutoff', 'res',
+    'aA', 'aD', 'aS', 'aR', 'tune', 'fineTune', 'volume'
+];
+const ID = Object.fromEntries(KEYS.map((k, i) => [k, i]));
+const NPARAMS = KEYS.length;
+
+const TABLE_NAMES = ['Basic Shapes', 'Vocal Formant', 'FM Metallic', 'Spectral Organ', 'Custom File'];
+const WIN_SIZES = [32, 64, 128, 256, 512, 1024, 2048];
+const WARP_NAMES = ['Off', 'Asym', 'Sync', 'Fold'];
+const SUB_NAMES = ['Off', 'Sine', 'Tri', 'Square'];
+const WT_ENV_MODES = ['Off', 'WT Env', 'WT LFO'];
+const FLT_TYPES = ['LPF', 'HPF', 'BPF'];
+
+const TAPER = { wtEnvSpeed: 'log', aA: 'log', aD: 'log', aR: 'log' };
+const NAMES = {
+    table: 'Table', pos: 'Position', winSize: 'Win Size', warpMode: 'Warp Mode', warpAmt: 'Warp %',
+    subWave: 'Sub Wave', subLvl: 'Sub Level',
+    wtEnvMode: 'Env Mode', wtEnvShape: 'Shape', wtWarpX: 'Warp X', wtWarpY: 'Warp Y',
+    wtEnvSpeed: 'Speed', wtEnvSust: 'Sustain', wtToPos: 'Env->Pos', wtToWarp: 'Env->Warp',
+    fltEn: 'Filter', fltType: 'Type', cutoff: 'Cutoff', res: 'Resonance',
+    aA: 'Attack', aD: 'Decay', aS: 'Sustain', aR: 'Release', tune: 'Tune', fineTune: 'Fine', volume: 'Volume'
+};
+
+const PRESETS = {
+    init: { name: 'Init Basic', table: 0, pos: 0.12, winSize: 6, warpMode: 0, warpAmt: 0, subWave: 0, subLvl: 25, wtEnvMode: 1, wtEnvShape: 16, wtWarpX: 0, wtWarpY: 0, wtEnvSpeed: 1.2, wtEnvSust: 0, wtToPos: 0.55, wtToWarp: 0, fltEn: 1, fltType: 0, cutoff: 0.88, res: 0.12, aA: 0.008, aD: 0.35, aS: 0.8, aR: 0.35, tune: 0, fineTune: 0, volume: 0.85 },
+    asym_silk: { name: 'Silk Asym Pad', table: 0, pos: 0.35, winSize: 6, warpMode: 1, warpAmt: 62, subWave: 1, subLvl: 32, wtEnvMode: 2, wtEnvShape: 20, wtWarpX: 1, wtWarpY: 0, wtEnvSpeed: 3.2, wtEnvSust: 0, wtToPos: 0.35, wtToWarp: 0.35, fltEn: 1, fltType: 0, cutoff: 0.68, res: 0.22, aA: 0.45, aD: 1.2, aS: 0.78, aR: 1.4, tune: 0, fineTune: 0, volume: 0.82 },
+    fold_bass: { name: 'West-Coast Fold Bass', table: 0, pos: 0.05, winSize: 6, warpMode: 3, warpAmt: 68, subWave: 1, subLvl: 55, wtEnvMode: 1, wtEnvShape: 3, wtWarpX: -2, wtWarpY: 0, wtEnvSpeed: 0.55, wtEnvSust: 25, wtToPos: 0.2, wtToWarp: 0.45, fltEn: 1, fltType: 0, cutoff: 0.62, res: 0.28, aA: 0.004, aD: 0.38, aS: 0.55, aR: 0.22, tune: -12, fineTune: 0, volume: 0.9 },
+    sync_vocal: { name: 'Formant Sync Lead', table: 1, pos: 0.25, winSize: 6, warpMode: 2, warpAmt: 54, subWave: 2, subLvl: 25, wtEnvMode: 1, wtEnvShape: 18, wtWarpX: 0, wtWarpY: 2, wtEnvSpeed: 0.9, wtEnvSust: 45, wtToPos: 0.5, wtToWarp: 0.3, fltEn: 1, fltType: 0, cutoff: 0.78, res: 0.32, aA: 0.015, aD: 0.4, aS: 0.85, aR: 0.3, tune: 0, fineTune: 0, volume: 0.85 },
+    fm_bell: { name: 'Glass FM Bell', table: 2, pos: 0.1, winSize: 6, warpMode: 3, warpAmt: 42, subWave: 0, subLvl: 0, wtEnvMode: 1, wtEnvShape: 4, wtWarpX: -3, wtWarpY: 0, wtEnvSpeed: 1.4, wtEnvSust: 0, wtToPos: 0.65, wtToWarp: -0.35, fltEn: 1, fltType: 0, cutoff: 0.92, res: 0.15, aA: 0.002, aD: 1.4, aS: 0.1, aR: 1.6, tune: 0, fineTune: 0, volume: 0.85 },
+    organ_fold: { name: 'Drawbar Organ Fold', table: 3, pos: 0.2, winSize: 6, warpMode: 3, warpAmt: 48, subWave: 3, subLvl: 18, wtEnvMode: 2, wtEnvShape: 80, wtWarpX: 0, wtWarpY: 0, wtEnvSpeed: 2.0, wtEnvSust: 0, wtToPos: 0.45, wtToWarp: 0.25, fltEn: 1, fltType: 0, cutoff: 0.72, res: 0.18, aA: 0.01, aD: 0.25, aS: 0.88, aR: 0.25, tune: 0, fineTune: 0, volume: 0.8 }
+};
+const presetKeys = Object.keys(PRESETS);
+
+let Module = null, W = {}, audioCtx = null, scriptNode = null, analyser = null;
+let bufL = 0, bufR = 0, visWavePtr = 0, visEnvPtr = 0, visModPtr = 0, running = false;
+const BLOCK = 1024;
+const meta = [];
+const values = new Float32Array(NPARAMS);
+const widgets = [];
+let customLabel = 'None loaded';
+
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function formatVal(key, v) {
+    const r = Math.round(v);
+    switch (key) {
+        case 'table': return TABLE_NAMES[clamp(r, 0, 4)];
+        case 'pos': {
+            const wc = W.get_window_count ? W.get_window_count() : 64;
+            return `${Math.round(v * (wc - 1))}/${wc}`;
+        }
+        case 'winSize': return `${WIN_SIZES[clamp(r, 0, 6)]}`;
+        case 'warpMode': return WARP_NAMES[clamp(r, 0, 3)];
+        case 'warpAmt': case 'subLvl': case 'wtEnvSust': return `${r}%`;
+        case 'subWave': return SUB_NAMES[clamp(r, 0, 3)];
+        case 'wtEnvMode': return WT_ENV_MODES[clamp(r, 0, 2)];
+        case 'wtEnvShape': return `F ${String(r + 1).padStart(3, '0')}`;
+        case 'wtWarpX': case 'wtWarpY': case 'tune': case 'fineTune': return (r > 0 ? '+' : '') + r;
+        case 'wtEnvSpeed': case 'aA': case 'aD': case 'aR':
+            return v < 1 ? `${Math.round(v * 1000)}ms` : `${v.toFixed(2)}s`;
+        case 'fltEn': return v >= 0.5 ? 'On' : 'Off';
+        case 'fltType': return FLT_TYPES[clamp(r, 0, 2)];
+        default: return `${Math.round(v * 100)}%`;
+    }
+}
+
+function lcd(l1, l2) {
+    document.getElementById('lcdName').textContent = l1;
+    document.getElementById('lcdVal').textContent = l2;
+}
+
+function status(msg, err = false) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.style.color = err ? '#ff8a7a' : '#8bd18f';
+}
+
+function toNorm(i, v) {
+    const m = meta[i];
+    const t = clamp((v - m.min) / (m.max - m.min), 0, 1);
+    if (TAPER[KEYS[i]] === 'log') {
+        const mn = Math.max(m.min, 1e-4);
+        return Math.log(Math.max(v, mn) / mn) / Math.log(m.max / mn);
+    }
+    return t;
+}
+
+function fromNorm(i, n) {
+    const m = meta[i];
+    n = clamp(n, 0, 1);
+    if (TAPER[KEYS[i]] === 'log') {
+        const mn = Math.max(m.min, 1e-4);
+        return mn * Math.pow(m.max / mn, n);
+    }
+    return m.min + n * (m.max - m.min);
+}
+
+function pushParams() {
+    if (!W.set_param) return;
+    for (let i = 0; i < NPARAMS; i++) W.set_param(i, values[i]);
+    updateVisualizers();
+}
+
+function setParamVal(key, v, fromUser = true) {
+    const i = ID[key];
+    const m = meta[i];
+    values[i] = clamp(v, m.min, m.max);
+    if (W.set_param) W.set_param(i, values[i]);
+    if (fromUser) lcd(NAMES[key], formatVal(key, values[i]));
+    widgets.forEach(w => w.sync && w.sync());
+    updateVisualizers();
+}
+
+function makeSlider(key, color, step = 0) {
+    const i = ID[key];
+    const ctl = document.createElement('div');
+    ctl.className = 'ctl';
+    ctl.style.setProperty('--sec', color);
+
+    const sl = document.createElement('div');
+    sl.className = 'slider' + (meta[i].min < 0 ? ' bipolar' : '');
+    sl.tabIndex = 0;
+    sl.innerHTML = '<div class="ticks"></div><div class="slot"></div><div class="cap"></div>';
+    const cap = sl.querySelector('.cap');
+
+    const lbl = document.createElement('label');
+    lbl.textContent = NAMES[key];
+    const valEl = document.createElement('div');
+    valEl.className = 'val';
+
+    const sync = () => {
+        const n = toNorm(i, values[i]);
+        cap.style.top = ((1 - n) * (122 - 26) + 2) + 'px';
+        valEl.textContent = formatVal(key, values[i]);
+    };
+
+    const updateFromClientY = (clientY) => {
+        const rect = sl.getBoundingClientRect();
+        const n = clamp(1 - (clientY - rect.top - 13) / (rect.height - 26), 0, 1);
+        let val = fromNorm(i, n);
+        if (step > 0) val = Math.round(val / step) * step;
+        setParamVal(key, val);
+    };
+
+    let dragging = false;
+    sl.addEventListener('pointerdown', e => {
+        dragging = true;
+        sl.setPointerCapture(e.pointerId);
+        updateFromClientY(e.clientY);
+    });
+    sl.addEventListener('pointermove', e => { if (dragging) updateFromClientY(e.clientY); });
+    sl.addEventListener('pointerup', () => { dragging = false; });
+    sl.addEventListener('dblclick', () => setParamVal(key, meta[i].def));
+
+    ctl.append(sl, lbl, valEl);
+    widgets.push({ key, sync });
+    sync();
+    return ctl;
+}
+
+function makeChoiceSwitch(key, labels, color) {
+    const sw = document.createElement('div');
+    sw.className = 'sw';
+    sw.style.setProperty('--sec', color);
+    const h = document.createElement('h4');
+    h.textContent = NAMES[key];
+    sw.append(h);
+
+    const btns = labels.map((text, idx) => {
+        const b = document.createElement('button');
+        b.textContent = text;
+        b.addEventListener('click', () => setParamVal(key, idx));
+        sw.append(b);
+        return b;
+    });
+
+    const sync = () => {
+        const cur = Math.round(values[ID[key]]);
+        btns.forEach((b, idx) => b.classList.toggle('on', idx === cur));
+    };
+    widgets.push({ key, sync });
+    sync();
+    return sw;
+}
+
+function buildPanel() {
+    const panel = document.getElementById('panel');
+    panel.innerHTML = '';
+    widgets.length = 0;
+
+    const addSection = (title, color, children) => {
+        const sec = document.createElement('div');
+        sec.className = 'section';
+        sec.style.setProperty('--sec', color);
+        const h3 = document.createElement('h3');
+        h3.textContent = title;
+        const row = document.createElement('div');
+        row.className = 'row';
+        children.forEach(c => row.append(c));
+        sec.append(h3, row);
+        panel.append(sec);
+    };
+
+    addSection('Wavetable', '#00e5ff', [
+        makeChoiceSwitch('table', ['Basic', 'Vocal', 'FM', 'Organ', 'Custom'], '#00e5ff'),
+        makeSlider('pos', '#00e5ff'),
+        makeSlider('winSize', '#00e5ff', 1),
+        makeSlider('tune', '#00e5ff', 1),
+        makeSlider('fineTune', '#00e5ff', 1)
+    ]);
+
+    addSection('Warp & Sub', '#b07aff', [
+        makeChoiceSwitch('warpMode', ['Off', 'Asym', 'Sync', 'Fold'], '#b07aff'),
+        makeSlider('warpAmt', '#b07aff', 1),
+        makeChoiceSwitch('subWave', ['Off', 'Sine', 'Tri', 'Sqr'], '#b07aff'),
+        makeSlider('subLvl', '#b07aff', 1)
+    ]);
+
+    addSection('WT Envelope', '#ffb84a', [
+        makeChoiceSwitch('wtEnvMode', ['Off', 'Env', 'LFO'], '#ffb84a'),
+        makeSlider('wtEnvShape', '#ffb84a', 1),
+        makeSlider('wtWarpX', '#ffb84a', 1),
+        makeSlider('wtWarpY', '#ffb84a', 1),
+        makeSlider('wtEnvSpeed', '#ffb84a'),
+        makeSlider('wtEnvSust', '#ffb84a', 1),
+        makeSlider('wtToPos', '#ffb84a'),
+        makeSlider('wtToWarp', '#ffb84a')
+    ]);
+
+    addSection('Filter & Amp', '#5bc47a', [
+        makeChoiceSwitch('fltEn', ['Off', 'On'], '#5bc47a'),
+        makeChoiceSwitch('fltType', ['LPF', 'HPF', 'BPF'], '#5bc47a'),
+        makeSlider('cutoff', '#5bc47a'),
+        makeSlider('res', '#5bc47a'),
+        makeSlider('aA', '#5bc47a'),
+        makeSlider('aD', '#5bc47a'),
+        makeSlider('aS', '#5bc47a'),
+        makeSlider('aR', '#5bc47a'),
+        makeSlider('volume', '#5bc47a')
+    ]);
+}
+
+function updateVisualizers() {
+    if (!Module || !W.get_display_wave || !visWavePtr) return;
+
+    const wSize = W.get_window_size();
+    const wCount = W.get_window_count();
+    const tIdx = Math.round(values[ID.table]);
+
+    let isModActive = 0, modPos = values[ID.pos], modWarp = values[ID.warpAmt], envPhase = 0;
+    if (W.get_mod_state && visModPtr) {
+        isModActive = W.get_mod_state(visModPtr);
+        const m = Module.HEAPF32.subarray(visModPtr >> 2, (visModPtr >> 2) + 3);
+        modPos = m[0];
+        modWarp = m[1];
+        envPhase = m[2];
+    }
+
+    if (isModActive) {
+        const curFrm = wCount > 1 ? Math.round(modPos * (wCount - 1)) : 0;
+        document.getElementById('waveInfo').textContent = `Frame ${curFrm}/${wCount} · Warp ${Math.round(modWarp)}%`;
+    } else {
+        document.getElementById('waveInfo').textContent = `${wSize} × ${wCount} frames`;
+    }
+    document.getElementById('tableMeta').textContent =
+        tIdx === 4 ? `Custom: ${customLabel} (${wCount} × ${wSize})`
+                   : `Built-in: ${TABLE_NAMES[tIdx]} (${wCount} × ${wSize})`;
+
+    const shape = Math.round(values[ID.wtEnvShape]) + 1;
+    const wx = Math.round(values[ID.wtWarpX]);
+    const wy = Math.round(values[ID.wtWarpY]);
+    document.getElementById('envInfo').textContent =
+        `F ${String(shape).padStart(3, '0')} · ${wx >= 0 ? '+' + wx : wx} / ${wy >= 0 ? '+' + wy : wy}`;
+
+    // 1. Warped waveform preview (live modulated Position + Warp when voices are active)
+    const wc = document.getElementById('wavePreview');
+    const wctx = wc.getContext('2d');
+    const N = 256;
+    W.get_display_wave(visWavePtr, N);
+    const wave = Module.HEAPF32.subarray(visWavePtr >> 2, (visWavePtr >> 2) + N);
+
+    wctx.fillStyle = '#090a0e';
+    wctx.fillRect(0, 0, wc.width, wc.height);
+    wctx.strokeStyle = 'rgba(255,255,255,.08)';
+    wctx.lineWidth = 1;
+    wctx.beginPath();
+    wctx.moveTo(0, wc.height / 2);
+    wctx.lineTo(wc.width, wc.height / 2);
+    wctx.stroke();
+
+    const warpMode = Math.round(values[ID.warpMode]);
+    const strokeCol = warpMode === 3 ? '#b07aff' : (warpMode === 2 ? '#ffb84a' : '#00e5ff');
+    wctx.strokeStyle = strokeCol;
+    wctx.lineWidth = 2;
+    wctx.shadowColor = strokeCol;
+    wctx.shadowBlur = 6;
+    wctx.beginPath();
+    for (let i = 0; i < N; i++) {
+        const x = (i / (N - 1)) * wc.width;
+        const y = wc.height / 2 - wave[i] * (wc.height * 0.42);
+        i === 0 ? wctx.moveTo(x, y) : wctx.lineTo(x, y);
+    }
+    wctx.stroke();
+    wctx.shadowBlur = 0;
+
+    // 2. WT Envelope preview
+    const ec = document.getElementById('envPreview');
+    const ectx = ec.getContext('2d');
+    const E = 128;
+    W.get_env_preview(visEnvPtr, E);
+    const env = Module.HEAPF32.subarray(visEnvPtr >> 2, (visEnvPtr >> 2) + E);
+
+    ectx.fillStyle = '#090a0e';
+    ectx.fillRect(0, 0, ec.width, ec.height);
+
+    const sust = values[ID.wtEnvSust];
+    if (sust > 0) {
+        const sx = (sust / 100) * ec.width;
+        ectx.strokeStyle = 'rgba(255, 184, 74, 0.45)';
+        ectx.setLineDash([4, 4]);
+        ectx.beginPath();
+        ectx.moveTo(sx, 0);
+        ectx.lineTo(sx, ec.height);
+        ectx.stroke();
+        ectx.setLineDash([]);
+    }
+
+    ectx.strokeStyle = '#ffb84a';
+    ectx.lineWidth = 2;
+    ectx.shadowColor = '#ffb84a';
+    ectx.shadowBlur = 5;
+    ectx.beginPath();
+    for (let i = 0; i < E; i++) {
+        const x = (i / (E - 1)) * ec.width;
+        const y = ec.height - 10 - env[i] * (ec.height - 20);
+        i === 0 ? ectx.moveTo(x, y) : ectx.lineTo(x, y);
+    }
+    ectx.stroke();
+    ectx.shadowBlur = 0;
+
+    if (isModActive && Math.round(values[ID.wtEnvMode]) > 0) {
+        const px = clamp(envPhase, 0, 1) * ec.width;
+        const ei = Math.min(E - 1, Math.round(clamp(envPhase, 0, 1) * (E - 1)));
+        const py = ec.height - 10 - env[ei] * (ec.height - 20);
+        ectx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+        ectx.lineWidth = 1;
+        ectx.beginPath();
+        ectx.moveTo(px, 0);
+        ectx.lineTo(px, ec.height);
+        ectx.stroke();
+        ectx.fillStyle = '#00e5ff';
+        ectx.beginPath();
+        ectx.arc(px, py, 3.5, 0, Math.PI * 2);
+        ectx.fill();
+    }
+}
+
+// ======================================================================
+//  Raw RIFF WAV Parser (16/24-bit PCM & 32-bit float, zero resampling!)
+// ======================================================================
+function parseWavToInt16(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+    if (view.byteLength < 44) throw new Error('File too small to be a WAV');
+    const str4 = (off) => String.fromCharCode(
+        view.getUint8(off), view.getUint8(off + 1), view.getUint8(off + 2), view.getUint8(off + 3)
+    );
+    if (str4(0) !== 'RIFF' || str4(8) !== 'WAVE') throw new Error('Invalid RIFF/WAVE header');
+
+    let off = 12;
+    let audioFmt = 0, channels = 1, bitsPerSample = 16;
+    let dataOffset = -1, dataSize = 0;
+
+    while (off + 8 <= view.byteLength) {
+        const id = str4(off);
+        const sz = view.getUint32(off + 4, true);
+        if (id === 'fmt ') {
+            audioFmt = view.getUint16(off + 8, true);
+            channels = view.getUint16(off + 10, true);
+            bitsPerSample = view.getUint16(off + 18, true);
+            if (audioFmt === 0xFFFE && sz >= 40) {
+                audioFmt = view.getUint16(off + 32, true);
+            }
+        } else if (id === 'data') {
+            dataOffset = off + 8;
+            dataSize = Math.min(sz, view.byteLength - dataOffset);
+            break;
+        }
+        off += 8 + sz + (sz & 1);
+    }
+    if (dataOffset < 0 || (audioFmt !== 1 && audioFmt !== 3)) {
+        throw new Error(`Unsupported WAV format (fmt=${audioFmt}, bits=${bitsPerSample})`);
+    }
+
+    const bytesPerSample = bitsPerSample >> 3;
+    const frameCount = Math.floor(dataSize / (bytesPerSample * channels));
+    if (frameCount < 32) throw new Error('WAV contains fewer than 32 samples');
+
+    const out = new Int16Array(frameCount);
+    for (let i = 0; i < frameCount; i++) {
+        let sum = 0.0;
+        for (let ch = 0; ch < channels; ch++) {
+            const p = dataOffset + (i * channels + ch) * bytesPerSample;
+            if (audioFmt === 3 && bitsPerSample === 32) {
+                sum += clamp(view.getFloat32(p, true), -1, 1);
+            } else if (audioFmt === 1 && bitsPerSample === 16) {
+                sum += view.getInt16(p, true) / 32768.0;
+            } else if (audioFmt === 1 && bitsPerSample === 24) {
+                let s = view.getUint8(p) | (view.getUint8(p + 1) << 8) | (view.getUint8(p + 2) << 16);
+                if (s & 0x800000) s |= ~0xFFFFFF;
+                sum += s / 8388608.0;
+            } else if (audioFmt === 1 && bitsPerSample === 8) {
+                sum += (view.getUint8(p) - 128) / 128.0;
+            } else {
+                throw new Error(`Unsupported bit depth ${bitsPerSample}`);
+            }
+        }
+        out[i] = Math.round(clamp(sum / channels, -1, 1) * 32767);
+    }
+    return out;
+}
+
+async function handleFile(file) {
+    if (!file || !Module) return;
+    try {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const lower = file.name.toLowerCase();
+
+        if (lower.endsWith('.pti')) {
+            const ptr = Module._malloc(bytes.length);
+            Module.HEAPU8.set(bytes, ptr);
+            const ok = W.import_pti(ptr, bytes.length);
+            Module._free(ptr);
+            if (!ok) throw new Error('Invalid or non-wavetable .pti file');
+
+            for (let i = 0; i < NPARAMS; i++) values[i] = W.get_param(i);
+            customLabel = file.name.replace(/\.pti$/i, '');
+            document.getElementById('patchName').value = customLabel.slice(0, 31);
+            widgets.forEach(w => w.sync && w.sync());
+            updateVisualizers();
+            lcd('Loaded .PTI', customLabel);
+            status(`Loaded .pti instrument "${file.name}" (${W.get_window_count()} × ${W.get_window_size()} samples).`);
+        } else {
+            const pcm16 = parseWavToInt16(buf);
+            // Auto-detect Serum 2048 window if length is divisible by 2048, else largest fitting power of 2
+            let winSize = 2048;
+            if (pcm16.length < 2048 || (pcm16.length % 2048) !== 0) {
+                for (const candidate of [2048, 1024, 512, 256, 128, 64, 32]) {
+                    if (pcm16.length >= candidate && (pcm16.length % candidate) === 0) {
+                        winSize = candidate;
+                        break;
+                    }
+                }
+            }
+            const ptr = Module._malloc(pcm16.length * 2);
+            Module.HEAP16.set(pcm16, ptr >> 1);
+            const ok = W.load_pcm16(ptr, pcm16.length, winSize);
+            Module._free(ptr);
+            if (!ok) throw new Error('Failed to load wavetable samples into WASM');
+
+            values[ID.table] = W.get_param(ID.table);
+            values[ID.winSize] = W.get_param(ID.winSize);
+            customLabel = file.name.replace(/\.wav$/i, '');
+            document.getElementById('patchName').value = customLabel.slice(0, 31);
+            widgets.forEach(w => w.sync && w.sync());
+            updateVisualizers();
+            lcd('Loaded .WAV', customLabel);
+            status(`Loaded "${file.name}" as ${W.get_window_count()} frames × ${W.get_window_size()} samples.`);
+        }
+    } catch (err) {
+        status('Load failed: ' + err.message, true);
+    }
+}
+
+// Drag-and-drop & File input wiring
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+document.getElementById('btnImportFile').addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); fileInput.value = ''; });
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+// Export .PTI button
+document.getElementById('btnExportPti').addEventListener('click', () => {
+    if (!Module || !W.export_pti) return;
+    const rawName = (document.getElementById('patchName').value.trim() || 'WT_Instrument').slice(0, 31);
+    const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '_');
+    const size = W.export_pti_size();
+    const ptr = Module._malloc(size);
+    const written = W.export_pti(ptr, size, safeName);
+    const out = Module.HEAPU8.slice(ptr, ptr + written);
+    Module._free(ptr);
+    if (written <= 0) {
+        status('Export .pti failed', true);
+        return;
+    }
+    const url = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName + '.pti';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    status(`Exported "${safeName}.pti" (${(written / 1024).toFixed(1)} KB). Drop into /Instruments/ on your Tracker SD card!`);
+});
+
+// ======================================================================
+//  Presets
+// ======================================================================
+const presetSel = document.getElementById('presetSel');
+presetKeys.forEach(k => {
+    const o = document.createElement('option');
+    o.value = k;
+    o.textContent = PRESETS[k].name;
+    presetSel.append(o);
+});
+function loadPreset(key) {
+    const p = PRESETS[key];
+    for (let i = 0; i < NPARAMS; i++) {
+        values[i] = (p[KEYS[i]] !== undefined) ? p[KEYS[i]] : meta[i].def;
+    }
+    document.getElementById('patchName').value = p.name;
+    presetSel.value = key;
+    widgets.forEach(w => w.sync && w.sync());
+    pushParams();
+    lcd('Patch', p.name);
+}
+presetSel.addEventListener('change', () => loadPreset(presetSel.value));
+document.getElementById('btnPrev').addEventListener('click', () => {
+    loadPreset(presetKeys[(presetKeys.indexOf(presetSel.value) + presetKeys.length - 1) % presetKeys.length]);
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+    loadPreset(presetKeys[(presetKeys.indexOf(presetSel.value) + 1) % presetKeys.length]);
+});
+
+// ======================================================================
+//  Keyboard & MIDI
+// ======================================================================
+let kbBase = 48;
+const held = new Set();
+const keyEls = {};
+function noteOn(n, v = 0.85) {
+    if (!W.note_on || held.has(n)) return;
+    held.add(n); W.note_on(n, v);
+    keyEls[n] && keyEls[n].classList.add('down');
+}
+function noteOff(n) {
+    if (!W.note_off || !held.has(n)) return;
+    held.delete(n); W.note_off(n);
+    keyEls[n] && keyEls[n].classList.remove('down');
+}
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const isBlack = n => [1,3,6,8,10].includes(n % 12);
+function buildKeys() {
+    const wrap = document.getElementById('keys');
+    wrap.innerHTML = '';
+    for (const k in keyEls) delete keyEls[k];
+    const lo = kbBase, hi = kbBase + 48;
+    let w = 0;
+    const WKW = 38;
+    for (let n = lo; n < hi; n++) {
+        const el = document.createElement('div');
+        if (!isBlack(n)) { el.className = 'wk'; el.style.left = (w * WKW) + 'px'; w++; }
+        else { el.className = 'bk'; el.style.left = (w * WKW - 12) + 'px'; }
+        el.dataset.note = n;
+        wrap.append(el);
+        keyEls[n] = el;
+    }
+    wrap.style.width = (w * WKW) + 'px';
+    document.getElementById('octLabel').textContent =
+        NOTE_NAMES[lo % 12] + (Math.floor(lo / 12) - 1) + ' – ' +
+        NOTE_NAMES[(hi - 1) % 12] + (Math.floor((hi - 1) / 12) - 1);
+}
+{
+    const wrap = document.getElementById('keys');
+    let activeNote = null;
+    wrap.addEventListener('pointerdown', e => {
+        const n = e.target.dataset && e.target.dataset.note;
+        if (n === undefined) return;
+        wrap.setPointerCapture(e.pointerId);
+        activeNote = parseInt(n, 10);
+        noteOn(activeNote);
+    });
+    wrap.addEventListener('pointermove', e => {
+        if (activeNote === null) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const n = el && el.dataset && el.dataset.note !== undefined ? parseInt(el.dataset.note, 10) : null;
+        if (n !== null && n !== activeNote) { noteOff(activeNote); activeNote = n; noteOn(n); }
+    });
+    const up = () => { if (activeNote !== null) { noteOff(activeNote); activeNote = null; } };
+    wrap.addEventListener('pointerup', up);
+    wrap.addEventListener('pointercancel', up);
+}
+document.getElementById('octDown').addEventListener('click', () => { kbBase = Math.max(0, kbBase - 12); buildKeys(); });
+document.getElementById('octUp').addEventListener('click', () => { kbBase = Math.min(72, kbBase + 12); buildKeys(); });
+
+const KEYMAP_LOW = 'zsxdcvgbhnjm'.split('');
+const KEYMAP_HIGH = 'q2w3er5t6y7u'.split('');
+function keyToNote(key) {
+    let i = KEYMAP_LOW.indexOf(key); if (i >= 0) return kbBase + i;
+    i = KEYMAP_HIGH.indexOf(key); if (i >= 0) return kbBase + 12 + i;
+    if (key === 'i') return kbBase + 24; if (key === '9') return kbBase + 25; if (key === 'o') return kbBase + 26;
+    if (key === '0') return kbBase + 27; if (key === 'p') return kbBase + 28;
+    return null;
+}
+window.addEventListener('keydown', e => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement.type !== 'range') return;
+    if (e.key === '[') { document.getElementById('octDown').click(); return; }
+    if (e.key === ']') { document.getElementById('octUp').click(); return; }
+    const n = keyToNote(e.key.toLowerCase());
+    if (n !== null) noteOn(n);
+});
+window.addEventListener('keyup', e => {
+    const n = keyToNote(e.key.toLowerCase());
+    if (n !== null) noteOff(n);
+});
+window.addEventListener('blur', () => { [...held].forEach(noteOff); });
+
+if (navigator.requestMIDIAccess) {
+    navigator.requestMIDIAccess().then(access => {
+        const hook = inp => {
+            inp.onmidimessage = m => {
+                const [st, d1, d2] = m.data, cmd = st & 0xf0;
+                if (cmd === 0x90 && d2 > 0) noteOn(d1, d2 / 127);
+                else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) noteOff(d1);
+            };
+        };
+        access.inputs.forEach(hook);
+        access.onstatechange = () => access.inputs.forEach(hook);
+    }).catch(() => {});
+}
+
+// ======================================================================
+//  Audio + Live Scope
+// ======================================================================
+const btnAudio = document.getElementById('btnAudio');
+btnAudio.addEventListener('click', async () => {
+    if (!W.render) return;
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        scriptNode = audioCtx.createScriptProcessor(BLOCK, 0, 2);
+        scriptNode.onaudioprocess = e => {
+            W.render(bufL, bufR, BLOCK);
+            e.outputBuffer.getChannelData(0).set(Module.HEAPF32.subarray(bufL >> 2, (bufL >> 2) + BLOCK));
+            e.outputBuffer.getChannelData(1).set(Module.HEAPF32.subarray(bufR >> 2, (bufR >> 2) + BLOCK));
+        };
+        scriptNode.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        drawLoop();
+    }
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    running = !running;
+    if (running) { btnAudio.textContent = 'AUDIO ACTIVE'; btnAudio.classList.add('active'); }
+    else { audioCtx.suspend(); btnAudio.textContent = 'RESUME AUDIO'; btnAudio.classList.remove('active'); }
+});
+
+const voicesEl = document.getElementById('voices');
+const voiceLeds = [];
+for (let i = 0; i < 8; i++) { const s = document.createElement('span'); voicesEl.append(s); voiceLeds.push(s); }
+const scope = document.getElementById('scope'), sctx = scope.getContext('2d');
+function drawLoop() {
+    const data = new Float32Array(analyser.fftSize);
+    let wasActive = false;
+    const frame = () => {
+        analyser.getFloatTimeDomainData(data);
+        sctx.fillStyle = '#121318';
+        sctx.fillRect(0, 0, scope.width, scope.height);
+        sctx.strokeStyle = '#00e5ff';
+        sctx.lineWidth = 1.5;
+        sctx.shadowColor = '#00e5ff';
+        sctx.shadowBlur = 5;
+        sctx.beginPath();
+        let start = 0;
+        for (let i = 1; i < data.length / 2; i++) {
+            if (data[i - 1] < 0 && data[i] >= 0) { start = i; break; }
+        }
+        for (let x = 0; x < scope.width; x++) {
+            const v = data[start + Math.floor(x * 2.5)] || 0;
+            const y = scope.height / 2 - v * (scope.height / 2 - 3) * 1.5;
+            x ? sctx.lineTo(x, y) : sctx.moveTo(x, y);
+        }
+        sctx.stroke();
+        sctx.shadowBlur = 0;
+        const nv = W.active_voices ? W.active_voices() : 0;
+        voiceLeds.forEach((l, i) => l.classList.toggle('on', i < nv));
+        if (nv > 0 || wasActive) {
+            updateVisualizers();
+            wasActive = nv > 0;
+        }
+        requestAnimationFrame(frame);
+    };
+    frame();
+}
+
+// ======================================================================
+//  Boot
+// ======================================================================
+WtModule().then(mod => {
+    Module = mod;
+    const w = (n, r, a) => Module.cwrap('wt_' + n, r, a);
+    W = {
+        init: w('init', null, ['number']),
+        note_on: w('note_on', null, ['number', 'number']),
+        note_off: w('note_off', null, ['number']),
+        set_param: w('set_param', null, ['number', 'number']),
+        get_param: w('get_param', 'number', ['number']),
+        render: w('render', null, ['number', 'number', 'number']),
+        active_voices: w('active_voices', 'number', []),
+        load_pcm16: w('load_pcm16', 'number', ['number', 'number', 'number']),
+        get_window_size: w('get_window_size', 'number', []),
+        get_window_count: w('get_window_count', 'number', []),
+        get_display_wave: w('get_display_wave', null, ['number', 'number']),
+        get_env_preview: w('get_env_preview', null, ['number', 'number']),
+        get_mod_state: w('get_mod_state', 'number', ['number']),
+        export_pti_size: w('export_pti_size', 'number', []),
+        export_pti: w('export_pti', 'number', ['number', 'number', 'string']),
+        import_pti: w('import_pti', 'number', ['number', 'number']),
+    };
+    const pmin = w('param_min', 'number', ['number']);
+    const pmax = w('param_max', 'number', ['number']);
+    const pdef = w('param_default', 'number', ['number']);
+    if (w('param_count', 'number', [])() !== NPARAMS) throw new Error('Parameter count mismatch');
+    for (let i = 0; i < NPARAMS; i++) meta[i] = { min: pmin(i), max: pmax(i), def: pdef(i) };
+    bufL = Module._malloc(BLOCK * 4);
+    bufR = Module._malloc(BLOCK * 4);
+    visWavePtr = Module._malloc(256 * 4);
+    visEnvPtr = Module._malloc(128 * 4);
+    visModPtr = Module._malloc(3 * 4);
+    W.init(44100);
+    buildPanel();
+    buildKeys();
+    loadPreset('init');
+    lcd('Ready', 'Press START AUDIO');
+}).catch(err => {
+    const f = document.getElementById('fatal');
+    f.style.display = 'block';
+    f.innerHTML = '<b>Could not load the WASM engine.</b><br>' + err + '<br>Run <code>tools/wavetable_harness/build.sh</code> then <code>tools/wavetable_harness/serve.sh</code>.';
+});
+</script>
+</body>
+</html>
