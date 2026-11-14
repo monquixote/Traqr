@@ -26,7 +26,7 @@ Built directly from the original Polyend Tracker firmware source code, **Traqr**
 ## What's New in Traqr
 
 ### 1. `JULYO` Synth Engine
-A classic 1980s-inspired virtual-analog polyphonic DCO synthesizer voice:
+A classic mid-1980s Japanese 60/106-style virtual-analog polyphonic DCO synthesizer voice — inspired by the iconic Roman-goddess polysynths (single-DCO saw/pulse/sub architecture, 4-pole OTA filter, +3.5dB bass-boost HPF, and I / II / I+II BBD stereo chorus):
 * **True DCO Architecture**: Simultaneous Sawtooth, Pulse Width Modulation (manual, LFO, and dedicated envelope modulation), Sub-oscillator (-1 / -2 octaves), and Noise generator.
 * **Analog HPF with Bass Boost**: Non-resonant high-pass filter with a +3.5dB low-shelf bass boost circuit at position 0.
 * **4-Pole OTA Resonant Low-Pass Filter**: Zero-delay feedback 4-pole OTA ladder filter with self-oscillation and drive.

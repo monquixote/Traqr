@@ -11,7 +11,7 @@ Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), 
 
 ## Synth Engines & Performance
 
-* **`JULYO` Vintage Analog Synthesizer**: Virtual analog DCO architecture, non-resonant HPF with +3.5dB bass boost, 4-pole OTA zero-delay feedback resonant LPF, dual-BBD stereo chorus, and analog component drift modeling.
+* **`JULYO` Vintage Analog Synthesizer**: Classic 1980s 60/106-style virtual-analog DCO polysynth inspired by the iconic Japanese Roman-goddess classics — single-DCO saw/pulse/sub, non-resonant HPF with +3.5dB bass boost, 4-pole OTA zero-delay feedback resonant LPF, dual-BBD stereo chorus (`I / II / I+II`), and analog component drift modeling.
   * [Live Web Interface](https://monquixote.github.io/Traqr/synths/julyo/)
 * **`TEAR` Sync Synthesizer**: 5 sync modes (Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, Ring Shred), morphable slave shape, dedicated sync envelope/LFO, and 5 saturation circuits.
   * [Live Web Interface](https://monquixote.github.io/Traqr/synths/tear/)
