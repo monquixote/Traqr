@@ -22,7 +22,7 @@ static const uint16_t framesPlacesSynth[1][4] = {
 };
 
 const char* const synthModelNames[Synth::kSynthTypes.size()] = {
-    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR", "JUNO",
+    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR", "JULYO",
 };
 
 static const int synthModelListImages[Synth::kSynthTypes.size()] = {

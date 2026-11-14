@@ -705,7 +705,7 @@
                 <ul id="site-menu" class="site-menu" popover="auto">
                     <li><a href="index.html">Web Synth Hub</a></li>
                     <li><a href="guide.html" aria-current="page">Feature Guide</a></li>
-                    <li><a href="synths/juno/">JUNO Web Synth</a></li>
+                    <li><a href="synths/julyo/">JULYO Web Synth</a></li>
                     <li><a href="synths/tear/">TEAR Web Synth</a></li>
                     <li><a href="https://github.com/monquixote/Traqr/releases" target="_blank" rel="noopener">Releases</a></li>
                 </ul>
@@ -719,12 +719,12 @@
             <h1>How to Use Every Traqr Feature</h1>
             <p>
                 Step-by-step hardware workflows, menu locations, shortcut keys, and MIDI maps for everything added in Traqr:
-                <strong>JUNO</strong> &amp; <strong>TEAR</strong> synth engines, <strong>Synth Performance Mode</strong>,
+                <strong>JULYO</strong> &amp; <strong>TEAR</strong> synth engines, <strong>Synth Performance Mode</strong>,
                 <strong>Wavetable Sub-Oscillator &amp; Warp Modulation</strong>, and the <strong>Master Stereo Chorus Send</strong>.
             </p>
             <div class="quick-jumps">
                 <a class="jump-pill" href="#install">1. Install &amp; SD Setup</a>
-                <a class="jump-pill" href="#synths">2. JUNO &amp; TEAR Synths</a>
+                <a class="jump-pill" href="#synths">2. JULYO &amp; TEAR Synths</a>
                 <a class="jump-pill" href="#synth-perf">3. Synth Performance &amp; MIDI</a>
                 <a class="jump-pill" href="#wavetable">4. Wavetable Sub-Osc &amp; Warp</a>
                 <a class="jump-pill" href="#chorus">5. Master Stereo Chorus</a>
@@ -737,7 +737,7 @@
                 <div class="toc-title">On This Page</div>
                 <nav class="toc-nav" aria-label="Guide sections">
                     <a class="toc-link" href="#install">1. Installation &amp; SD Card Layout</a>
-                    <a class="toc-link" href="#synths">2. JUNO &amp; TEAR Synth Engines</a>
+                    <a class="toc-link" href="#synths">2. JULYO &amp; TEAR Synth Engines</a>
                     <a class="toc-link" href="#synth-perf">3. Synth Performance &amp; Circuit Tracks MIDI</a>
                     <a class="toc-link" href="#wavetable">4. Wavetable Sub-Osc, Warp &amp; Mod</a>
                     <a class="toc-link" href="#chorus">5. Master Stereo Chorus Send</a>
@@ -760,7 +760,7 @@
 ├── Firmware/
 │   └── TrackerMini_NL_1.0.26.ptf   (or TrackerPlus_NL_*.ptf / PolyendTracker_NL_*.ptf)
 ├── Patches/
-│   ├── JUNO/                       (unzipped contents of JUNO_Patches.zip)
+│   ├── JULYO/                      (unzipped contents of JULYO_Patches.zip)
 │   └── TEAR/                       (unzipped contents of TEAR_Patches.zip)
 └── Effects/
     └── *.ptfx                      (optional: unzipped PolyendTracker_CE_Effects.zip)</code></pre>
@@ -772,14 +772,14 @@
                     </ol>
 
                     <div class="callout warn">
-                        <strong>Note for Original Polyend Tracker (MK66):</strong> Traqr's wavetable improvements, Master Stereo Chorus send, and Sample Editor <code>.ptfx</code> plugins run across all hardware models. Internal polyphonic synth engines (<code>JUNO</code>, <code>TEAR</code>, and Synth Performance) require the Tracker Mini or Tracker+ IMX synth platform.
+                        <strong>Note for Original Polyend Tracker (MK66):</strong> Traqr's wavetable improvements, Master Stereo Chorus send, and Sample Editor <code>.ptfx</code> plugins run across all hardware models. Internal polyphonic synth engines (<code>JULYO</code>, <code>TEAR</code>, and Synth Performance) require the Tracker Mini or Tracker+ IMX synth platform.
                     </div>
                 </section>
 
-                <!-- SECTION 2: JUNO & TEAR SYNTHS -->
+                <!-- SECTION 2: JULYO & TEAR SYNTHS -->
                 <section id="synths" class="guide-section" tabindex="-1">
                     <div class="section-eyebrow juno">Polyphonic Engines</div>
-                    <h2>2. JUNO &amp; TEAR Custom Synth Engines</h2>
+                    <h2>2. JULYO &amp; TEAR Custom Synth Engines</h2>
                     <p>
                         Traqr adds two custom polyphonic synth engines alongside Polyend's stock engines (<code>ACD</code>, <code>FAT</code>, <code>VAP</code>, <code>WTFM</code>, <code>PERC</code>, <code>DIRT</code>, <code>CHIP</code>).
                     </p>
@@ -788,22 +788,22 @@
                     <ol>
                         <li>Switch to any Synth slot (<strong>Synth 1</strong>, <strong>Synth 2</strong>, or <strong>Synth 3</strong>).</li>
                         <li>Open <strong>Instrument Parameters</strong> to enter the Synth Editor.</li>
-                        <li>Turn the encoder / adjust the engine selector to pick <strong><code>JUNO</code></strong> or <strong><code>TEAR</code></strong>, or open the Patch Browser to load any <code>.patch</code> file placed in <code>/Patches/JUNO/</code> or <code>/Patches/TEAR/</code>.</li>
+                        <li>Turn the encoder / adjust the engine selector to pick <strong><code>JULYO</code></strong> or <strong><code>TEAR</code></strong>, or open the Patch Browser to load any <code>.patch</code> file placed in <code>/Patches/JULYO/</code> or <code>/Patches/TEAR/</code>.</li>
                         <li>Use the 6 editor page buttons at the bottom of the screen to sculpt every parameter, then save or tweak the 6 Macros for live automation.</li>
                     </ol>
 
                     <h3>Designing Patches in Your Browser</h3>
                     <p>
-                        Both <a href="synths/juno/">JUNO Web Synth</a> and <a href="synths/tear/">TEAR Web Synth</a> run the exact same C++20 DSP code compiled to WebAssembly:
+                        Both <a href="synths/julyo/">JULYO Web Synth</a> and <a href="synths/tear/">TEAR Web Synth</a> run the exact same C++20 DSP code compiled to WebAssembly:
                     </p>
                     <ul>
                         <li>Play notes with your computer keyboard, mouse, or a connected USB MIDI controller.</li>
-                        <li>Audition all <strong>18 built-in factory presets</strong> per engine, configure custom <strong>Macro 1–6</strong> parameter bindings and ranges, then export either a single <code>.patch</code> file or a full preset <code>.zip</code> directly to your SD card's <code>/Patches/</code> folder.</li>
+                        <li>Audition all built-in factory presets (40 in JULYO, 18 in TEAR), configure custom <strong>Macro 1–6</strong> parameter bindings and ranges, then export either a single <code>.patch</code> file or a full preset <code>.zip</code> directly to your SD card's <code>/Patches/</code> folder.</li>
                     </ul>
 
                     <div class="two-col-cards">
                         <div class="mini-card juno-card">
-                            <h4>JUNO &mdash; Vintage DCO Poly</h4>
+                            <h4>JULYO &mdash; Vintage DCO Poly</h4>
                             <p>6 pages: <code>DCO</code>, <code>Filter</code>, <code>F-Env</code>, <code>A-Env</code>, <code>LFO</code>, <code>Chorus</code>.</p>
                             <ul>
                                 <li><strong>DCO:</strong> <code>Saw Level</code>, <code>Pulse Level</code>, <code>Pulse Width</code>, <code>PWM Depth/Source</code>, <code>Sub Level</code>/<code>Sub Octave</code>, <code>Noise</code>, <code>Voice Drift</code>.</li>
@@ -1024,7 +1024,7 @@
 
                     <div class="callout chorus">
                         <strong>Signal Routing Scope:</strong> Sample-based instruments, Wavetable instruments, and <strong>Line In</strong> route into the Master Chorus send.
-                        Polyphonic Synth tracks (<code>S1&ndash;S3</code>) are intentionally excluded &mdash; use <code>JUNO</code>'s authentic built-in stereo BBD Chorus or <code>TEAR</code>'s internal modulation instead.
+                        Polyphonic Synth tracks (<code>S1&ndash;S3</code>) are intentionally excluded &mdash; use <code>JULYO</code>'s built-in stereo BBD Chorus or <code>TEAR</code>'s internal modulation instead.
                     </div>
 
                     <h3>Step 1: Send an Instrument to Chorus</h3>

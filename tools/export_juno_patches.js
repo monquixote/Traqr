@@ -73,7 +73,7 @@ function paramsFromPreset(p) {
     return out;
 }
 
-const outDir = path.resolve(__dirname, '../patches/JUNO');
+const outDir = path.resolve(__dirname, '../patches/JULYO');
 fs.mkdirSync(outDir, { recursive: true });
 
 const filesForZip = [];
@@ -87,13 +87,13 @@ for (const [key, p] of Object.entries(PRESETS)) {
     
     const filePath = path.join(outDir, filename);
     fs.writeFileSync(filePath, Buffer.from(data));
-    filesForZip.push({ name: `JUNO/${filename}`, data });
+    filesForZip.push({ name: `JULYO/${filename}`, data });
     count++;
     console.log(`Generated: ${filename} (${data.length} bytes)`);
 }
 
 const zipData = createZip(filesForZip);
-const zipPath = path.resolve(__dirname, '../patches/JUNO_Patches.zip');
+const zipPath = path.resolve(__dirname, '../patches/JULYO_Patches.zip');
 fs.writeFileSync(zipPath, Buffer.from(zipData));
 console.log(`\nSuccessfully exported ${count} patches to ${outDir}`);
 console.log(`Successfully created ZIP: ${zipPath} (${zipData.length} bytes)`);

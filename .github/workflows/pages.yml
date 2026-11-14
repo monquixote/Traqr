@@ -47,9 +47,9 @@ jobs:
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
             -o _site/synths/tear/tear_dsp.js
 
-      - name: Build JUNO DSP WebAssembly Engine
+      - name: Build JULYO DSP WebAssembly Engine
         run: |
-          mkdir -p _site/synths/juno
+          mkdir -p _site/synths/julyo
           emcc tools/juno_harness/main_wasm.cpp tools/juno_harness/JunoDSP.cpp \
             -O3 -std=c++20 \
             -s WASM=1 \
@@ -57,13 +57,13 @@ jobs:
             -s EXPORT_NAME="JunoModule" \
             -s EXPORTED_FUNCTIONS="['_juno_init','_juno_reset','_juno_note_on','_juno_note_off','_juno_all_notes_off','_juno_set_param','_juno_get_param','_juno_render','_juno_active_voices','_juno_param_count','_juno_param_min','_juno_param_max','_juno_param_default','_malloc','_free']" \
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','HEAPF32']" \
-            -o _site/synths/juno/juno_dsp.js
+            -o _site/synths/julyo/juno_dsp.js
 
       - name: Assemble Web Pages
         run: |
           # Copy synth pages
           cp tools/tear_harness/index.html _site/synths/tear/index.html
-          cp tools/juno_harness/index.html _site/synths/juno/index.html
+          cp tools/juno_harness/index.html _site/synths/julyo/index.html
           # Root portal & HTML documentation pages
           cp docs/*.html _site/
           # Copy preset bundles for direct download

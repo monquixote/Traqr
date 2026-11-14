@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JUNO Engine // Tracker Mini WASM Harness</title>
+<title>JULYO Engine // Tracker Mini WASM Harness</title>
 <style>
     :root {
         --panel-1: #34363b;
@@ -118,7 +118,7 @@
     <div class="body">
         <div class="stripe"></div>
         <div class="topbar">
-            <div class="logo">JUNO<small>POLYPHONIC SYNTHESIZER &middot; TRACKER MINI ENGINE</small></div>
+            <div class="logo">JULYO<small>POLYPHONIC SYNTHESIZER &middot; TRACKER ENGINE</small></div>
             <div class="lcd"><div class="l1" id="lcdName">PATCH</div><div class="l2" id="lcdVal">Init</div></div>
             <div class="spacer"></div>
             <div class="voices" id="voices"><label>VOICES</label></div>
@@ -157,7 +157,7 @@
         </div>
 
         <div class="status" id="status"></div>
-        <footer>Tracker Mini Firmware v1.0.10 NL &bull; JUNO Engine WASM Harness &bull; 8 voices &bull; 44.1&nbsp;kHz 32-bit float</footer>
+        <footer>Traqr Firmware &bull; JULYO Engine WASM Harness &bull; 8 voices &bull; 44.1&nbsp;kHz 32-bit float</footer>
     </div>
     <div class="cheek"></div>
 </div>
@@ -228,7 +228,7 @@ function normToVal(k, n) {
 }
 
 // ======================================================================
-//  Presets: Authentic Roland Juno Factory Library (Bank A, Bank B, Juno-60)
+//  Presets: Classic Analog Poly Factory Library (Bank A, Bank B, Hoover)
 // ======================================================================
 const PRESETS = {
   init: {
@@ -546,8 +546,8 @@ const PRESETS = {
     aA: 1.5, aD: 2.5, aS: 0.85, aR: 2.5,
     chorus: 3, drift: 0.65 // Chorus I+II
   },
-  juno60_hoover: {
-    name: 'Juno-60 Hoover',
+  julyo_hoover: {
+    name: 'Julyo Hoover',
     octave: 1, saw: 1.0, pulse: 0.85, pwmDepth: 0.8, pwmSrc: 1, sub: 0.45, subOct: 1,
     lfoRate: 1.2,
     hpf: 0.0, cutoff: 0.68, res: 0.25, fenv: 0.35, keytrack: 0.7,
@@ -1010,19 +1010,19 @@ function status(msg, err) {
     el.textContent = msg; el.style.color = err ? '#ff8a7a' : '#8bd18f';
 }
 document.getElementById('btnExport').addEventListener('click', () => {
-    const name = safe(patchName.value.trim() || 'Juno_Patch');
+    const name = safe(patchName.value.trim() || 'Julyo_Patch');
     const bytes = encodePatchBinary(base, macros);
     download(bytes, name + '.patch', 'application/octet-stream');
-    status(`Exported "${name}.patch" (${bytes.length} bytes). Copy to SD:/Patches/JUNO/ on your Tracker Mini.`);
+    status(`Exported "${name}.patch" (${bytes.length} bytes). Copy to SD:/Patches/JULYO/ on your Tracker.`);
 });
 document.getElementById('btnExportAll').addEventListener('click', () => {
     try {
         const files = presetKeys.map(k => {
             const p = PRESETS[k];
-            return { name: `JUNO/${safe(p.name)}.patch`, data: encodePatchBinary(paramsFromPreset(p), p.macros || DEFAULT_MACROS()) };
+            return { name: `JULYO/${safe(p.name)}.patch`, data: encodePatchBinary(paramsFromPreset(p), p.macros || DEFAULT_MACROS()) };
         });
-        download(createZip(files), 'JUNO_Patches.zip', 'application/zip');
-        status(`Exported ${files.length} patches to JUNO_Patches.zip. Unzip into SD:/Patches/ on your Tracker Mini.`);
+        download(createZip(files), 'JULYO_Patches.zip', 'application/zip');
+        status(`Exported ${files.length} patches to JULYO_Patches.zip. Unzip into SD:/Patches/ on your Tracker.`);
     } catch (e) { status('Export failed: ' + e.message, true); }
 });
 

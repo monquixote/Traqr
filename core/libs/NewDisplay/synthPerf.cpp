@@ -8,7 +8,7 @@
 #include <cstring>
 
 static const char* const kPerfSynthModelNames[9] = {
-    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR", "JUNO"
+    "ACD", "FAT", "VAP", "WTFM", "PERC", "DIRT", "CHIP", "TEAR", "JULYO"
 };
 
 cSynthPerfRow::cSynthPerfRow(strControlProperties* properties)

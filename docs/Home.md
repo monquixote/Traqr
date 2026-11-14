@@ -2,8 +2,8 @@
 
 Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), covering the **Original Polyend Tracker** (`MK66`), **Polyend Tracker+** and **Polyend Tracker Mini** (`IMX`).
 
-* **[Traqr Feature User Guide](https://monquixote.github.io/Traqr/guide.html)** - Step-by-step instructions for installing Traqr, designing patches with JUNO & TEAR, Synth Performance & Circuit Tracks MIDI, Wavetable Sub-Osc & Warp modulation, and the Master Stereo Chorus send.
-* **[Interactive Web DSP Hub](https://monquixote.github.io/Traqr/)** - Real-time WASM web interfaces for JUNO and TEAR synth engines.
+* **[Traqr Feature User Guide](https://monquixote.github.io/Traqr/guide.html)** - Step-by-step instructions for installing Traqr, designing patches with JULYO & TEAR, Synth Performance & Circuit Tracks MIDI, Wavetable Sub-Osc & Warp modulation, and the Master Stereo Chorus send.
+* **[Interactive Web DSP Hub](https://monquixote.github.io/Traqr/)** - Real-time WASM web interfaces for JULYO and TEAR synth engines.
 * **[Release Changelog (`CHANGELOG.md`)](../CHANGELOG.md)** - Full list of new features, improvements, and fixes in each release.
 * **[Latest Releases on GitHub](https://github.com/monquixote/Traqr/releases)** - Download `.ptf` firmware builds and preset archives.
 
@@ -11,8 +11,8 @@ Welcome to the documentation for **Traqr** (Polyend Tracker Community Edition), 
 
 ## Synth Engines & Performance
 
-* **`JUNO` Vintage Analog Synthesizer**: Virtual analog DCO architecture, non-resonant HPF with +3.5dB bass boost, 4-pole OTA IR3109 zero-delay feedback resonant LPF, dual-BBD stereo chorus, and analog component drift modeling.
-  * [Live Web Interface](https://monquixote.github.io/Traqr/synths/juno/)
+* **`JULYO` Vintage Analog Synthesizer**: Virtual analog DCO architecture, non-resonant HPF with +3.5dB bass boost, 4-pole OTA zero-delay feedback resonant LPF, dual-BBD stereo chorus, and analog component drift modeling.
+  * [Live Web Interface](https://monquixote.github.io/Traqr/synths/julyo/)
 * **`TEAR` Sync Synthesizer**: 5 sync modes (Hard Tear, Soft Reverse, Windowed Formant, Dual SuperTear, Ring Shred), morphable slave shape, dedicated sync envelope/LFO, and 5 saturation circuits.
   * [Live Web Interface](https://monquixote.github.io/Traqr/synths/tear/)
 * **Synth Performance Dashboard (Optimised for Circuit Tracks)**: Dedicated live tracking and performance screen for Macros 1–6, Delay/Reverb sends (matching the Novation Circuit Tracks 8-macro layout), Volume, Pan, polyphony counts, and real-time pattern FX automation tracking.

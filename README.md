@@ -14,25 +14,25 @@ Built directly from the original Polyend Tracker firmware source code, **Traqr**
   * [Tracker+ Firmware (`TrackerPlus_NL_*.ptf`)](https://github.com/monquixote/Traqr/releases/latest)
   * [Original Tracker Firmware (`PolyendTracker_NL_*.ptf`)](https://github.com/monquixote/Traqr/releases/latest)
   * [TEAR Patches & Presets (`TEAR_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
-  * [JUNO Patches & Presets (`JUNO_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
+  * [JULYO Patches & Presets (`JULYO_Patches.zip`)](https://github.com/monquixote/Traqr/releases/latest)
   * [Sample Editor Effects (`PolyendTracker_CE_Effects.zip`)](https://github.com/monquixote/Traqr/releases/latest)
 * **Traqr User Guide (How to Use All Features)**: [Step-by-Step Feature Manual](https://monquixote.github.io/Traqr/guide.html)
 * **Interactive Web Synth Hub**: [Traqr Web DSP Hub](https://monquixote.github.io/Traqr/)
-  * [JUNO Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/juno/)
+  * [JULYO Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/julyo/)
   * [TEAR Web Interface & Preset Player](https://monquixote.github.io/Traqr/synths/tear/)
 
 ---
 
 ## What's New in Traqr
 
-### 1. `JUNO` Synth Engine
-A faithful virtual-analog emulation of the iconic Roland Juno-60/106 DCO synthesizer voice:
+### 1. `JULYO` Synth Engine
+A classic 1980s-inspired virtual-analog polyphonic DCO synthesizer voice:
 * **True DCO Architecture**: Simultaneous Sawtooth, Pulse Width Modulation (manual, LFO, and dedicated envelope modulation), Sub-oscillator (-1 / -2 octaves), and Noise generator.
-* **Analog HPF with Bass Boost**: Non-resonant high-pass filter with the characteristic +3.5dB low-shelf bass boost circuit at position 0.
-* **4-Pole OTA IR3109 Resonant Low-Pass Filter**: Zero-delay feedback ladder topology modeled after the classic Roland IR3109 filter with self-oscillation.
-* **Dual-BBD Stereo Chorus**: Authentic bucket-brigade device (BBD) stereo chorus emulation featuring Mode I, Mode II, and combined Mode I+II.
+* **Analog HPF with Bass Boost**: Non-resonant high-pass filter with a +3.5dB low-shelf bass boost circuit at position 0.
+* **4-Pole OTA Resonant Low-Pass Filter**: Zero-delay feedback 4-pole OTA ladder filter with self-oscillation and drive.
+* **Dual-BBD Stereo Chorus**: Bucket-brigade device (BBD) stereo chorus emulation featuring Mode I, Mode II, and combined Mode I+II.
 * **Analog Voice Tolerances & Thermal Wander**: Subtle per-voice component tolerances and leaky random-walk thermal wander modeling vintage hardware drift.
-* **Factory Preset Library**: Includes classic Juno factory patches (Strings, Brass, Hoover, Reso Bass, Plucks, Chorus Poly, and more).
+* **Factory Preset Library**: Includes 40 classic analog poly factory patches (Strings, Brass, Hoover, Reso Bass, Plucks, Chorus Poly, and more).
 
 ### 2. `TEAR` Synth Engine
 An aggressive, cutting oscillator sync synthesizer:

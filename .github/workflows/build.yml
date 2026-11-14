@@ -22,7 +22,7 @@ on:
         description: 'Release title'
         required: false
         type: string
-        default: 'Traqr v1.0.13 (JUNO & TEAR Engines)'
+        default: 'Traqr v1.0.26 (JULYO & TEAR Engines)'
       prerelease:
         description: 'Mark as pre-release'
         required: false

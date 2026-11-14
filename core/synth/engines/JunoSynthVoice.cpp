@@ -392,7 +392,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
                 hp1 += hpA * (x - hp1); x -= hp1;
                 hp2 += hpA * (x - hp2); x -= hp2;
 
-                // 4-pole OTA IR3109 ladder
+                // 4-pole OTA resonant ladder
                 const float S = oneMinusG * (G * G * G * ladderS[0] + G * G * ladderS[1] + G * ladderS[2] + ladderS[3]);
                 float u = (x * inGain - ladderK * S) * denomInv;
                 u = fastTanh(u);
@@ -1155,7 +1155,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
 std::unique_ptr<InstrumentType> createJunoSynth()
 {
     return std::make_unique<InstrumentType>(
-      InstrumentType{ .name = "JUNO",
+      InstrumentType{ .name = "JULYO",
                       .createMetadata = &JunoSynthVoice::createMetadata,
                       .createVoice = [](int voiceIdx) -> std::unique_ptr<InstrumentVoice>
                       { return std::make_unique<JunoSynthVoice>(voiceIdx); } });
