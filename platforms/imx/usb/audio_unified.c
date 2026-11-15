@@ -187,6 +187,12 @@ void resetUsbAudioBuffer()
     audioReady = false;
 }
 
+bool isUsbAudioOutputActive(void)
+{
+    return usbIsoReady && g_deviceAudioComposite != NULL &&
+           g_deviceAudioComposite->audioUnified.attach != 0;
+}
+
 void beginUsbAudioFill()
 {
     if (!usbIsoReady)
@@ -277,8 +283,9 @@ void updateUsbOutputBuffers(void* left, void* right, int count)
     USB_DeviceIsrEnable();
 }
 
-void updateUsbInputBuffers(void* data, int count)
+bool updateUsbInputBuffers(void* data, int count)
 {
+    bool hasData = false;
     USB_DeviceIsrDisable();
 
     if (audioPlayReady && samplesToRecv > 0)
@@ -294,13 +301,11 @@ void updateUsbInputBuffers(void* data, int count)
         deltaRecv = samplesToRecv - SAMPLES_CODEC;
         audioPlayBuffer.rdidx += SAMPLES_PLAY_COUNT;
         audioPlayBuffer.rdidx %= SAMPLES_PLAY_COUNT * AUDIO_BUFFERS;
-    }
-    else
-    {
-        memset(data, 0, 2 * count * sizeof(int16_t));
+        hasData = true;
     }
 
     USB_DeviceIsrEnable();
+    return hasData;
 }
 /*!
  * @brief device Audio callback function.

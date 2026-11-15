@@ -220,7 +220,7 @@ class JunoSynthVoice : public sdk::CustomSynthVoice<JunoSynthVoice, JunoParamId>
         aenv.gateOff();
     }
 
-    AUDIO_CORE_RAM void renderVoiceAudio(const InstrumentVoiceContext& /*ctx*/,
+    void renderVoiceAudio(const InstrumentVoiceContext& /*ctx*/,
                           [[maybe_unused]] std::optional<AudioBufferStereoRef> inputBuffer,
                           AudioBufferStereoRef outputBuffer,
                           std::span<AudioBufferRef> /*auxOutBuffer*/) override

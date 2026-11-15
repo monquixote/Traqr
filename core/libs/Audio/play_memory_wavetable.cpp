@@ -140,9 +140,21 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
     const bool unwarpedBlock = (warpMode == 0U || (warpStepQ8 == 0 && blockTaperQ15 == 0U));
 
     auto renderBlock = [&]<bool HasSub, bool Unwarped>(uint32_t subPhaseInc, int32_t subGain14, float subPhaseScale) __attribute__((always_inline)) {
+        // Keep playhead & filter state in local registers for the entire block so *out++ stores cannot alias `this`.
+        int32_t lPitchCounter = iPitchCounter;
+        int32_t lFracCounter = currentFractionPitchCounter;
+        int32_t lCastPitch = castPitchControl;
+        int32_t lFracPitch = currentFractionPitchControl;
+        int32_t lFoldPrev = foldPrevRaw;
+        int32_t lFoldLp = foldLpState;
+        uint32_t lSubPhase32 = subPhase32;
+        int32_t lCurWarpQ8 = curWarpQ8;
+        const uint16_t lWinSize = wavetableWindowSize;
+        const bool lHasSmoothing = (constrainsInSamples.pitchSmoothing != 0);
+
         for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++)
         {
-            if (constrainsInSamples.pitchSmoothing)
+            if (lHasSmoothing)
             {
                 if (pitchSmoothingControlCounter <= constrainsInSamples.pitchSmoothing)
                 {
@@ -157,9 +169,9 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                         pitchControl = wt_notes[MIN_NOTE];
                         pitchSmoothingControlCounter = constrainsInSamples.pitchSmoothing;
                     }
-                    castPitchControl = (int32_t)pitchControl;
-                    pitchFraction = pitchControl - (int32_t)pitchControl;
-                    currentFractionPitchControl = pitchFraction * MAX_16BIT;
+                    lCastPitch = (int32_t)pitchControl;
+                    pitchFraction = pitchControl - lCastPitch;
+                    lFracPitch = pitchFraction * MAX_16BIT;
                     if constexpr (HasSub)
                     {
                         subPhaseInc = (uint32_t)(pitchControl * subPhaseScale);
@@ -175,22 +187,22 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                                                 inPrev,
                                                 i,
                                                 doWindowXfade,
-                                                (uint32_t)iPitchCounter,
-                                                currentFractionPitchCounter,
+                                                (uint32_t)lPitchCounter,
+                                                lFracCounter,
                                                 wSize,
-                                                foldPrevRaw,
-                                                foldLpState);
+                                                lFoldPrev,
+                                                lFoldLp);
             }
             else
             {
                 const uint32_t taperQ15 =
-                  (warpStepQ8 == 0) ? blockTaperQ15 : wtWarpTaperQ15(curWarpQ8);
+                  (warpStepQ8 == 0) ? blockTaperQ15 : wtWarpTaperQ15(lCurWarpQ8);
                 wtSample = wtReadWarpedSampleWithTaper(in,
                                                        inPrev,
                                                        i,
                                                        doWindowXfade,
-                                                       (uint32_t)iPitchCounter,
-                                                       currentFractionPitchCounter,
+                                                       (uint32_t)lPitchCounter,
+                                                       lFracCounter,
                                                        wSize,
                                                        wSize16,
                                                        wIsPow2,
@@ -198,36 +210,45 @@ AUDIO_CORE_RAM audio_block_t* AudioPlayMemory::updateWavetable()
                                                        wMask16,
                                                        warpMode,
                                                        taperQ15,
-                                                       foldPrevRaw,
-                                                       foldLpState);
-                curWarpQ8 += warpStepQ8;
+                                                       lFoldPrev,
+                                                       lFoldLp);
+                lCurWarpQ8 += warpStepQ8;
             }
 
             if constexpr (HasSub)
             {
-                const int32_t subSample = wtEvalSubOsc(subWave, subPhase32);
+                const int32_t subSample = wtEvalSubOsc(subWave, lSubPhase32);
                 const int32_t mixed = wtClamp16(wtSample + ((subSample * subGain14) >> 14));
                 *out++ = (int16_t)mixed;
-                subPhase32 += subPhaseInc;
+                lSubPhase32 += subPhaseInc;
             }
             else
             {
                 *out++ = (int16_t)wtClamp16(wtSample);
             }
 
-            iPitchCounter += castPitchControl;
-            currentFractionPitchCounter += currentFractionPitchControl;
-            if (currentFractionPitchCounter >= MAX_16BIT)
+            lPitchCounter += lCastPitch;
+            lFracCounter += lFracPitch;
+            if (lFracCounter >= MAX_16BIT)
             {
-                currentFractionPitchCounter -= MAX_16BIT;
-                iPitchCounter++;
+                lFracCounter -= MAX_16BIT;
+                lPitchCounter++;
             }
 
-            if (iPitchCounter >= wavetableWindowSize)
+            if (lPitchCounter >= lWinSize)
             {
-                iPitchCounter -= wavetableWindowSize;
+                lPitchCounter -= lWinSize;
             }
         }
+
+        iPitchCounter = lPitchCounter;
+        currentFractionPitchCounter = lFracCounter;
+        castPitchControl = lCastPitch;
+        currentFractionPitchControl = lFracPitch;
+        foldPrevRaw = lFoldPrev;
+        foldLpState = lFoldLp;
+        subPhase32 = lSubPhase32;
+        curWarpQ8 = lCurWarpQ8;
     };
 
     if (subWave == 0 || subLevel == 0)

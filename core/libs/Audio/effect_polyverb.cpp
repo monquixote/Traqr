@@ -4,11 +4,9 @@
 #include "cr_mtb_buffer.h"
 
 extern uint16_t externalRamReverbBuff[];
-#ifdef PLATFORM_IMX
+// Place buffer E (8 of 12 reads and 8 of 11 writes per reverb sample) in internal SRAM on all platforms
+// rather than uncached 90 MHz external SDRAM on MK66. Same size and content: bit-identical output.
 static uint16_t internalRamReverbBuff[16384] __attribute__((section(".noinit")));
-#else
-static __NOINIT(EXTERNAL_RAM) uint16_t internalRamReverbBuff[16384];
-#endif
 
 AudioEffectPolyverb::AudioEffectPolyverb()
   : AudioStream(2, inputQueueArray)
@@ -29,6 +27,21 @@ AudioEffectPolyverb::~AudioEffectPolyverb()
 {
 }
 
+#ifdef AUDIO_NULL_IS_SILENCE
+static bool isSilentOrMissing(const audio_block_t* block)
+{
+    if (block == NULL)
+        return true;
+    const uint32_t* p = (const uint32_t*)block->data;
+    for (int i = 0; i < AUDIO_BLOCK_SAMPLES / 2; i++)
+    {
+        if (p[i] != 0)
+            return false;
+    }
+    return true;
+}
+#endif
+
 AUDIO_CORE_RAM void AudioEffectPolyverb::update(void)
 {
     if (isBlockedUpdate)
@@ -37,6 +50,43 @@ AUDIO_CORE_RAM void AudioEffectPolyverb::update(void)
     audio_block_t* block_left;
     audio_block_t* block_right;
 
+#ifdef AUDIO_NULL_IS_SILENCE
+    // a missing input is silence: the reverb tail keeps ringing (stock took a block of zeros here, and left the other input unread)
+    block_left = receiveWritable(0);
+    block_right = receiveWritable(1);
+    const bool silentIn = isSilentOrMissing(block_left) && isSilentOrMissing(block_right);
+    if (silentIn && reverb.IsQuiet())
+    {
+        // Silent input and a reverb that has decayed below 1 LSB everywhere (the line buffers are zero): nothing to compute, nothing to
+        // transmit. The next block with sound starts from a clean reverb.
+        if (block_left)
+            release(block_left);
+        if (block_right)
+            release(block_right);
+        reverb.SkipQuiet(AUDIO_BLOCK_SAMPLES);
+        return;
+    }
+    if (block_left == NULL)
+    {
+        block_left = allocate();
+        if (block_left)
+            memset(block_left->data, 0, sizeof(block_left->data));
+    }
+    if (block_right == NULL)
+    {
+        block_right = allocate();
+        if (block_right)
+            memset(block_right->data, 0, sizeof(block_right->data));
+    }
+    if (block_left == NULL || block_right == NULL)
+    {
+        if (block_left)
+            release(block_left);
+        if (block_right)
+            release(block_right);
+        return;
+    }
+#else
     block_left = receiveWritable(0);
     if (block_left == NULL)
         return;
@@ -46,8 +96,13 @@ AUDIO_CORE_RAM void AudioEffectPolyverb::update(void)
         release(block_left);
         return;
     }
+#endif
 
     reverb.Process(block_left->data, block_right->data, AUDIO_BLOCK_SAMPLES);
+#ifdef AUDIO_NULL_IS_SILENCE
+    if (!silentIn)
+        reverb.ClearQuiet();
+#endif
 
     transmit(block_left, 0);
     transmit(block_right, 1);

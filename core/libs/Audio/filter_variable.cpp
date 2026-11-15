@@ -665,6 +665,50 @@ AUDIO_CORE_RAM void AudioFilterStateVariable::update_fixed(const int16_t* in, in
     lastupdate_damp = setting_damp;
 }
 
+#ifdef AUDIO_NULL_IS_SILENCE
+AUDIO_CORE_RAM bool AudioFilterStateVariable::isSettledOnSilence() const
+{
+    if (lastupdate_fmult != setting_fmult || lastupdate_damp != setting_damp)
+    {
+        return false;
+    }
+    const int32_t fmult = setting_fmult;
+    const int32_t damp = setting_damp;
+    int32_t lowpass = state_lowpass;
+    int32_t bandpass = state_bandpass;
+
+    lowpass = lowpass + MULT(fmult, bandpass);
+    int32_t highpass = ((0 + state_inputprev) >> 1) - lowpass - MULT(damp, bandpass);
+    bandpass = bandpass + MULT(fmult, highpass);
+    const int32_t lowpasstmp = lowpass;
+    const int32_t bandpasstmp = bandpass;
+    const int32_t highpasstmp = highpass;
+    lowpass = lowpass + MULT(fmult, bandpass);
+    highpass = 0 - lowpass - MULT(damp, bandpass);
+    bandpass = bandpass + MULT(fmult, highpass);
+
+    int32_t passSum;
+    if (filterType == kFilterTypeLowPass)
+    {
+        passSum = lowpass + lowpasstmp;
+    }
+    else if (filterType == kFilterTypeBandPass)
+    {
+        passSum = bandpass + bandpasstmp;
+    }
+    else if (filterType == kFilterTypeHighPass)
+    {
+        passSum = highpass + highpasstmp;
+    }
+    else
+    {
+        passSum = 0;
+    }
+    return state_inputprev == 0 && lowpass == state_lowpass && bandpass == state_bandpass &&
+           signed_saturate_rshift(passSum, 16, kInputShift + 1) == 0;
+}
+#endif
+
 AUDIO_CORE_RAM void AudioFilterStateVariable::update(void)
 {
     audio_block_t* input_block = nullptr;
@@ -674,7 +718,50 @@ AUDIO_CORE_RAM void AudioFilterStateVariable::update(void)
     input_block = receiveReadOnly(0);
     if (nullptr == input_block)
     {
+#ifdef AUDIO_NULL_IS_SILENCE
+        if (isEnabled == lastEnabled && filterType == lastFilterType)
+        {
+            if (!isEnabled)
+            {
+                if (overdriveGain == 0)
+                {
+                    state_inputprev = 0;
+                }
+                state_outputprev = 0;
+                return;
+            }
+            if (sFilterModel == kFilterModelLegacy)
+            {
+                if (state_inputprev == 0 && state_lowpass == 0 && state_bandpass == 0)
+                {
+                    lastupdate_fmult = setting_fmult;
+                    lastupdate_damp = setting_damp;
+                    state_outputprev = 0;
+                    return;
+                }
+                if (isSettledOnSilence())
+                {
+                    state_outputprev = 0;
+                    return;
+                }
+            }
+            else if (svf_s1 == 0.0f && svf_s2 == 0.0f && svf_s1_b == 0.0f && svf_s2_b == 0.0f &&
+                     ladder_s[0] == 0.0f && ladder_s[1] == 0.0f && ladder_s[2] == 0.0f &&
+                     ladder_s[3] == 0.0f && od_state1 == 0.0f && od_state2 == 0.0f &&
+                     state_outputprev == 0)
+            {
+                return;
+            }
+        }
+        input_block = allocate();
+        if (nullptr == input_block)
+        {
+            return;
+        }
+        memset(input_block->data, 0, sizeof(input_block->data));
+#else
         return;
+#endif
     }
 
     if (!isEnabled && overdriveGain == 0 && isEnabled == lastEnabled && filterType == lastFilterType)

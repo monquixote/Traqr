@@ -7,6 +7,7 @@
 #include "PolySynth/Synth.h"
 #include "Synth.h"
 #include "config.h"
+#include "synth_part_clip.h"
 #include <span>
 //#include "Audio.h"
 //#include "dspinst.h'
@@ -59,14 +60,24 @@ AUDIO_CORE_RAM void PolySynth::update(void)
                                      polysynth::Patch::Metadata::OutputChannels::kStereo;
 
         bool hasSends = part.patch != nullptr && part.patch->getMetadata().rendersAuxSends;
+        const bool reuseUnmodifiedMono = (!hasSends && !isStereo && gainDB[partIdx] == 0.0f);
+#ifdef AUDIO_NULL_IS_SILENCE
+        const bool skipSendBlocks =
+          !hasSends && !reuseUnmodifiedMono && !AudioStream::renderMode &&
+          sendMixer[0] != nullptr && sendMixer[1] != nullptr &&
+          sendMixer[0]->isInputSilenced(firstSendInput + partIdx) &&
+          sendMixer[1]->isInputSilenced(firstSendInput + partIdx);
+#else
+        constexpr bool skipSendBlocks = false;
+#endif
 
         audio_block_t* blockPostFaderLeft = allocate();
         audio_block_t* blockPostFaderRight = isStereo ? allocate() : NULL;
-        audio_block_t* blockSendsCommonOrSend1 = allocate();
+        audio_block_t* blockSendsCommonOrSend1 = skipSendBlocks ? NULL : allocate();
         audio_block_t* blockSend2 = hasSends ? allocate() : NULL;
 
         if (blockPostFaderLeft == NULL || (isStereo && blockPostFaderRight == NULL) ||
-            blockSendsCommonOrSend1 == NULL || (hasSends && blockSend2 == NULL))
+            (!skipSendBlocks && blockSendsCommonOrSend1 == NULL) || (hasSends && blockSend2 == NULL))
         {
             if (blockPostFaderLeft != NULL)
             {
@@ -99,77 +110,95 @@ AUDIO_CORE_RAM void PolySynth::update(void)
           std::span<polysynth::AudioBufferRef>(tempSendsBufArray),
           partIdx);
 
-        const bool reuseUnmodifiedMono = (!hasSends && !isStereo && gainDB[partIdx] == 0.0f);
-        if (!reuseUnmodifiedMono)
+        if (!hasSends && !isStereo)
+        {
+            static_assert(kSynthParts == 3);
+            static part_clip::GainCache<kSynthParts> gainCache = {
+                { __builtin_nanf(""), __builtin_nanf(""), __builtin_nanf("") },
+                { 0.0f, 0.0f, 0.0f }
+            };
+            const float postGainAmp =
+              reuseUnmodifiedMono
+                ? 1.0f
+                : gainCache.get(partIdx, gainDB[partIdx], polysynth::sdk::dbToAmplitude);
+
+            part_clip::monoPart<polysynth::kAudioBufferSize>(
+              tempBufSendsCommonLeft.data(),
+              postGainAmp,
+              reuseUnmodifiedMono,
+              skipSendBlocks,
+              blockSendsCommonOrSend1 != NULL ? blockSendsCommonOrSend1->data : nullptr,
+              blockPostFaderLeft->data);
+
+            if (!skipSendBlocks)
+            {
+                transmit(blockSendsCommonOrSend1, kSend1Offset + partIdx);
+                transmit(blockSendsCommonOrSend1, kSend2Offset + partIdx);
+                release(blockSendsCommonOrSend1);
+            }
+        }
+        else
         {
             tempBufPostfaderLeft = tempBufSendsCommonLeft;
             if (isStereo)
             {
                 tempBufPostfaderRight = tempBufSendsCommonRight;
             }
-        }
 
-        polysynth::AudioBufferRef tempBufRef = tempBufSendsCommonLeft;
+            polysynth::AudioBufferRef tempBufRef = tempBufSendsCommonLeft;
 
-        assert(!hasSends ||
-               isStereo); // Assumption to simplify handling. The only one stereo and with internal
-                          // synths is PERC, the other are mono and without sends. Refactor the
-                          // handling if needed for new synth.
+            assert(!hasSends ||
+                   isStereo); // Assumption to simplify handling. The only one stereo and with internal
+                              // synths is PERC, the other are mono and without sends. Refactor the
+                              // handling if needed for new synth.
 
-        if (hasSends)
-        {
-            auto* srcSend1 = tempBufSend[0].begin();
-            auto* srcSend2 = tempBufSend[1].begin();
-
-            auto* destSend1 = blockSendsCommonOrSend1->data;
-            auto* destSend2 = blockSend2->data;
-
-            for (int i = 0; i < polysynth::kAudioBufferSize; i++)
+            if (hasSends)
             {
-                *(destSend1++) = static_cast<int16_t>(*(srcSend1++) * INT16_MAX);
-                *(destSend2++) = static_cast<int16_t>(*(srcSend2++) * INT16_MAX);
-            }
-        }
-        else
-        {
+                auto* srcSend1 = tempBufSend[0].begin();
+                auto* srcSend2 = tempBufSend[1].begin();
 
-            if (isStereo)
-            {
-                for (int idx = 0; idx < polysynth::kAudioBufferSize; idx++)
+                auto* destSend1 = blockSendsCommonOrSend1->data;
+                auto* destSend2 = blockSend2->data;
+
+                for (int i = 0; i < polysynth::kAudioBufferSize; i++)
                 {
-                    tempBufSendsCommonLeft[idx] =
-                      (tempBufSendsCommonLeft[idx] + tempBufSendsCommonRight[idx]) / 2.0f;
+                    *(destSend1++) = static_cast<int16_t>(*(srcSend1++) * INT16_MAX);
+                    *(destSend2++) = static_cast<int16_t>(*(srcSend2++) * INT16_MAX);
+                }
+            }
+            else if (!skipSendBlocks)
+            {
+                if (isStereo)
+                {
+                    for (int idx = 0; idx < polysynth::kAudioBufferSize; idx++)
+                    {
+                        tempBufSendsCommonLeft[idx] =
+                          (tempBufSendsCommonLeft[idx] + tempBufSendsCommonRight[idx]) / 2.0f;
+                    }
+                }
+
+                polysynth::sdk::saturateSoftClip(tempBufRef, 0.0f);
+
+                auto* src = tempBufSendsCommonLeft.begin();
+                auto* dest = blockSendsCommonOrSend1->data;
+
+                for (int i = 0; i < polysynth::kAudioBufferSize; i++)
+                {
+                    *(dest++) = static_cast<int16_t>(*(src++) * INT16_MAX);
                 }
             }
 
-            polysynth::sdk::saturateSoftClip(tempBufRef, 0.0f);
-
-            auto* src = tempBufSendsCommonLeft.begin();
-            auto* dest = blockSendsCommonOrSend1->data;
-
-            for (int i = 0; i < polysynth::kAudioBufferSize; i++)
+            if (!skipSendBlocks)
             {
-                *(dest++) = static_cast<int16_t>(*(src++) * INT16_MAX);
+                transmit(blockSendsCommonOrSend1, kSend1Offset + partIdx);
+                transmit(hasSends ? blockSend2 : blockSendsCommonOrSend1, kSend2Offset + partIdx);
+                release(blockSendsCommonOrSend1);
+                if (blockSend2 != NULL)
+                {
+                    release(blockSend2);
+                }
             }
-        }
 
-        if (reuseUnmodifiedMono)
-        {
-            memcpy(blockPostFaderLeft->data,
-                   blockSendsCommonOrSend1->data,
-                   sizeof(blockPostFaderLeft->data));
-        }
-
-        transmit(blockSendsCommonOrSend1, kSend1Offset + partIdx);
-        transmit(hasSends ? blockSend2 : blockSendsCommonOrSend1, kSend2Offset + partIdx);
-        release(blockSendsCommonOrSend1);
-        if (blockSend2 != NULL)
-        {
-            release(blockSend2);
-        }
-
-        if (!reuseUnmodifiedMono)
-        {
             tempBufRef = tempBufPostfaderLeft;
             polysynth::sdk::saturateSoftClip(tempBufRef, gainDB[partIdx]);
 
