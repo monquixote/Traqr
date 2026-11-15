@@ -8,11 +8,30 @@
 #include "Synth.h"
 #include "config.h"
 #include "synth_part_clip.h"
+#include <cstring>
 #include <span>
 //#include "Audio.h"
 //#include "dspinst.h'
 //#include "util_math.h"
 //#include <cr_section_macros.h>
+
+#ifdef AUDIO_NULL_IS_SILENCE
+static inline AUDIO_CORE_RAM bool isSilentFloatBuffer(
+  const std::array<polysynth::sample_t, polysynth::kAudioBufferSize>& buf)
+{
+    static_assert(polysynth::kAudioBufferSize % 4 == 0);
+    for (size_t i = 0; i < polysynth::kAudioBufferSize; i += 4)
+    {
+        uint32_t w[4];
+        std::memcpy(w, &buf[i], sizeof(w));
+        if (((w[0] | w[1] | w[2] | w[3]) << 1) != 0U)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+#endif
 
 AUDIO_CORE_RAM void PolySynth::update(void)
 {
@@ -60,6 +79,24 @@ AUDIO_CORE_RAM void PolySynth::update(void)
                                      polysynth::Patch::Metadata::OutputChannels::kStereo;
 
         bool hasSends = part.patch != nullptr && part.patch->getMetadata().rendersAuxSends;
+        std::array<polysynth::AudioBufferRef, 2> tempSendsBufArray = { tempBufSend[0],
+                                                                       tempBufSend[1] };
+
+        trackerSynth->synth->renderAudioBuffer(
+          { tempBufSendsCommonLeft, tempBufSendsCommonRight },
+          std::span<polysynth::AudioBufferRef>(tempSendsBufArray),
+          partIdx);
+
+#ifdef AUDIO_NULL_IS_SILENCE
+        if (!AudioStream::renderMode &&
+            isSilentFloatBuffer(tempBufSendsCommonLeft) &&
+            (!isStereo || isSilentFloatBuffer(tempBufSendsCommonRight)) &&
+            (!hasSends || (isSilentFloatBuffer(tempBufSend[0]) && isSilentFloatBuffer(tempBufSend[1]))))
+        {
+            continue;
+        }
+#endif
+
         const bool reuseUnmodifiedMono = (!hasSends && !isStereo && gainDB[partIdx] == 0.0f);
 #ifdef AUDIO_NULL_IS_SILENCE
         const bool skipSendBlocks =
@@ -101,14 +138,6 @@ AUDIO_CORE_RAM void PolySynth::update(void)
 
             return;
         }
-
-        std::array<polysynth::AudioBufferRef, 2> tempSendsBufArray = { tempBufSend[0],
-                                                                       tempBufSend[1] };
-
-        trackerSynth->synth->renderAudioBuffer(
-          { tempBufSendsCommonLeft, tempBufSendsCommonRight },
-          std::span<polysynth::AudioBufferRef>(tempSendsBufArray),
-          partIdx);
 
         if (!hasSends && !isStereo)
         {
